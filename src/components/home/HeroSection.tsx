@@ -1,0 +1,188 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import Link from 'next/link'
+import { motion } from 'framer-motion'
+import { ArrowRight, ChevronDown, Star, Award } from 'lucide-react'
+
+const floatingElements = [
+  { top: '15%', left: '8%', delay: 0 },
+  { top: '70%', left: '5%', delay: 1 },
+  { top: '25%', right: '10%', delay: 0.5 },
+  { top: '65%', right: '7%', delay: 1.5 },
+]
+
+export default function HeroSection() {
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  return (
+    <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+      {/* Background gradient */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[#2a1a1f] via-[#1a1215] to-[#0d0a0b]" />
+
+      {/* Decorative circles */}
+      <div className="absolute top-1/4 left-1/3 w-[500px] h-[500px] rounded-full bg-rose-gold/10 blur-[80px]" />
+      <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] rounded-full bg-golden/8 blur-[60px]" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-rose-gold/5 blur-[100px]" />
+
+      {/* Floating particles */}
+      {mounted &&
+        floatingElements.map((el, i) => (
+          <motion.div
+            key={i}
+            className="absolute w-1.5 h-1.5 rounded-full bg-golden/60"
+            style={{ top: el.top, left: el.left, right: (el as any).right }}
+            animate={{
+              y: [0, -20, 0],
+              opacity: [0.4, 1, 0.4],
+            }}
+            transition={{
+              duration: 4,
+              delay: el.delay,
+              repeat: Infinity,
+              ease: 'easeInOut',
+            }}
+          />
+        ))}
+
+      {/* Vertical lines decoration */}
+      <div className="absolute left-6 top-1/4 bottom-1/4 w-px bg-gradient-to-b from-transparent via-rose-gold/30 to-transparent hidden lg:block" />
+      <div className="absolute right-6 top-1/4 bottom-1/4 w-px bg-gradient-to-b from-transparent via-golden/30 to-transparent hidden lg:block" />
+
+      {/* Content */}
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center pt-20">
+        {/* Badge */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-golden/30 bg-golden/10 mb-8"
+        >
+          <Award className="w-3.5 h-3.5 text-golden" />
+          <span className="text-golden text-xs font-semibold tracking-widest uppercase font-inter">
+            Especialista Certificada em Portugal
+          </span>
+        </motion.div>
+
+        {/* Main heading */}
+        <motion.h1
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.3 }}
+          className="font-playfair font-bold text-5xl sm:text-6xl md:text-7xl lg:text-8xl text-white leading-tight mb-6"
+        >
+          Dermopigmentação{' '}
+          <span className="block mt-1">
+            <span
+              className="bg-clip-text text-transparent"
+              style={{
+                backgroundImage: 'linear-gradient(135deg, #B76E79 0%, #C9A96E 60%, #B76E79 100%)',
+                backgroundSize: '200%',
+              }}
+            >
+              Avançada
+            </span>
+          </span>
+        </motion.h1>
+
+        {/* Subtitle */}
+        <motion.p
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.5 }}
+          className="text-white/70 text-lg md:text-xl max-w-2xl mx-auto mb-10 font-inter leading-relaxed"
+        >
+          Arte e precisão ao serviço da sua beleza natural.
+          <span className="block mt-1 text-white/50 text-base">
+            Braga, Portugal — Resultados que duram anos
+          </span>
+        </motion.p>
+
+        {/* CTA Buttons */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.7 }}
+          className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16"
+        >
+          <Link
+            href="/contacto"
+            className="group inline-flex items-center gap-2 px-8 py-4 bg-gradient-rose text-white font-semibold rounded-full shadow-rose-lg hover:shadow-rose hover:-translate-y-1 transition-all duration-300 font-inter text-base"
+          >
+            Agendar Agora
+            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-200" />
+          </Link>
+          <Link
+            href="/servicos"
+            className="group inline-flex items-center gap-2 px-8 py-4 border-2 border-white/30 text-white font-semibold rounded-full hover:border-golden hover:text-golden transition-all duration-300 font-inter text-base backdrop-blur-sm"
+          >
+            Conhecer Serviços
+            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-200" />
+          </Link>
+        </motion.div>
+
+        {/* Stats Row */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.9 }}
+          className="flex flex-wrap items-center justify-center gap-8 md:gap-16 mb-16"
+        >
+          {[
+            { value: '+200', label: 'Clientes Satisfeitas' },
+            { value: '+8', label: 'Anos de Experiência' },
+            { value: '4', label: 'Serviços Especializados' },
+          ].map((stat, i) => (
+            <div key={i} className="text-center">
+              <p className="font-playfair font-bold text-3xl text-white mb-1">
+                {stat.value}
+              </p>
+              <p className="text-white/50 text-sm font-inter tracking-wide">
+                {stat.label}
+              </p>
+            </div>
+          ))}
+        </motion.div>
+
+        {/* Review Stars */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.8, delay: 1.1 }}
+          className="flex items-center justify-center gap-2 mb-16"
+        >
+          <div className="flex items-center gap-1">
+            {[...Array(5)].map((_, i) => (
+              <Star key={i} className="w-4 h-4 text-golden fill-golden" />
+            ))}
+          </div>
+          <span className="text-white/60 text-sm font-inter">
+            5.0 — Avaliações verificadas do Google
+          </span>
+        </motion.div>
+      </div>
+
+      {/* Scroll indicator */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1.5, duration: 0.6 }}
+        className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
+      >
+        <span className="text-white/40 text-xs font-inter tracking-widest uppercase">
+          Scroll
+        </span>
+        <motion.div
+          animate={{ y: [0, 8, 0] }}
+          transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+        >
+          <ChevronDown className="w-5 h-5 text-white/40" />
+        </motion.div>
+      </motion.div>
+    </section>
+  )
+}
