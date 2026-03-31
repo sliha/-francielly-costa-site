@@ -8,12 +8,8 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || ''
 
-// Disable body parsing — Stripe requires the raw body for signature verification
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-}
+// Configuração atualizada para o Next.js App Router
+export const runtime = 'nodejs'
 
 export async function POST(req: NextRequest) {
   const body = await req.text()
@@ -62,15 +58,4 @@ export async function POST(req: NextRequest) {
 
       default:
         // Unhandled event type — log but respond 200
-        console.log(`Evento Stripe não tratado: ${event.type}`)
-    }
-  } catch (err) {
-    console.error('Erro ao processar evento Stripe:', err)
-    return NextResponse.json(
-      { error: 'Erro interno ao processar evento' },
-      { status: 500 }
-    )
-  }
-
-  return NextResponse.json({ received: true })
-}
+        console.log(
