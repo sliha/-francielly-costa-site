@@ -50,7 +50,7 @@ switch (event.type) {
 
 case 'checkout.session.completed': {
 
-const session = [event.data](http://event.data).object as Stripe.CheckoutSession
+const session = event.data.object as Stripe.CheckoutSession
 
 const agendamentoId = session.metadata?.agendamentoId
 
@@ -62,7 +62,7 @@ caucaoPaga: true,
 
 metodoPagamento: 'stripe',
 
-stripeSessionId: [session.id](http://session.id),
+stripeSessionId: session.id,
 
 })
 
@@ -76,7 +76,7 @@ break
 
 case 'checkout.session.expired': {
 
-const session = [event.data](http://event.data).object as Stripe.CheckoutSession
+const session = event.data.object as Stripe.CheckoutSession
 
 const agendamentoId = session.metadata?.agendamentoId
 
