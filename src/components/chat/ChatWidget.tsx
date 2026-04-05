@@ -61,6 +61,13 @@ export default function ChatWidget() {
     }
   }, [isOpen])
 
+  // Open chat from external trigger (e.g. hero / fiberbrows section buttons)
+  useEffect(() => {
+    const handler = () => setIsOpen(true)
+    window.addEventListener('openChat', handler)
+    return () => window.removeEventListener('openChat', handler)
+  }, [])
+
   const sendMessage = useCallback(async () => {
     const trimmed = input.trim()
     if (!trimmed || isLoading) return

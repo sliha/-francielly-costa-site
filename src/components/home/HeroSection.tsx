@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { ArrowRight, ChevronDown, Star, Award } from 'lucide-react'
+import { ArrowRight, ChevronDown, Star, Award, Sparkles } from 'lucide-react'
 
 const floatingElements = [
   { top: '15%', left: '8%', delay: 0 },
@@ -11,6 +11,14 @@ const floatingElements = [
   { top: '25%', right: '10%', delay: 0.5 },
   { top: '65%', right: '7%', delay: 1.5 },
 ]
+
+function scrollToFiberBROWS() {
+  document.getElementById('fiberbrows-highlight')?.scrollIntoView({ behavior: 'smooth' })
+}
+
+function openChat() {
+  window.dispatchEvent(new Event('openChat'))
+}
 
 export default function HeroSection() {
   const [mounted, setMounted] = useState(false)
@@ -55,11 +63,32 @@ export default function HeroSection() {
 
       {/* Content */}
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center pt-20">
+
+        {/* FiberBROWS animated banner */}
+        <motion.button
+          onClick={scrollToFiberBROWS}
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="inline-flex items-center gap-2 px-5 py-2 rounded-full border border-golden/50 bg-golden/15 mb-5 cursor-pointer hover:border-golden hover:bg-golden/25 transition-all duration-300 group"
+        >
+          <motion.span
+            animate={{ rotate: [0, 15, -15, 0] }}
+            transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+          >
+            ✨
+          </motion.span>
+          <span className="text-golden text-xs font-bold tracking-[0.18em] uppercase font-inter">
+            Novo em Portugal — FiberBROWS
+          </span>
+          <ArrowRight className="w-3 h-3 text-golden group-hover:translate-x-0.5 transition-transform" />
+        </motion.button>
+
         {/* Badge */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
+          transition={{ duration: 0.6, delay: 0.25 }}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-golden/30 bg-golden/10 mb-8"
         >
           <Award className="w-3.5 h-3.5 text-golden" />
@@ -73,7 +102,7 @@ export default function HeroSection() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.3 }}
-          className="font-playfair font-bold text-5xl sm:text-6xl md:text-7xl lg:text-8xl text-white leading-tight mb-6"
+          className="font-playfair font-bold text-5xl sm:text-6xl md:text-7xl lg:text-8xl text-white leading-tight mb-4"
         >
           Dermopigmentação{' '}
           <span className="block mt-1">
@@ -93,49 +122,54 @@ export default function HeroSection() {
         <motion.p
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.5 }}
-          className="text-white/70 text-lg md:text-xl max-w-2xl mx-auto mb-10 font-inter leading-relaxed"
+          transition={{ duration: 0.8, delay: 0.45 }}
+          className="text-white/70 text-lg md:text-xl max-w-2xl mx-auto mb-2 font-inter leading-relaxed"
         >
           Arte e precisão ao serviço da sua beleza natural.
-          <span className="block mt-1 text-white/50 text-base">
-            Braga, Portugal — Resultados que duram anos
-          </span>
+        </motion.p>
+        <motion.p
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.52 }}
+          className="text-golden/80 text-base md:text-lg max-w-xl mx-auto mb-10 font-inter font-medium"
+        >
+          Primeira profissional certificada em FiberBROWS em Portugal
         </motion.p>
 
         {/* CTA Buttons */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.7 }}
+          transition={{ duration: 0.8, delay: 0.65 }}
           className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16"
         >
-          <Link
-            href="/contacto"
+          <button
+            onClick={scrollToFiberBROWS}
             className="group inline-flex items-center gap-2 px-8 py-4 bg-gradient-rose text-white font-semibold rounded-full shadow-rose-lg hover:shadow-rose hover:-translate-y-1 transition-all duration-300 font-inter text-base"
           >
-            Agendar Agora
-            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-200" />
-          </Link>
-          <Link
-            href="/servicos"
+            Descubra a FiberBROWS
+            <Sparkles className="w-4 h-4 group-hover:scale-110 transition-transform duration-200" />
+          </button>
+          <button
+            onClick={openChat}
             className="group inline-flex items-center gap-2 px-8 py-4 border-2 border-white/30 text-white font-semibold rounded-full hover:border-golden hover:text-golden transition-all duration-300 font-inter text-base backdrop-blur-sm"
           >
-            Conhecer Serviços
+            Agendar com a Sofia
             <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-200" />
-          </Link>
+          </button>
         </motion.div>
 
         {/* Stats Row */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.9 }}
+          transition={{ duration: 0.8, delay: 0.85 }}
           className="flex flex-wrap items-center justify-center gap-8 md:gap-16 mb-16"
         >
           {[
             { value: '+200', label: 'Clientes Satisfeitas' },
             { value: '+8', label: 'Anos de Experiência' },
-            { value: '4', label: 'Serviços Especializados' },
+            { value: '5', label: 'Serviços Especializados' },
           ].map((stat, i) => (
             <div key={i} className="text-center">
               <p className="font-playfair font-bold text-3xl text-white mb-1">
@@ -152,7 +186,7 @@ export default function HeroSection() {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 0.8, delay: 1.1 }}
+          transition={{ duration: 0.8, delay: 1.05 }}
           className="flex items-center justify-center gap-2 mb-16"
         >
           <div className="flex items-center gap-1">

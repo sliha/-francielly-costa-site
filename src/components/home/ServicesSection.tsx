@@ -38,19 +38,35 @@ export default function ServicesSection() {
         </motion.div>
 
         {/* Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {services.map((service, i) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+          {services.map((service, i) => {
+            const isFlagship = service.slug === 'fiberbrows'
+            return (
             <motion.div
               key={service.slug}
               initial={{ opacity: 0, y: 30 }}
               animate={inView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.6, delay: i * 0.12 }}
-              className="group relative bg-white rounded-2xl overflow-hidden shadow-card hover:shadow-card-hover transition-all duration-500 hover:-translate-y-2 flex flex-col"
+              transition={{ duration: 0.6, delay: i * 0.1 }}
+              className={`group relative bg-white rounded-2xl overflow-hidden transition-all duration-500 hover:-translate-y-2 flex flex-col ${
+                isFlagship
+                  ? 'shadow-golden lg:col-span-1 ring-2 ring-golden/40'
+                  : 'shadow-card hover:shadow-card-hover'
+              }`}
             >
+              {/* NOVO badge for FiberBROWS */}
+              {isFlagship && (
+                <div className="absolute top-3 right-3 z-10 px-2.5 py-0.5 rounded-full text-xs font-bold font-inter text-white"
+                  style={{ background: 'linear-gradient(135deg, #C9A96E, #B76E79)' }}>
+                  NOVO
+                </div>
+              )}
+
               {/* Top color bar */}
               <div
                 className="h-1 w-full transition-all duration-300 group-hover:h-1.5"
-                style={{ background: `linear-gradient(90deg, ${service.color}, ${i % 2 === 0 ? '#C9A96E' : '#B76E79'})` }}
+                style={{ background: isFlagship
+                  ? 'linear-gradient(90deg, #C9A96E, #B76E79, #C9A96E)'
+                  : `linear-gradient(90deg, ${service.color}, ${i % 2 === 0 ? '#C9A96E' : '#B76E79'})` }}
               />
 
               {/* Card content */}
@@ -108,7 +124,7 @@ export default function ServicesSection() {
                 }}
               />
             </motion.div>
-          ))}
+          )})}
         </div>
 
         {/* Bottom CTA */}

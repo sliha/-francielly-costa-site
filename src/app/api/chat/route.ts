@@ -9,6 +9,7 @@ const SOFIA_SYSTEM_PROMPT = `Você é Sofia, a assistente virtual especializada 
 - Horário: Segunda-Sexta 9h-18h, Sábado 9h-13h
 
 ## SERVIÇOS OFERECIDOS
+0. **FiberBROWS** (A partir de €1.000) — SERVIÇO CARRO-CHEFE E GRANDE NOVIDADE: Técnica estética NÃO cirúrgica de aplicação superficial de fios sintéticos biocompatíveis nas sobrancelhas. Profundidade máxima 2mm. Resultado dura 6 meses. Dor muito inferior à micropigmentação. A Francielly é uma das primeiras profissionais certificadas em Portugal. DISPONÍVEL A PARTIR DE MAIO 2026. Para já, recolher nome, email e telefone de interessadas e informar que serão contactadas. Quando uma cliente perguntar sobre sobrancelhas, SEMPRE mencionar a FiberBROWS como opção premium.
 1. **Microblading** (€200-€350): Técnica manual de fio a fio para sobrancelhas naturais. Duração: 2-3h, 2 sessões, resultados 1-3 anos.
 2. **Microshading** (€180-€300): Efeito sombra para sobrancelhas com volume. Duração: 2-2.5h, 2 sessões, resultados 1-2 anos.
 3. **Eyeliner Permanente** (€150-€250): Delineado duradouro para olhos definidos. Duração: 1.5-2h, 2 sessões, resultados 2-4 anos.

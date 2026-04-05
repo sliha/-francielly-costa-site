@@ -24,6 +24,53 @@ export interface Service {
 
 export const SERVICES: Service[] = [
   {
+    id: 'fiberbrows',
+    slug: 'fiberbrows',
+    name: 'FiberBROWS',
+    shortDescription: 'Técnica não cirúrgica com fios sintéticos biocompatíveis. Sobrancelhas naturais, resultado 6 meses.',
+    description:
+      'Técnica estética não cirúrgica de aplicação superficial de fios sintéticos biocompatíveis nas sobrancelhas. Profundidade máxima de 2mm, dor inferior à micropigmentação, resultado duradouro de 6 meses.',
+    fullDescription:
+      'A FiberBROWS é uma técnica inovadora que aplica fios sintéticos biocompatíveis na pele com profundidade máxima de 2mm — mais superficial que a tatuagem, mais leve que a micropigmentação, menos invasiva que o piercing. Não é cirúrgica, não envolve extração de folículos e preserva 100% a integridade dos pelos naturais.',
+    icon: '◈',
+    duration: 'A definir',
+    duracaoMinutos: 60,
+    sessions: 1,
+    painLevel: 'Muito ligeiro',
+    priceRange: 'A partir de €1.000',
+    recovery: 'Mínimo',
+    duration_result: '6 meses',
+    purposes: [
+      'Sobrancelhas naturais sem cirurgia',
+      'Alternativa a transplante capilar',
+      'Preenchimento de falhas',
+      'Resultado temporário renovável',
+    ],
+    benefits: [
+      'Não cirúrgico nem médico',
+      'Dor muito ligeira',
+      'Resultado 6 meses',
+      'Alternativa a €7.000-€30.000',
+    ],
+    idealFor: [
+      'Sobrancelhas com falhas',
+      'Quem recusa cirurgia',
+      'Resultado natural imediato',
+      'Pele normal a seca',
+    ],
+    procedure: [
+      'Consulta e análise das sobrancelhas',
+      'Teste de tolerância ao fio sintético',
+      'Mapeamento e design',
+      'Aplicação com protocolo técnico rigoroso',
+      'Controlo de profundidade (máx. 2mm)',
+      'Instruções pós-procedimento',
+    ],
+    color: '#C9A96E',
+    gradient: 'from-golden to-golden-dark',
+    category: 'sobrancelhas',
+  },
+  {
     id: 'microblading',
     slug: 'microblading',
     name: 'Microblading',

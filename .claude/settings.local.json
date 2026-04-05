@@ -22,7 +22,10 @@
       "Bash(git -C /c/Users/Bioge/francielly-costa-site diff --stat)",
       "Bash(git -C /c/Users/Bioge/francielly-costa-site add .gitignore dataconnect/)",
       "Bash(git -C:*)",
-      "Bash(git -C /c/Users/Bioge/francielly-costa-site push origin main)"
+      "Bash(git -C /c/Users/Bioge/francielly-costa-site push origin main)",
+      "Bash(xargs grep:*)",
+      "Bash(wc -l C:UsersBiogefrancielly-costa-site/src/app/admin/*.tsx)",
+      "Bash(grep:*)"
     ]
   }
 }

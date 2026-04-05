@@ -18,6 +18,7 @@ import {
   Shield,
   Gift,
   Video,
+  Sparkles,
 } from 'lucide-react'
 import { signOut } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
@@ -29,6 +30,7 @@ const navItems = [
   { href: '/admin/clientes', icon: Users, label: 'Clientes', exact: false },
   { href: '/admin/acompanhamento', icon: Heart, label: 'Acompanhamento', exact: false },
   { href: '/admin/lista-espera', icon: Clock, label: 'Lista de Espera', exact: false },
+  { href: '/admin/fiberbrows-waitlist', icon: Sparkles, label: 'FiberBROWS Waitlist', exact: false },
   { href: '/admin/consultas-virtuais', icon: Video, label: 'Consultas Virtuais', exact: false },
   { href: '/admin/consentimentos', icon: Shield, label: 'Consentimentos', exact: false },
   { href: '/admin/referencias', icon: Gift, label: 'Referências', exact: false },
