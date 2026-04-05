@@ -134,7 +134,7 @@ export default function ServicosPage() {
                       Benefícios Principais
                     </p>
                     <div className="space-y-1">
-                      {service.benefits.slice(0, 3).map((benefit, j) => (
+                      {(service.benefits ?? []).slice(0, 3).map((benefit, j) => (
                         <div key={j} className="flex items-center gap-2">
                           <CheckCircle className="w-3.5 h-3.5 text-rose-gold flex-shrink-0" />
                           <span className="text-sm text-text-secondary font-inter">

@@ -136,7 +136,7 @@ export default function ServiceDetailPage({ service }: { service: Service }) {
                 Benefícios
               </h3>
               <ul className="space-y-3">
-                {service.benefits.map((b, i) => (
+                {(service.benefits ?? []).map((b, i) => (
                   <li key={i} className="flex items-start gap-2">
                     <CheckCircle className="w-4 h-4 text-rose-gold mt-0.5 flex-shrink-0" />
                     <span className="text-sm text-text-secondary font-inter">{b}</span>
@@ -156,7 +156,7 @@ export default function ServiceDetailPage({ service }: { service: Service }) {
                 Indicado Para
               </h3>
               <ul className="space-y-3">
-                {service.idealFor.map((item, i) => (
+                {(service.idealFor ?? []).map((item, i) => (
                   <li key={i} className="flex items-start gap-2">
                     <CheckCircle className="w-4 h-4 text-golden mt-0.5 flex-shrink-0" />
                     <span className="text-sm text-text-secondary font-inter">{item}</span>
@@ -176,7 +176,7 @@ export default function ServiceDetailPage({ service }: { service: Service }) {
                 Como Funciona
               </h3>
               <ol className="space-y-3">
-                {service.procedure.map((step, i) => (
+                {(service.procedure ?? []).map((step, i) => (
                   <li key={i} className="flex items-start gap-3">
                     <span
                       className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0 mt-0.5"

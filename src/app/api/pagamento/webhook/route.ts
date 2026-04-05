@@ -50,7 +50,7 @@ switch (event.type) {
 
 case 'checkout.session.completed': {
 
-const session = event.data.object as Stripe.CheckoutSession
+const session = event.data.object as Stripe.Checkout.Session
 
 const agendamentoId = session.metadata?.agendamentoId
 
@@ -76,7 +76,7 @@ break
 
 case 'checkout.session.expired': {
 
-const session = event.data.object as Stripe.CheckoutSession
+const session = event.data.object as Stripe.Checkout.Session
 
 const agendamentoId = session.metadata?.agendamentoId
 
