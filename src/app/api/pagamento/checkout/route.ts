@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2026-03-25.dahlia',
-})
+const stripe = process.env.STRIPE_SECRET_KEY
+  ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2026-03-25.dahlia' })
+  : null
 
 export async function POST(req: NextRequest) {
+  if (!stripe) return NextResponse.json({ error: 'Pagamentos não configurados' }, { status: 503 })
+
   try {
     const { agendamentoId, servicoNome, clienteEmail, caucaoValor } = await req.json()
 

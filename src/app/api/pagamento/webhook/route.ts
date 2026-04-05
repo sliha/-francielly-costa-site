@@ -6,15 +6,15 @@ import { atualizarEstadoAgendamento } from '@/lib/booking'
 
 export const runtime = 'nodejs'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-
-apiVersion: '2026-03-25.dahlia',
-
-})
+const stripe = process.env.STRIPE_SECRET_KEY
+  ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2026-03-25.dahlia' })
+  : null
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || ''
 
 export async function POST(req: NextRequest) {
+
+if (!stripe) return NextResponse.json({ error: 'Pagamentos não configurados' }, { status: 503 })
 
 if (!webhookSecret) {
 
