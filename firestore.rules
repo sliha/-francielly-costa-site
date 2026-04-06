@@ -1,0 +1,80 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches('.*@.*\\..*');
+    }
+
+    // ── Galeria ──────────────────────────────────────────────────────────────
+    // Public: only active items
+    // Admin: full CRUD
+    match /galeria/{docId} {
+      allow read: if resource.data.ativa == true || isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    // ── Agendamentos ─────────────────────────────────────────────────────────
+    // Public: create only (booking from site)
+    // Admin: full CRUD
+    match /agendamentos/{docId} {
+      allow create: if
+        request.resource.data.keys().hasAll(['clienteNome', 'clienteEmail', 'servicoId', 'data', 'horaInicio']) &&
+        isValidEmail(request.resource.data.clienteEmail);
+      allow read, update, delete: if isAuthenticated();
+    }
+
+    // ── FiberBROWS Waitlist ───────────────────────────────────────────────────
+    // Public: create only
+    // Admin: read + update (mark as contacted)
+    match /fiberbrows-waitlist/{docId} {
+      allow create: if
+        request.resource.data.keys().hasAll(['nome', 'email', 'telefone']) &&
+        isValidEmail(request.resource.data.email);
+      allow read, update: if isAuthenticated();
+      allow delete: if isAuthenticated();
+    }
+
+    // ── Settings (negócio, serviços) ──────────────────────────────────────────
+    // Public: read-only for some settings
+    // Admin: full write
+    match /settings/{docId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
+    // ── Dias Bloqueados ───────────────────────────────────────────────────────
+    // Public: read (for slot availability checks)
+    // Admin: write
+    match /diasBloqueados/{docId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
+    // ── Consentimentos ────────────────────────────────────────────────────────
+    match /consentimentos/{docId} {
+      allow read: if isAuthenticated() || request.auth == null;
+      allow create: if true;
+      allow update, delete: if isAuthenticated();
+    }
+
+    // ── Admin-only collections ────────────────────────────────────────────────
+    match /clientes/{docId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /pagamentos/{docId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /referencias/{docId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+  }
+}

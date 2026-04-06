@@ -47,11 +47,20 @@ export default function ContactoPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
-    // Simulate submission
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-    setIsSubmitting(false)
-    setSubmitted(true)
-    setForm(initialForm)
+    try {
+      const res = await fetch('/api/contacto', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
+      if (!res.ok) throw new Error('Erro no servidor')
+      setSubmitted(true)
+      setForm(initialForm)
+    } catch {
+      alert('Ocorreu um erro ao enviar. Por favor tente novamente ou contacte-nos pelo WhatsApp.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (

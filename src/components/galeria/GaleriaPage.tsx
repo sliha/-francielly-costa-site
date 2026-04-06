@@ -1,42 +1,87 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useInView } from 'react-intersection-observer'
-import { X, ZoomIn } from 'lucide-react'
+import { X, ZoomIn, Play, ChevronLeft, ChevronRight } from 'lucide-react'
+import { db } from '@/lib/firebase'
+import { collection, getDocs, query, where, orderBy } from 'firebase/firestore'
 
 const categories = [
   { id: 'all', label: 'Todos' },
+  { id: 'fiberbrows', label: 'FiberBROWS' },
+  { id: 'tricopigmentacao', label: 'Tricopigmentação' },
   { id: 'microblading', label: 'Microblading' },
   { id: 'microshading', label: 'Microshading' },
   { id: 'eyeliner', label: 'Eyeliner' },
   { id: 'labial', label: 'Labial' },
 ]
 
-const galleryItems = [
-  { id: 1, category: 'microblading', fromColor: 'from-rose-gold/20', toColor: 'to-rose-gold/50', label: 'Microblading Natural' },
-  { id: 2, category: 'microshading', fromColor: 'from-golden/20', toColor: 'to-golden/50', label: 'Microshading Suave' },
-  { id: 3, category: 'eyeliner', fromColor: 'from-rose-gold-dark/20', toColor: 'to-rose-gold-dark/50', label: 'Eyeliner Clássico' },
-  { id: 4, category: 'labial', fromColor: 'from-rose-gold/30', toColor: 'to-golden/40', label: 'Labial Nude' },
-  { id: 5, category: 'microblading', fromColor: 'from-golden/20', toColor: 'to-rose-gold/40', label: 'Microblading Definido' },
-  { id: 6, category: 'microshading', fromColor: 'from-rose-gold/25', toColor: 'to-golden/45', label: 'Microshading Volume' },
-  { id: 7, category: 'eyeliner', fromColor: 'from-golden/25', toColor: 'to-rose-gold/45', label: 'Eyeliner Marcado' },
-  { id: 8, category: 'labial', fromColor: 'from-rose-gold/20', toColor: 'to-rose-gold-dark/50', label: 'Labial Rosa' },
-  { id: 9, category: 'microblading', fromColor: 'from-rose-gold-dark/20', toColor: 'to-golden/40', label: 'Microblading Arco' },
-  { id: 10, category: 'microshading', fromColor: 'from-golden/30', toColor: 'to-rose-gold/50', label: 'Microshading Natural' },
-  { id: 11, category: 'eyeliner', fromColor: 'from-rose-gold/20', toColor: 'to-golden/40', label: 'Eyeliner Fino' },
-  { id: 12, category: 'labial', fromColor: 'from-golden/20', toColor: 'to-rose-gold/50', label: 'Labial Coral' },
-]
+const servicoLabels: Record<string, string> = {
+  fiberbrows: 'FiberBROWS',
+  tricopigmentacao: 'Tricopigmentação',
+  microblading: 'Microblading',
+  microshading: 'Microshading',
+  eyeliner: 'Eyeliner',
+  labial: 'Labial',
+}
+
+interface MediaItem {
+  id: string
+  url: string
+  servico: string
+  tipo: 'antes' | 'depois'
+  mediaType?: 'foto' | 'video'
+  label: string
+}
+
+// Placeholder items shown when no real media is uploaded yet
+const placeholders: MediaItem[] = Array.from({ length: 8 }, (_, i) => ({
+  id: `placeholder_${i}`,
+  url: '',
+  servico: ['microblading', 'microshading', 'eyeliner', 'labial', 'microblading', 'microshading', 'eyeliner', 'labial'][i],
+  tipo: i % 2 === 0 ? 'antes' : 'depois',
+  label: ['Microblading Natural', 'Microshading Suave', 'Eyeliner Clássico', 'Labial Nude', 'Microblading Definido', 'Microshading Volume', 'Eyeliner Marcado', 'Labial Rosa'][i],
+}))
 
 export default function GaleriaPage() {
   const [activeCategory, setActiveCategory] = useState('all')
-  const [lightboxItem, setLightboxItem] = useState<(typeof galleryItems)[0] | null>(null)
+  const [items, setItems] = useState<MediaItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
   const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.1 })
 
-  const filtered =
-    activeCategory === 'all'
-      ? galleryItems
-      : galleryItems.filter((item) => item.category === activeCategory)
+  useEffect(() => {
+    if (!db) { setLoading(false); return }
+    const q = query(
+      collection(db, 'galeria'),
+      where('ativa', '==', true),
+      orderBy('criadoEm', 'desc')
+    )
+    getDocs(q)
+      .then((snap) => setItems(snap.docs.map((d) => ({ id: d.id, ...d.data() } as MediaItem))))
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [])
+
+  const displayItems = items.length > 0 ? items : placeholders
+  const isPlaceholder = items.length === 0
+
+  const filtered = activeCategory === 'all'
+    ? displayItems
+    : displayItems.filter((item) => item.servico === activeCategory)
+
+  const photos = filtered.filter((i) => i.mediaType !== 'video')
+  const videos = filtered.filter((i) => i.mediaType === 'video')
+
+  const prevPhoto = () => {
+    if (lightboxIndex === null) return
+    setLightboxIndex((lightboxIndex - 1 + photos.length) % photos.length)
+  }
+  const nextPhoto = () => {
+    if (lightboxIndex === null) return
+    setLightboxIndex((lightboxIndex + 1) % photos.length)
+  }
 
   return (
     <div className="pt-20">
@@ -53,10 +98,8 @@ export default function GaleriaPage() {
             </span>
             <h1 className="font-playfair font-bold text-4xl md:text-6xl text-white mb-6">
               A Nossa{' '}
-              <span
-                className="bg-clip-text text-transparent"
-                style={{ backgroundImage: 'linear-gradient(135deg, #B76E79, #C9A96E)' }}
-              >
+              <span className="bg-clip-text text-transparent"
+                style={{ backgroundImage: 'linear-gradient(135deg, #B76E79, #C9A96E)' }}>
                 Galeria
               </span>
             </h1>
@@ -93,100 +136,159 @@ export default function GaleriaPage() {
             ))}
           </motion.div>
 
-          {/* Grid */}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeCategory}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
-            >
-              {filtered.map((item, i) => (
-                <motion.div
-                  key={item.id}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.4, delay: i * 0.05 }}
-                  className="group relative rounded-2xl overflow-hidden aspect-square cursor-pointer"
-                  onClick={() => setLightboxItem(item)}
-                >
-                  {/* Placeholder image */}
-                  <div
-                    className={`absolute inset-0 bg-gradient-to-br ${item.fromColor} ${item.toColor} transition-transform duration-500 group-hover:scale-105`}
-                  />
-
-                  {/* Overlay */}
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300 flex items-center justify-center">
-                    <div className="opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
-                      <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center">
-                        <ZoomIn className="w-5 h-5 text-rose-gold" />
+          {loading ? (
+            <div className="flex justify-center py-20">
+              <div className="w-10 h-10 border-2 border-rose-gold border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : (
+            <>
+              {/* Videos */}
+              {videos.length > 0 && (
+                <div className="mb-10">
+                  <h3 className="font-inter font-semibold text-sm text-text-muted uppercase tracking-wider mb-4">
+                    Vídeos Demonstração
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+                    {videos.map((v) => (
+                      <div key={v.id} className="rounded-2xl overflow-hidden bg-black aspect-video shadow-card">
+                        <video src={v.url} controls playsInline preload="metadata" className="w-full h-full object-cover" />
                       </div>
-                    </div>
+                    ))}
                   </div>
+                </div>
+              )}
 
-                  {/* Label */}
-                  <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <p className="text-white text-xs font-semibold font-inter">
-                      {item.label}
-                    </p>
-                  </div>
+              {/* Photos */}
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeCategory}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
+                >
+                  {photos.map((item, i) => (
+                    <motion.div
+                      key={item.id}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.4, delay: i * 0.05 }}
+                      className="group relative rounded-2xl overflow-hidden aspect-square cursor-pointer shadow-card"
+                      onClick={() => !isPlaceholder && setLightboxIndex(i)}
+                    >
+                      {item.url ? (
+                        <>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={item.url}
+                            alt={item.label}
+                            className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                            loading="lazy"
+                          />
+                          <div className="absolute bottom-2 left-2">
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold font-inter ${
+                              item.tipo === 'antes' ? 'bg-amber-400/20 text-amber-300' : 'bg-emerald-400/20 text-emerald-300'
+                            }`}>
+                              {item.tipo === 'antes' ? 'Antes' : 'Depois'}
+                            </span>
+                          </div>
+                        </>
+                      ) : (
+                        // Placeholder gradient
+                        <div className="absolute inset-0 bg-gradient-to-br from-rose-gold/20 to-golden/30 flex items-end p-3">
+                          <p className="text-white/60 text-xs font-inter">{item.label}</p>
+                        </div>
+                      )}
+
+                      {/* Service label */}
+                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-black/50 text-white font-inter">
+                          {servicoLabels[item.servico] ?? item.servico}
+                        </span>
+                      </div>
+
+                      {/* Hover overlay */}
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300 flex items-center justify-center">
+                        {item.url && (
+                          <div className="opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
+                            <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center">
+                              <ZoomIn className="w-5 h-5 text-rose-gold" />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  ))}
                 </motion.div>
-              ))}
-            </motion.div>
-          </AnimatePresence>
+              </AnimatePresence>
 
-          {/* Note */}
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={inView ? { opacity: 1 } : {}}
-            transition={{ duration: 0.6, delay: 0.5 }}
-            className="text-center text-text-muted text-sm font-inter mt-8"
-          >
-            * Estas são imagens representativas. Fotos reais de clientes serão
-            adicionadas com o devido consentimento.
-          </motion.p>
+              {isPlaceholder && (
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={inView ? { opacity: 1 } : {}}
+                  transition={{ duration: 0.6, delay: 0.5 }}
+                  className="text-center text-text-muted text-sm font-inter mt-8"
+                >
+                  * Fotos reais serão adicionadas à medida que os trabalhos são realizados.
+                </motion.p>
+              )}
+            </>
+          )}
         </div>
       </section>
 
       {/* Lightbox */}
       <AnimatePresence>
-        {lightboxItem && (
+        {lightboxIndex !== null && photos[lightboxIndex]?.url && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
-            onClick={() => setLightboxItem(null)}
+            onClick={() => setLightboxIndex(null)}
           >
-            <button
-              onClick={() => setLightboxItem(null)}
-              className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors duration-200"
-              aria-label="Fechar"
-            >
+            <button onClick={() => setLightboxIndex(null)}
+              className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors z-10">
               <X className="w-5 h-5" />
             </button>
+
+            {photos.length > 1 && (
+              <>
+                <button onClick={(e) => { e.stopPropagation(); prevPhoto() }}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors z-10">
+                  <ChevronLeft className="w-5 h-5 text-white" />
+                </button>
+                <button onClick={(e) => { e.stopPropagation(); nextPhoto() }}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors z-10">
+                  <ChevronRight className="w-5 h-5 text-white" />
+                </button>
+              </>
+            )}
+
             <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
+              key={lightboxIndex}
+              initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.8, opacity: 0 }}
-              transition={{ type: 'spring', damping: 25 }}
-              className="max-w-lg w-full aspect-square rounded-2xl overflow-hidden"
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="max-w-3xl w-full"
               onClick={(e) => e.stopPropagation()}
             >
-              <div
-                className={`w-full h-full bg-gradient-to-br ${lightboxItem.fromColor} ${lightboxItem.toColor} flex items-end`}
-              >
-                <div className="p-6 bg-gradient-to-t from-black/50 to-transparent w-full">
-                  <p className="text-white font-playfair font-bold text-xl">
-                    {lightboxItem.label}
-                  </p>
-                  <p className="text-white/70 text-sm font-inter capitalize">
-                    {lightboxItem.category}
-                  </p>
-                </div>
-              </div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={photos[lightboxIndex].url}
+                alt={photos[lightboxIndex].label}
+                className="w-full object-contain rounded-2xl max-h-[80vh]"
+              />
+              <p className="text-center text-white/50 text-sm font-inter mt-3">
+                {lightboxIndex + 1} / {photos.length} ·{' '}
+                <span className="text-white/70">{servicoLabels[photos[lightboxIndex].servico] ?? photos[lightboxIndex].servico}</span>
+                {' · '}
+                <span className={photos[lightboxIndex].tipo === 'antes' ? 'text-amber-400' : 'text-emerald-400'}>
+                  {photos[lightboxIndex].tipo === 'antes' ? 'Antes' : 'Depois'}
+                </span>
+              </p>
             </motion.div>
           </motion.div>
         )}
