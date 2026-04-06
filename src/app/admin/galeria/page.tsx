@@ -1,6 +1,6 @@
 'use client'
 import { useState, useRef, useEffect } from 'react'
-import { Upload, Trash2, Eye, EyeOff, ImagePlus, Filter, X } from 'lucide-react'
+import { Upload, Trash2, Eye, EyeOff, ImagePlus, Filter, X, Play } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { db, storage } from '@/lib/firebase'
 import { collection, getDocs, addDoc, deleteDoc, updateDoc, doc, serverTimestamp, orderBy, query } from 'firebase/firestore'
@@ -10,6 +10,7 @@ interface Foto {
   id: string
   servico: string
   tipo: 'antes' | 'depois'
+  mediaType: 'foto' | 'video'
   ativa: boolean
   url: string
   storagePath: string
@@ -20,6 +21,7 @@ interface Foto {
 const servicoLabels: Record<string, string> = {
   todos: 'Todos',
   fiberbrows: 'FiberBROWS',
+  tricopigmentacao: 'Tricopigmentação',
   microblading: 'Microblading',
   microshading: 'Microshading',
   eyeliner: 'Eyeliner',
@@ -44,12 +46,10 @@ export default function GaleriaPage() {
   const [isDragging, setIsDragging] = useState(false)
   const [uploads, setUploads] = useState<UploadItem[]>([])
   const [loading, setLoading] = useState(true)
-  // Modal state for choosing servico/tipo after file pick
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
   const [uploadMeta, setUploadMeta] = useState({ servico: 'microblading', tipo: 'depois' as 'antes' | 'depois' })
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Load from Firestore
   useEffect(() => {
     if (!db) { setLoading(false); return }
     const q = query(collection(db, 'galeria'), orderBy('criadoEm', 'desc'))
@@ -68,6 +68,7 @@ export default function GaleriaPage() {
   }
 
   const deleteFoto = async (foto: Foto) => {
+    if (!confirm('Eliminar este ficheiro?')) return
     setFotos((prev) => prev.filter((f) => f.id !== foto.id))
     try {
       if (storage && foto.storagePath) await deleteObject(ref(storage, foto.storagePath))
@@ -80,16 +81,16 @@ export default function GaleriaPage() {
     setPendingFiles([])
 
     for (const file of files) {
-      // 10MB limit for images, 100MB for video
       const isVideo = file.type.startsWith('video/')
-      const maxSize = isVideo ? 100 * 1024 * 1024 : 10 * 1024 * 1024
+      const maxSize = isVideo ? 200 * 1024 * 1024 : 10 * 1024 * 1024
       if (file.size > maxSize) {
-        alert(`${file.name}: ficheiro demasiado grande (máx ${isVideo ? '100MB' : '10MB'})`)
+        alert(`${file.name}: ficheiro demasiado grande (máx ${isVideo ? '200MB' : '10MB'})`)
         continue
       }
 
       const uploadId = `${Date.now()}_${Math.random()}`
-      const path = `galeria/${uploadId}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+      const path = `media/servicos/${uploadMeta.servico}/${uploadId}_${safeName}`
       const storageRef = ref(storage, path)
 
       setUploads((prev) => [...prev, { id: uploadId, name: file.name, progress: 0 }])
@@ -111,6 +112,7 @@ export default function GaleriaPage() {
               const newFoto: Omit<Foto, 'id'> = {
                 servico: uploadMeta.servico,
                 tipo: uploadMeta.tipo,
+                mediaType: isVideo ? 'video' : 'foto',
                 ativa: true,
                 url,
                 storagePath: path,
@@ -132,9 +134,7 @@ export default function GaleriaPage() {
 
   const handleFiles = (files: FileList | null) => {
     if (!files || files.length === 0) return
-    const arr = Array.from(files)
-    // Show meta selection modal before uploading
-    setPendingFiles(arr)
+    setPendingFiles(Array.from(files))
   }
 
   return (
@@ -142,9 +142,9 @@ export default function GaleriaPage() {
       {/* Header */}
       <div className="px-4 pt-5 pb-3 md:px-6 md:pt-6 flex items-center justify-between border-b border-white/5">
         <div>
-          <h1 className="text-white text-xl font-playfair font-semibold">Galeria</h1>
+          <h1 className="text-white text-xl font-playfair font-semibold">Galeria & Vídeos</h1>
           <p className="text-white/40 text-xs mt-0.5">
-            {fotos.filter((f) => f.ativa).length} ativas · {fotos.length} total
+            {fotos.filter((f) => f.ativa).length} ativos · {fotos.length} total
           </p>
         </div>
       </div>
@@ -161,16 +161,16 @@ export default function GaleriaPage() {
           }`}
         >
           <input ref={fileInputRef} type="file"
-            accept="image/jpeg,image/png,image/webp,.heic,.heif,video/mp4,video/quicktime"
+            accept="image/jpeg,image/png,image/webp,.heic,.heif,video/mp4,video/quicktime,video/mov"
             multiple className="hidden" onChange={(e) => handleFiles(e.target.files)} />
           <div className="w-10 h-10 rounded-xl bg-rose-gold/10 flex items-center justify-center mx-auto mb-2">
             <ImagePlus size={20} className="text-rose-gold" />
           </div>
           <p className="text-white/70 text-sm font-medium mb-0.5">Arraste ou clique para selecionar</p>
-          <p className="text-white/30 text-xs">JPEG, PNG, WEBP, HEIC/HEIF · MP4, MOV · Fotos até 10MB · Vídeos até 100MB</p>
+          <p className="text-white/30 text-xs">Fotos: JPEG, PNG, WEBP, HEIC · Vídeos: MP4, MOV · Fotos até 10MB · Vídeos até 200MB</p>
         </div>
 
-        {/* Upload progress items */}
+        {/* Upload progress */}
         {uploads.length > 0 && (
           <div className="space-y-2">
             {uploads.map((u) => (
@@ -201,7 +201,23 @@ export default function GaleriaPage() {
           ))}
         </div>
 
-        {/* Photo grid */}
+        {/* Stats */}
+        <div className="grid grid-cols-3 gap-2 text-center">
+          <div className="bg-[#1A1A1A] rounded-xl p-3 border border-white/5">
+            <p className="text-white font-semibold text-lg">{fotos.filter(f => f.mediaType !== 'video').length}</p>
+            <p className="text-white/30 text-xs">Fotos</p>
+          </div>
+          <div className="bg-[#1A1A1A] rounded-xl p-3 border border-white/5">
+            <p className="text-white font-semibold text-lg">{fotos.filter(f => f.mediaType === 'video').length}</p>
+            <p className="text-white/30 text-xs">Vídeos</p>
+          </div>
+          <div className="bg-[#1A1A1A] rounded-xl p-3 border border-white/5">
+            <p className="text-white font-semibold text-lg">{fotos.filter(f => f.ativa).length}</p>
+            <p className="text-white/30 text-xs">Ativos</p>
+          </div>
+        </div>
+
+        {/* Grid */}
         {loading ? (
           <div className="flex items-center justify-center py-16">
             <div className="w-8 h-8 border-2 border-rose-gold border-t-transparent rounded-full animate-spin" />
@@ -211,23 +227,41 @@ export default function GaleriaPage() {
             {filteredFotos.length === 0 ? (
               <div className="bg-[#1A1A1A] rounded-2xl p-10 text-center border border-white/5">
                 <Upload size={24} className="text-white/20 mx-auto mb-2" />
-                <p className="text-white/40 text-sm">Nenhuma foto encontrada</p>
+                <p className="text-white/40 text-sm">Nenhum ficheiro encontrado</p>
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                 {filteredFotos.map((foto) => {
                   const tipo = tipoConfig[foto.tipo] ?? tipoConfig.depois
+                  const isVideo = foto.mediaType === 'video'
                   return (
                     <motion.div key={foto.id} layout
                       initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.9 }}
                       className={`relative rounded-2xl overflow-hidden aspect-square group ${!foto.ativa ? 'opacity-50' : ''}`}
                     >
-                      {foto.url ? (
-                        <img src={foto.url} alt={foto.label} className="absolute inset-0 w-full h-full object-cover" />
+                      {isVideo ? (
+                        <video
+                          src={foto.url}
+                          className="absolute inset-0 w-full h-full object-cover"
+                          muted
+                          preload="metadata"
+                        />
+                      ) : foto.url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={foto.url} alt={foto.label} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
                       ) : (
                         <div className="absolute inset-0 bg-gradient-to-br from-rose-gold/30 to-golden/20" />
                       )}
+
+                      {isVideo && (
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                          <div className="w-10 h-10 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center">
+                            <Play size={16} className="text-white ml-0.5" />
+                          </div>
+                        </div>
+                      )}
+
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors" />
                       <div className="absolute top-1.5 left-1.5 flex flex-col gap-1">
                         <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${tipo.color} ${tipo.bg}`}>
@@ -236,6 +270,11 @@ export default function GaleriaPage() {
                         <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-black/40 text-white/70">
                           {foto.label}
                         </span>
+                        {isVideo && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500/40 text-blue-200">
+                            Vídeo
+                          </span>
+                        )}
                       </div>
                       <div className="absolute bottom-1.5 right-1.5 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button onClick={() => toggleAtiva(foto.id, foto.ativa)}
@@ -270,7 +309,7 @@ export default function GaleriaPage() {
               className="bg-[#1A1A1A] rounded-2xl border border-white/10 p-6 w-full max-w-sm">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-white font-semibold text-sm">
-                  {pendingFiles.length} ficheiro(s) selecionado(s)
+                  {pendingFiles.length} ficheiro(s) — {pendingFiles.some(f => f.type.startsWith('video/')) ? 'inclui vídeo(s)' : 'fotos'}
                 </h3>
                 <button onClick={() => setPendingFiles([])}
                   className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center hover:bg-white/10">

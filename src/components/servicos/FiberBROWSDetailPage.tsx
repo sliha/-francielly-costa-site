@@ -8,6 +8,7 @@ import {
   AlertTriangle, ChevronDown, Sparkles, Star, Trophy, Plus, Minus
 } from 'lucide-react'
 import Link from 'next/link'
+import ServicoMediaGaleria from '@/components/servicos/ServicoMediaGaleria'
 
 // ─── Countdown ───────────────────────────────────────────────────────────────
 const TARGET_DATE = new Date('2026-05-01T00:00:00')
@@ -475,6 +476,9 @@ export default function FiberBROWSDetailPage() {
           </Section>
         </div>
       </section>
+
+      {/* ── GALERIA ─────────────────────────────────────────────────────── */}
+      <ServicoMediaGaleria servicoSlug="fiberbrows" accentColor="#C9A96E" />
 
       {/* ── INVESTIMENTO ────────────────────────────────────────────────── */}
       <section className="py-20" style={{ background: '#0d0a00' }}>

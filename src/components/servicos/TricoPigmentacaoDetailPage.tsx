@@ -7,6 +7,7 @@ import {
   Sparkles, Target, Layers, Scissors
 } from 'lucide-react'
 import Link from 'next/link'
+import ServicoMediaGaleria from '@/components/servicos/ServicoMediaGaleria'
 
 function openChat() {
   if (typeof window !== 'undefined') window.dispatchEvent(new Event('openChat'))
@@ -317,6 +318,9 @@ export default function TricoPigmentacaoDetailPage() {
           </Section>
         </div>
       </section>
+
+      {/* ── GALERIA ── */}
+      <ServicoMediaGaleria servicoSlug="tricopigmentacao" accentColor="#7CA8C8" />
 
       {/* ── INVESTIMENTO ── */}
       <section className="py-20" style={{ background: BG.section2 }}>

@@ -118,6 +118,7 @@ export default function SimuladorIA({ servicoNome }: SimuladorIAProps) {
 
         {foto && !resultado && (
           <div className="text-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={foto}
               alt="Sua foto"
@@ -151,6 +152,7 @@ export default function SimuladorIA({ servicoNome }: SimuladorIAProps) {
         {resultado && (
           <div>
             <div className="flex gap-3 mb-4">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={foto!}
                 alt="Sua foto"

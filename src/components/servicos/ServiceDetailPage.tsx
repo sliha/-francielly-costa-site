@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import type { Service } from '@/data/services'
 import SimuladorIA from '@/components/servicos/SimuladorIA'
+import ServicoMediaGaleria from '@/components/servicos/ServicoMediaGaleria'
 
 export default function ServiceDetailPage({ service }: { service: Service }) {
   const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.1 })
@@ -212,6 +213,9 @@ export default function ServiceDetailPage({ service }: { service: Service }) {
           </motion.div>
         </div>
       </section>
+
+      {/* Media Gallery */}
+      <ServicoMediaGaleria servicoSlug={service.slug} accentColor={service.color} />
 
       {/* CTA */}
       <section className="py-16 bg-cream">

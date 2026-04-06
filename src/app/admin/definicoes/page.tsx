@@ -134,6 +134,7 @@ export default function DefinicoesPage() {
             <div className="flex-shrink-0">
               {config.fotoPessoalUrl ? (
                 <div className="relative group">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={config.fotoPessoalUrl} alt="Foto pessoal"
                     className="w-20 h-20 rounded-2xl object-cover border border-white/10" />
                   <button onClick={handlePhotoDelete}
