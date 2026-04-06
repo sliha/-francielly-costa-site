@@ -77,8 +77,18 @@ export default function GaleriaPage() {
   }
 
   const processFiles = async (files: File[]) => {
-    if (!storage || !db) { alert('Storage não configurado'); return }
+    if (!storage) {
+      alert('❌ Firebase Storage não inicializado.\nVerifica as variáveis de ambiente NEXT_PUBLIC_FIREBASE_*')
+      console.error('[Upload] storage is null — env vars missing?')
+      return
+    }
+    if (!db) {
+      alert('❌ Firestore não inicializado.')
+      return
+    }
     setPendingFiles([])
+
+    console.log('[Upload] storage bucket:', (storage as any).app?.options?.storageBucket)
 
     for (const file of files) {
       const isVideo = file.type.startsWith('video/')
@@ -93,41 +103,69 @@ export default function GaleriaPage() {
       const path = `media/servicos/${uploadMeta.servico}/${uploadId}_${safeName}`
       const storageRef = ref(storage, path)
 
+      console.log(`[Upload] Starting: ${file.name} → ${path} (${file.type}, ${(file.size / 1024).toFixed(0)} KB)`)
+
       setUploads((prev) => [...prev, { id: uploadId, name: file.name, progress: 0 }])
 
       try {
-        const task = uploadBytesResumable(storageRef, file)
+        const metadata = { contentType: file.type || 'application/octet-stream' }
+        const task = uploadBytesResumable(storageRef, file, metadata)
+
         await new Promise<void>((resolve, reject) => {
-          task.on('state_changed',
+          task.on(
+            'state_changed',
             (snap) => {
-              const progress = Math.round(snap.bytesTransferred / snap.totalBytes * 100)
-              setUploads((prev) => prev.map((u) => u.id === uploadId ? { ...u, progress } : u))
+              const pct = snap.totalBytes > 0
+                ? Math.round((snap.bytesTransferred / snap.totalBytes) * 100)
+                : 0
+              console.log(`[Upload] ${file.name}: ${pct}% (${snap.state})`)
+              setUploads((prev) =>
+                prev.map((u) => (u.id === uploadId ? { ...u, progress: pct } : u))
+              )
             },
             (err) => {
-              setUploads((prev) => prev.map((u) => u.id === uploadId ? { ...u, error: err.message } : u))
+              const msg = `${err.code}: ${err.message}`
+              console.error(`[Upload] ERRO em ${file.name}:`, err)
+              alert(`❌ Erro no upload de "${file.name}":\n${msg}\n\nVerifica:\n• Firebase Storage rules\n• Autenticação admin\n• Bucket correcto no .env`)
+              setUploads((prev) =>
+                prev.map((u) => (u.id === uploadId ? { ...u, error: msg } : u))
+              )
               reject(err)
             },
             async () => {
-              const url = await getDownloadURL(task.snapshot.ref)
-              const newFoto: Omit<Foto, 'id'> = {
-                servico: uploadMeta.servico,
-                tipo: uploadMeta.tipo,
-                mediaType: isVideo ? 'video' : 'foto',
-                ativa: true,
-                url,
-                storagePath: path,
-                label: servicoLabels[uploadMeta.servico] ?? uploadMeta.servico,
-                criadoEm: serverTimestamp(),
+              console.log(`[Upload] ✅ Concluído: ${file.name}`)
+              try {
+                const url = await getDownloadURL(task.snapshot.ref)
+                const newFoto: Omit<Foto, 'id'> = {
+                  servico: uploadMeta.servico,
+                  tipo: uploadMeta.tipo,
+                  mediaType: isVideo ? 'video' : 'foto',
+                  ativa: true,
+                  url,
+                  storagePath: path,
+                  label: servicoLabels[uploadMeta.servico] ?? uploadMeta.servico,
+                  criadoEm: serverTimestamp(),
+                }
+                const docRef = await addDoc(collection(db!, 'galeria'), newFoto)
+                setFotos((prev) => [
+                  { id: docRef.id, ...newFoto, criadoEm: new Date() } as Foto,
+                  ...prev,
+                ])
+                setUploads((prev) => prev.filter((u) => u.id !== uploadId))
+                resolve()
+              } catch (firestoreErr) {
+                console.error('[Upload] Erro ao guardar no Firestore:', firestoreErr)
+                reject(firestoreErr)
               }
-              const docRef = await addDoc(collection(db!, 'galeria'), newFoto)
-              setFotos((prev) => [{ id: docRef.id, ...newFoto, criadoEm: new Date() } as Foto, ...prev])
-              setUploads((prev) => prev.filter((u) => u.id !== uploadId))
-              resolve()
             }
           )
         })
-      } catch {
-        setTimeout(() => setUploads((prev) => prev.filter((u) => u.id !== uploadId)), 3000)
+      } catch (err) {
+        console.error('[Upload] Catch geral:', err)
+        setTimeout(
+          () => setUploads((prev) => prev.filter((u) => u.id !== uploadId)),
+          5000
+        )
       }
     }
   }
@@ -174,15 +212,20 @@ export default function GaleriaPage() {
         {uploads.length > 0 && (
           <div className="space-y-2">
             {uploads.map((u) => (
-              <div key={u.id} className="bg-[#1A1A1A] rounded-xl border border-white/5 p-3">
+              <div key={u.id} className={`rounded-xl border p-3 ${u.error ? 'bg-red-500/10 border-red-500/30' : 'bg-[#1A1A1A] border-white/5'}`}>
                 <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-white/70 text-xs truncate max-w-[70%]">{u.name}</span>
-                  <span className="text-white/40 text-xs">{u.error ? '❌ Erro' : `${u.progress}%`}</span>
+                  <span className="text-white/70 text-xs truncate max-w-[60%]">{u.name}</span>
+                  <span className={`text-xs font-medium ${u.error ? 'text-red-400' : 'text-white/40'}`}>
+                    {u.error ? '❌ Falhou' : u.progress === 100 ? '✅ Concluído' : `${u.progress}%`}
+                  </span>
                 </div>
-                <div className="h-1 bg-white/10 rounded-full overflow-hidden">
-                  <div className="h-full bg-rose-gold rounded-full transition-all duration-300"
-                    style={{ width: `${u.progress}%` }} />
+                <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                  <div className={`h-full rounded-full transition-all duration-300 ${u.error ? 'bg-red-500' : 'bg-rose-gold'}`}
+                    style={{ width: u.error ? '100%' : `${u.progress}%` }} />
                 </div>
+                {u.error && (
+                  <p className="text-red-400 text-[10px] mt-1.5 leading-relaxed break-all">{u.error}</p>
+                )}
               </div>
             ))}
           </div>
