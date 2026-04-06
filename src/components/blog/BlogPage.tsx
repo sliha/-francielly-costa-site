@@ -7,6 +7,26 @@ import { Clock, ArrowRight, Tag } from 'lucide-react'
 
 const blogPosts = [
   {
+    slug: 'fiberbrows-nova-tecnica',
+    title: 'FiberBROWS: A Nova Técnica Que Está a Revolucionar as Sobrancelhas',
+    excerpt:
+      'Descubra a FiberBROWS, a técnica não cirúrgica com fios sintéticos biocompatíveis que promete sobrancelhas naturais durante 6 meses — disponível em breve na Francielly Costa.',
+    category: 'FiberBROWS',
+    readTime: '5 min',
+    date: '2026-04-06',
+    gradient: 'from-golden/30 to-rose-gold/40',
+  },
+  {
+    slug: 'tricopigmentacao-guia-completo',
+    title: 'Tricopigmentação: Tudo O Que Precisa de Saber Sobre Micropigmentação Capilar',
+    excerpt:
+      'A solução definitiva para a calvície sem cirurgia. Saiba como a Tricopigmentação cria a ilusão perfeita de folículos capilares com resultado imediato e duração de 2 a 5 anos.',
+    category: 'Tricopigmentação',
+    readTime: '6 min',
+    date: '2026-04-06',
+    gradient: 'from-slate-600/30 to-blue-900/40',
+  },
+  {
     slug: 'o-que-e-microblading',
     title: 'O que é o Microblading e como funciona?',
     excerpt:
@@ -69,6 +89,8 @@ const blogPosts = [
 ]
 
 const categoryColors: Record<string, string> = {
+  FiberBROWS: 'bg-golden/15 text-golden',
+  Tricopigmentação: 'bg-sky-500/10 text-sky-400',
   Microblading: 'bg-rose-gold/10 text-rose-gold',
   Cuidados: 'bg-golden/10 text-golden-dark',
   Comparativo: 'bg-rose-gold/10 text-rose-gold-dark',

@@ -5,7 +5,7 @@ import { motion } from 'framer-motion'
 import { useInView } from 'react-intersection-observer'
 import {
   ArrowRight, Shield, Zap, Clock, TrendingDown, CheckCircle,
-  AlertTriangle, ChevronDown, Sparkles, Star, Trophy
+  AlertTriangle, ChevronDown, Sparkles, Star, Trophy, Plus, Minus
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -97,6 +97,65 @@ function WaitlistForm() {
         <p className="text-red-400 text-sm text-center font-inter">Ocorreu um erro. Por favor, tente novamente.</p>
       )}
     </form>
+  )
+}
+
+// ─── FAQ ─────────────────────────────────────────────────────────────────────
+const faqItems = [
+  {
+    q: 'A FiberBROWS é permanente?',
+    a: 'A duração é de aproximadamente 6 meses. Pode ser renovada quando a cliente desejar, mantendo sempre um resultado natural e adaptado à evolução do rosto.',
+  },
+  {
+    q: 'Dói muito?',
+    a: 'O desconforto é muito inferior ao da micropigmentação ou microagulhamento. A maioria das clientes descreve o procedimento como muito suportável. É aplicada anestesia tópica para maximizar o conforto.',
+  },
+  {
+    q: 'É seguro?',
+    a: 'Sim, quando executado com protocolo técnico rigoroso. O fio é sintético e biocompatível com a grande maioria dos tipos de pele. Existe uma margem natural de 3–5% de sensibilidade, como acontece com qualquer material sintético.',
+  },
+  {
+    q: 'Posso usar henna nas sobrancelhas depois?',
+    a: 'Sim. O fio tem acabamento selado e não absorve corantes. A henna ou qualquer coloração só pigmenta os fios naturais — o fio implantado mantém sempre a cor original.',
+  },
+  {
+    q: 'Quem não pode fazer?',
+    a: 'Está contraindicado para pessoas com alergia conhecida a níquel ou componentes sintéticos. Recomendamos testes de tolerância prévios para clientes com histórico alérgico, gravidez, amamentação, doenças autoimunes ativas ou uso de isotretinoína.',
+  },
+  {
+    q: 'Qual a diferença para o transplante capilar?',
+    a: 'A FiberBROWS não é cirúrgica, não envolve extração de folículos, não requer anestesia geral, é minimamente invasiva (máx. 2mm de profundidade) e custa uma fração do preço dos transplantes, que variam entre €7.000 e €30.000.',
+  },
+  {
+    q: 'Quando estará disponível?',
+    a: 'A Francielly Costa estará certificada a partir de Maio 2026, sendo uma das primeiras profissionais a oferecer este serviço em Portugal. Deixe o seu contacto na lista de espera abaixo para ser das primeiras a ser contactada.',
+  },
+]
+
+function FAQAccordion() {
+  const [open, setOpen] = useState<number | null>(null)
+  return (
+    <div className="space-y-2">
+      {faqItems.map((item, i) => (
+        <div key={i} className="rounded-2xl border border-golden/15 overflow-hidden transition-colors"
+          style={{ background: open === i ? 'rgba(201,169,110,0.06)' : 'rgba(255,255,255,0.02)' }}>
+          <button
+            onClick={() => setOpen(open === i ? null : i)}
+            className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left"
+          >
+            <span className="text-white font-inter text-sm font-medium leading-snug">{item.q}</span>
+            <span className="flex-shrink-0 text-golden">
+              {open === i ? <Minus className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+            </span>
+          </button>
+          {open === i && (
+            <div className="px-5 pb-5">
+              <p className="text-white/60 font-inter text-sm leading-relaxed">{item.a}</p>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
   )
 }
 
@@ -440,6 +499,22 @@ export default function FiberBROWSDetailPage() {
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </button>
             </div>
+          </Section>
+        </div>
+      </section>
+
+      {/* ── FAQ ─────────────────────────────────────────────────────────── */}
+      <section className="py-24" style={{ background: '#111008' }}>
+        <div className="max-w-3xl mx-auto px-4">
+          <Section>
+            <h2 className="font-playfair font-bold text-4xl text-white text-center mb-12">
+              Perguntas{' '}
+              <span className="bg-clip-text text-transparent"
+                style={{ backgroundImage: 'linear-gradient(135deg, #C9A96E, #B76E79)' }}>
+                Frequentes
+              </span>
+            </h2>
+            <FAQAccordion />
           </Section>
         </div>
       </section>
