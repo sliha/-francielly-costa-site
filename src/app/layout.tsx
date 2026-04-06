@@ -1,9 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Playfair_Display, Inter } from 'next/font/google'
 import './globals.css'
-import Navbar from '@/components/layout/Navbar'
-import Footer from '@/components/layout/Footer'
-import ChatWidget from '@/components/chat/ChatWidget'
+import PublicShell from '@/components/layout/PublicShell'
 
 const playfair = Playfair_Display({
   subsets: ['latin'],
@@ -93,10 +91,7 @@ export default function RootLayout({
   return (
     <html lang="pt" className={`${playfair.variable} ${inter.variable}`}>
       <body className="bg-cream font-inter text-text-primary antialiased">
-        <Navbar />
-        <main>{children}</main>
-        <Footer />
-        <ChatWidget />
+        <PublicShell>{children}</PublicShell>
       </body>
     </html>
   )

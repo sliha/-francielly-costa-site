@@ -1,41 +1,61 @@
 'use client'
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import {
-  MapPin,
-  Phone,
-  Mail,
-  Clock,
-  Euro,
-  Instagram,
-  Globe,
-  Bell,
-  BellOff,
-  CheckCircle2,
-  Save,
+  MapPin, Phone, Mail, Clock, Euro, Instagram, Globe,
+  Bell, BellOff, CheckCircle2, Save, Facebook, User,
+  ImagePlus, Trash2, RefreshCw,
 } from 'lucide-react'
+import { db, storage } from '@/lib/firebase'
+import { doc, getDoc, setDoc } from 'firebase/firestore'
+import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage'
 
-// TODO: Load from Firestore — doc(db, 'config', 'negocio')
-const defaultConfig = {
-  morada: 'Braga, Portugal',
-  telefone: '+351 912 345 678',
+const DEFAULT_CONFIG = {
+  morada: 'Av. Dr. António Palha 53, 4715-091 Braga, Portugal',
+  telefone: '+351917132116',
   email: 'geral@franciellycosta.com',
-  horario: 'Seg–Sáb: 10:00–19:00',
+  horario: 'Seg–Sex: 9h–18h, Sáb: 9h–13h',
   caucao: '50',
-  instagram: 'https://instagram.com/franciellycosta',
+  instagram: 'https://www.instagram.com/franciellycostamaster/',
+  facebook: 'https://www.facebook.com/Franciellycostaespecialista/',
   website: 'https://franciellycosta.com',
+  whatsapp: '+351917132116',
   notifNovasMarcacoes: true,
   notifLembretes: true,
   notifCancelamentos: true,
+  // About
+  biografia: '',
+  fotoPessoalUrl: '',
+  fotoPessoalPath: '',
 }
 
-type ConfigKey = keyof typeof defaultConfig
+type Config = typeof DEFAULT_CONFIG
+
+function toast(msg: string) {
+  if (typeof window === 'undefined') return
+  const el = document.createElement('div')
+  el.textContent = msg
+  el.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#10B981;color:#fff;padding:10px 20px;border-radius:12px;font-size:14px;z-index:9999;font-family:Inter,sans-serif'
+  document.body.appendChild(el)
+  setTimeout(() => el.remove(), 3000)
+}
 
 export default function DefinicoesPage() {
-  const [config, setConfig] = useState(defaultConfig)
+  const [config, setConfig] = useState<Config>(DEFAULT_CONFIG)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [loadingPhoto, setLoadingPhoto] = useState(false)
+  const [photoProgress, setPhotoProgress] = useState(0)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const handleChange = (key: ConfigKey, value: string | boolean) => {
+  // Load from Firestore on mount
+  useEffect(() => {
+    if (!db) return
+    getDoc(doc(db, 'settings', 'negocio')).then((snap) => {
+      if (snap.exists()) setConfig({ ...DEFAULT_CONFIG, ...snap.data() } as Config)
+    }).catch(() => {})
+  }, [])
+
+  const handleChange = (key: keyof Config, value: string | boolean) => {
     setConfig((prev) => ({ ...prev, [key]: value }))
     setSaved(false)
   }
@@ -43,224 +63,229 @@ export default function DefinicoesPage() {
   const handleSave = async () => {
     setSaving(true)
     try {
-      // TODO: Save to Firestore — setDoc(doc(db, 'config', 'negocio'), config)
-      await new Promise((res) => setTimeout(res, 700))
+      if (db) {
+        await setDoc(doc(db, 'settings', 'negocio'), config, { merge: true })
+      }
       setSaved(true)
+      toast('Definições guardadas com sucesso!')
       setTimeout(() => setSaved(false), 3000)
     } catch {
-      // TODO: Show error toast
+      toast('Erro ao guardar. Tente novamente.')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handlePhotoUpload = async (file: File) => {
+    if (!storage || !db) { toast('Storage não configurado'); return }
+    setLoadingPhoto(true)
+    setPhotoProgress(0)
+    try {
+      const path = `about/foto-pessoal_${Date.now()}`
+      const storageRef = ref(storage, path)
+      const task = uploadBytesResumable(storageRef, file)
+
+      await new Promise<void>((resolve, reject) => {
+        task.on('state_changed',
+          (snap) => setPhotoProgress(Math.round(snap.bytesTransferred / snap.totalBytes * 100)),
+          reject,
+          async () => {
+            const url = await getDownloadURL(task.snapshot.ref)
+            setConfig((prev) => ({ ...prev, fotoPessoalUrl: url, fotoPessoalPath: path }))
+            resolve()
+          }
+        )
+      })
+    } catch {
+      toast('Erro no upload da foto.')
+    } finally {
+      setLoadingPhoto(false)
+      setPhotoProgress(0)
+    }
+  }
+
+  const handlePhotoDelete = async () => {
+    if (!storage || !config.fotoPessoalPath) return
+    try {
+      await deleteObject(ref(storage, config.fotoPessoalPath))
+      setConfig((prev) => ({ ...prev, fotoPessoalUrl: '', fotoPessoalPath: '' }))
+    } catch {
+      toast('Erro ao remover foto.')
     }
   }
 
   return (
     <div className="min-h-screen bg-[#0F0F0F] text-white">
       {/* Header */}
-      <div className="px-4 pt-6 pb-4 md:px-8 md:pt-8 flex items-center justify-between">
+      <div className="px-4 pt-5 pb-3 md:px-6 md:pt-6 flex items-center justify-between border-b border-white/5">
         <div>
-          <h1 className="text-white text-2xl font-playfair font-semibold">Definições</h1>
-          <p className="text-white/40 text-sm mt-0.5">Configurações do negócio</p>
+          <h1 className="text-white text-xl font-playfair font-semibold">Definições</h1>
+          <p className="text-white/40 text-xs mt-0.5">Configurações do negócio</p>
         </div>
-
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-            saved
-              ? 'bg-emerald-400/10 text-emerald-400 border border-emerald-400/20'
-              : 'bg-rose-gold text-white hover:bg-opacity-90'
-          } disabled:opacity-50`}
-        >
-          {saving ? (
-            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-          ) : saved ? (
-            <CheckCircle2 size={16} />
-          ) : (
-            <Save size={16} />
-          )}
-          {saving ? 'A guardar...' : saved ? 'Guardado!' : 'Guardar'}
-        </button>
+        <SaveButton saving={saving} saved={saved} onClick={handleSave} />
       </div>
 
-      <div className="px-4 md:px-8 pb-8 space-y-5">
+      <div className="px-4 md:px-6 pb-8 pt-4 space-y-4">
+
+        {/* About Me */}
+        <Section title="Sobre Mim">
+          <div className="flex items-start gap-4">
+            {/* Photo */}
+            <div className="flex-shrink-0">
+              {config.fotoPessoalUrl ? (
+                <div className="relative group">
+                  <img src={config.fotoPessoalUrl} alt="Foto pessoal"
+                    className="w-20 h-20 rounded-2xl object-cover border border-white/10" />
+                  <button onClick={handlePhotoDelete}
+                    className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Trash2 size={10} className="text-white" />
+                  </button>
+                </div>
+              ) : (
+                <button onClick={() => fileInputRef.current?.click()} disabled={loadingPhoto}
+                  className="w-20 h-20 rounded-2xl border-2 border-dashed border-white/20 hover:border-rose-gold/50 flex flex-col items-center justify-center gap-1 transition-colors">
+                  {loadingPhoto ? (
+                    <div className="text-center">
+                      <div className="w-5 h-5 border-2 border-rose-gold border-t-transparent rounded-full animate-spin mx-auto mb-1" />
+                      <span className="text-white/30 text-[9px]">{photoProgress}%</span>
+                    </div>
+                  ) : (
+                    <>
+                      <ImagePlus size={18} className="text-white/30" />
+                      <span className="text-white/30 text-[10px]">Foto</span>
+                    </>
+                  )}
+                </button>
+              )}
+              <input ref={fileInputRef} type="file" accept="image/*,.heic,.heif"
+                className="hidden"
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) handlePhotoUpload(f) }} />
+            </div>
+            {/* Bio */}
+            <div className="flex-1">
+              <label className="text-white/40 text-xs mb-1.5 block">Biografia</label>
+              <textarea
+                value={config.biografia}
+                onChange={(e) => handleChange('biografia', e.target.value)}
+                placeholder="Escreva aqui a sua apresentação..."
+                rows={4}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-rose-gold/50 resize-none transition-colors"
+              />
+            </div>
+          </div>
+        </Section>
+
         {/* Business info */}
         <Section title="Informações do Negócio">
-          <SettingField
-            label="Morada"
-            icon={<MapPin size={14} className="text-white/30" />}
-          >
-            <input
-              type="text"
-              value={config.morada}
-              onChange={(e) => handleChange('morada', e.target.value)}
-              placeholder="Morada completa"
-              className="w-full bg-transparent text-white placeholder:text-white/20 text-sm focus:outline-none"
-            />
+          <SettingField label="Morada" icon={<MapPin size={13} className="text-white/30" />}>
+            <input type="text" value={config.morada} onChange={(e) => handleChange('morada', e.target.value)}
+              placeholder="Morada completa" className="field-input" />
           </SettingField>
-
-          <SettingField
-            label="Telefone"
-            icon={<Phone size={14} className="text-white/30" />}
-          >
-            <input
-              type="tel"
-              value={config.telefone}
-              onChange={(e) => handleChange('telefone', e.target.value)}
-              placeholder="+351 9XX XXX XXX"
-              className="w-full bg-transparent text-white placeholder:text-white/20 text-sm focus:outline-none"
-            />
+          <SettingField label="Telefone / WhatsApp" icon={<Phone size={13} className="text-white/30" />}>
+            <input type="tel" value={config.telefone} onChange={(e) => handleChange('telefone', e.target.value)}
+              placeholder="+351 9XX XXX XXX" className="field-input" />
           </SettingField>
-
-          <SettingField
-            label="Email"
-            icon={<Mail size={14} className="text-white/30" />}
-          >
-            <input
-              type="email"
-              value={config.email}
-              onChange={(e) => handleChange('email', e.target.value)}
-              placeholder="geral@exemplo.com"
-              className="w-full bg-transparent text-white placeholder:text-white/20 text-sm focus:outline-none"
-            />
+          <SettingField label="Email" icon={<Mail size={13} className="text-white/30" />}>
+            <input type="email" value={config.email} onChange={(e) => handleChange('email', e.target.value)}
+              placeholder="geral@exemplo.com" className="field-input" />
           </SettingField>
+          <SettingField label="Horário de funcionamento" icon={<Clock size={13} className="text-white/30" />}>
+            <input type="text" value={config.horario} onChange={(e) => handleChange('horario', e.target.value)}
+              placeholder="Seg–Sex: 9h–18h" className="field-input" />
+          </SettingField>
+        </Section>
 
-          <SettingField
-            label="Horário"
-            icon={<Clock size={14} className="text-white/30" />}
-          >
-            <input
-              type="text"
-              value={config.horario}
-              onChange={(e) => handleChange('horario', e.target.value)}
-              placeholder="Seg–Sex: 10:00–19:00"
-              className="w-full bg-transparent text-white placeholder:text-white/20 text-sm focus:outline-none"
-            />
+        {/* Contacts & Social */}
+        <Section title="Contactos e Redes Sociais">
+          <SettingField label="Instagram" icon={<Instagram size={13} className="text-white/30" />}>
+            <input type="url" value={config.instagram} onChange={(e) => handleChange('instagram', e.target.value)}
+              placeholder="https://instagram.com/..." className="field-input" />
+          </SettingField>
+          <SettingField label="Facebook" icon={<Facebook size={13} className="text-white/30" />}>
+            <input type="url" value={config.facebook} onChange={(e) => handleChange('facebook', e.target.value)}
+              placeholder="https://facebook.com/..." className="field-input" />
+          </SettingField>
+          <SettingField label="WhatsApp" icon={<Phone size={13} className="text-white/30" />}>
+            <input type="tel" value={config.whatsapp} onChange={(e) => handleChange('whatsapp', e.target.value)}
+              placeholder="+351 9XX XXX XXX" className="field-input" />
+          </SettingField>
+          <SettingField label="Website" icon={<Globe size={13} className="text-white/30" />}>
+            <input type="url" value={config.website} onChange={(e) => handleChange('website', e.target.value)}
+              placeholder="https://..." className="field-input" />
           </SettingField>
         </Section>
 
         {/* Pricing */}
         <Section title="Pagamentos">
-          <SettingField
-            label="Valor da Caução (€)"
-            icon={<Euro size={14} className="text-white/30" />}
-          >
-            <input
-              type="number"
-              value={config.caucao}
-              onChange={(e) => handleChange('caucao', e.target.value)}
-              placeholder="50"
-              min="0"
-              step="5"
-              className="w-full bg-transparent text-white placeholder:text-white/20 text-sm focus:outline-none"
-            />
+          <SettingField label="Valor da Caução (€)" icon={<Euro size={13} className="text-white/30" />}>
+            <input type="number" value={config.caucao} onChange={(e) => handleChange('caucao', e.target.value)}
+              placeholder="50" min="0" step="5" className="field-input" />
           </SettingField>
-          <p className="text-white/30 text-xs px-1 -mt-2">
-            Valor cobrado antecipadamente para confirmar a marcação
-          </p>
-        </Section>
-
-        {/* Social media */}
-        <Section title="Redes Sociais">
-          <SettingField
-            label="Instagram"
-            icon={<Instagram size={14} className="text-white/30" />}
-          >
-            <input
-              type="url"
-              value={config.instagram}
-              onChange={(e) => handleChange('instagram', e.target.value)}
-              placeholder="https://instagram.com/..."
-              className="w-full bg-transparent text-white placeholder:text-white/20 text-sm focus:outline-none"
-            />
-          </SettingField>
-
-          <SettingField
-            label="Website"
-            icon={<Globe size={14} className="text-white/30" />}
-          >
-            <input
-              type="url"
-              value={config.website}
-              onChange={(e) => handleChange('website', e.target.value)}
-              placeholder="https://..."
-              className="w-full bg-transparent text-white placeholder:text-white/20 text-sm focus:outline-none"
-            />
-          </SettingField>
+          <p className="text-white/30 text-xs px-1">Valor cobrado antecipadamente para confirmar a marcação</p>
         </Section>
 
         {/* Notifications */}
         <Section title="Notificações Push">
-          <ToggleSetting
-            label="Novas marcações"
-            desc="Receber notificação quando uma marcação é criada"
-            value={config.notifNovasMarcacoes}
-            onChange={(v) => handleChange('notifNovasMarcacoes', v)}
-          />
-          <ToggleSetting
-            label="Lembretes de agenda"
-            desc="Receber lembretes 1h antes das marcações"
-            value={config.notifLembretes}
-            onChange={(v) => handleChange('notifLembretes', v)}
-          />
-          <ToggleSetting
-            label="Cancelamentos"
-            desc="Receber notificação quando uma marcação é cancelada"
-            value={config.notifCancelamentos}
-            onChange={(v) => handleChange('notifCancelamentos', v)}
-          />
+          <ToggleSetting label="Novas marcações" desc="Receber notificação quando uma marcação é criada"
+            value={config.notifNovasMarcacoes} onChange={(v) => handleChange('notifNovasMarcacoes', v)} />
+          <ToggleSetting label="Lembretes de agenda" desc="Receber lembretes 1h antes das marcações"
+            value={config.notifLembretes} onChange={(v) => handleChange('notifLembretes', v)} />
+          <ToggleSetting label="Cancelamentos" desc="Receber notificação quando uma marcação é cancelada"
+            value={config.notifCancelamentos} onChange={(v) => handleChange('notifCancelamentos', v)} />
         </Section>
 
-        {/* Save button (bottom) */}
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className={`w-full flex items-center justify-center gap-2 py-4 rounded-2xl text-sm font-semibold transition-all ${
-            saved
-              ? 'bg-emerald-400/10 text-emerald-400 border border-emerald-400/20'
-              : 'bg-gradient-to-r from-rose-gold to-golden text-white hover:opacity-90'
-          } disabled:opacity-50`}
-        >
-          {saving ? (
-            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-          ) : saved ? (
-            <CheckCircle2 size={16} />
-          ) : (
-            <Save size={16} />
-          )}
-          {saving ? 'A guardar...' : saved ? 'Definições guardadas!' : 'Guardar Definições'}
-        </button>
+        {/* Save bottom */}
+        <SaveButton saving={saving} saved={saved} onClick={handleSave} full />
       </div>
+
+      <style jsx>{`
+        .field-input {
+          width: 100%;
+          background: transparent;
+          color: white;
+          font-size: 13px;
+          outline: none;
+        }
+        .field-input::placeholder { color: rgba(255,255,255,0.2); }
+      `}</style>
     </div>
   )
 }
 
-// --- Sub-components ---
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+function SaveButton({ saving, saved, onClick, full = false }: {
+  saving: boolean; saved: boolean; onClick: () => void; full?: boolean
+}) {
+  return (
+    <button onClick={onClick} disabled={saving}
+      className={`flex items-center gap-2 ${full ? 'w-full justify-center py-3.5 rounded-2xl text-sm font-semibold' : 'px-4 py-2 rounded-xl text-xs font-medium'} transition-all ${
+        saved ? 'bg-emerald-400/10 text-emerald-400 border border-emerald-400/20'
+          : full ? 'bg-gradient-to-r from-rose-gold to-golden text-white hover:opacity-90'
+          : 'bg-rose-gold text-white hover:bg-opacity-90'
+      } disabled:opacity-50`}>
+      {saving ? <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+        : saved ? <CheckCircle2 size={15} />
+        : <Save size={15} />}
+      {saving ? 'A guardar...' : saved ? 'Guardado!' : full ? 'Guardar Definições' : 'Guardar'}
+    </button>
+  )
+}
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="bg-[#1A1A1A] rounded-2xl p-5 border border-white/5 space-y-4">
-      <h2 className="text-white/50 text-xs font-semibold uppercase tracking-wider">
-        {title}
-      </h2>
+    <div className="bg-[#1A1A1A] rounded-2xl p-4 border border-white/5 space-y-3">
+      <h2 className="text-white/50 text-[11px] font-semibold uppercase tracking-wider">{title}</h2>
       {children}
     </div>
   )
 }
 
-function SettingField({
-  label,
-  icon,
-  children,
-}: {
-  label: string
-  icon: React.ReactNode
-  children: React.ReactNode
-}) {
+function SettingField({ label, icon, children }: { label: string; icon: React.ReactNode; children: React.ReactNode }) {
   return (
     <div>
-      <label className="text-white/40 text-xs mb-1.5 block">{label}</label>
-      <div className="flex items-center gap-2.5 bg-white/5 border border-white/10 rounded-xl px-3 py-3 focus-within:border-rose-gold/50 transition-colors">
+      <label className="text-white/40 text-[11px] mb-1 block">{label}</label>
+      <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 focus-within:border-rose-gold/50 transition-colors">
         <span className="flex-shrink-0">{icon}</span>
         {children}
       </div>
@@ -268,46 +293,23 @@ function SettingField({
   )
 }
 
-function ToggleSetting({
-  label,
-  desc,
-  value,
-  onChange,
-}: {
-  label: string
-  desc: string
-  value: boolean
-  onChange: (v: boolean) => void
+function ToggleSetting({ label, desc, value, onChange }: {
+  label: string; desc: string; value: boolean; onChange: (v: boolean) => void
 }) {
   return (
-    <div className="flex items-center justify-between gap-4">
-      <div className="flex items-center gap-2.5 min-w-0">
-        {value ? (
-          <Bell size={16} className="text-rose-gold flex-shrink-0" />
-        ) : (
-          <BellOff size={16} className="text-white/20 flex-shrink-0" />
-        )}
+    <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center gap-2 min-w-0">
+        {value ? <Bell size={14} className="text-rose-gold flex-shrink-0" />
+          : <BellOff size={14} className="text-white/20 flex-shrink-0" />}
         <div className="min-w-0">
           <p className="text-white text-sm font-medium truncate">{label}</p>
           <p className="text-white/30 text-xs truncate">{desc}</p>
         </div>
       </div>
-
-      {/* Toggle switch */}
-      <button
-        type="button"
-        onClick={() => onChange(!value)}
-        className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${
-          value ? 'bg-rose-gold' : 'bg-white/10'
-        }`}
-        aria-checked={value}
-        role="switch"
-      >
-        <span
-          className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${
-            value ? 'translate-x-5' : 'translate-x-0'
-          }`}
-        />
+      <button type="button" onClick={() => onChange(!value)}
+        className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${value ? 'bg-rose-gold' : 'bg-white/10'}`}
+        aria-checked={value} role="switch">
+        <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${value ? 'translate-x-5' : 'translate-x-0'}`} />
       </button>
     </div>
   )

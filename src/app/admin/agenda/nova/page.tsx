@@ -3,12 +3,16 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ChevronLeft, CheckCircle2, User, Phone, Mail, Scissors, Calendar, Clock, FileText } from 'lucide-react'
 import Link from 'next/link'
+import { db } from '@/lib/firebase'
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
 
 const servicos = [
+  { value: 'fiberbrows', label: 'FiberBROWS', valor: 1000, duracao: 'A definir' },
   { value: 'microblading', label: 'Microblading', valor: 180, duracao: '2h' },
   { value: 'microshading', label: 'Microshading', valor: 180, duracao: '2h' },
   { value: 'eyeliner', label: 'Eyeliner Permanente', valor: 120, duracao: '1h30' },
   { value: 'labial', label: 'Micropigmentação Labial', valor: 150, duracao: '1h30' },
+  { value: 'tricopigmentacao', label: 'Tricopigmentação', valor: 200, duracao: '2h' },
 ]
 
 // Time slots from 10:00 to 18:00 in 30-minute intervals
@@ -68,8 +72,25 @@ export default function NovaMarcacaoPage() {
     setError('')
 
     try {
-      // TODO: Save to Firestore — addDoc(collection(db, 'marcacoes'), { ...form, estado: 'pendente', criadoEm: serverTimestamp() })
-      await new Promise((res) => setTimeout(res, 800)) // Simulated delay
+      if (db) {
+        await addDoc(collection(db, 'agendamentos'), {
+          clienteNome: form.clienteNome,
+          clienteTelefone: form.telefone,
+          clienteEmail: form.email,
+          servicoId: form.servico,
+          servicoNome: selectedServico?.label ?? form.servico,
+          data: form.data,
+          horaInicio: form.hora,
+          horaFim: form.hora,
+          estado: 'confirmado',
+          caucaoPaga: false,
+          notas: form.notas,
+          criadoPor: 'admin',
+          criadoEm: serverTimestamp(),
+        })
+      } else {
+        await new Promise((res) => setTimeout(res, 400))
+      }
       setSuccess(true)
     } catch {
       setError('Erro ao guardar a marcação. Por favor tente novamente.')
