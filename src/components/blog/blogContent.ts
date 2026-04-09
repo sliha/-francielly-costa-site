@@ -20,26 +20,26 @@ export const blogArticles: BlogArticle[] = [
     content: `
 ## O Que é a FiberBROWS?
 
-A FiberBROWS é uma técnica estética inovadora, não cirúrgica, que utiliza fios sintéticos biocompatíveis para criar sobrancelhas mais volumosas, definidas e naturais. Ao contrário das técnicas de dermopigmentação tradicionais, a FiberBROWS não deposita pigmento na pele — em vez disso, implanta fios ultrafinos que imitam os pelos naturais da sobrancelha.
+A FiberBROWS 360º é uma técnica de embelezamento facial inovadora, não cirúrgica e não médica, que utiliza microfibras sintéticas biocompatíveis para criar sobrancelhas mais volumosas, definidas e naturais. Ao contrário das técnicas de dermopigmentação tradicionais, a FiberBROWS 360º não deposita pigmento na pele — em vez disso, aplica adornos de microfibras ultrafinas que imitam os pelos naturais da sobrancelha.
 
 O resultado é imediato, natural e com uma durabilidade de aproximadamente 6 meses, sem necessidade de retoques frequentes.
 
 ## Como Funciona?
 
-O procedimento é realizado em consultório, com anestesia tópica para máximo conforto. A especialista implanta os fios sintéticos biocompatíveis na derme superficial, a uma profundidade máxima de 2mm, seguindo o traçado natural da sobrancelha.
+O procedimento é realizado em consultório, com anestesia tópica para máximo conforto. A especialista aplica as microfibras sintéticas biocompatíveis na camada superficial da pele, a uma profundidade máxima de 2mm, seguindo o traçado natural da sobrancelha.
 
 **O processo passo a passo:**
 
 1. **Consulta de design** — Avaliação do rosto, desenho personalizado da sobrancelha e escolha da espessura/cor dos fios
 2. **Anestesia tópica** — Aplicação de creme anestésico para garantir conforto total durante o procedimento
-3. **Implantação dos fios** — Com precisão milimétrica, os fios são inseridos seguindo a direção natural dos pelos
+3. **Aplicação das microfibras** — Com precisão milimétrica, os adornos são aplicados seguindo a direção natural dos pelos
 4. **Resultado imediato** — As sobrancelhas ficam prontas logo após o procedimento, sem período de recuperação
 
 ## FiberBROWS vs. Microblading: Qual a Diferença?
 
 | Característica | FiberBROWS | Microblading |
 |---|---|---|
-| Técnica | Fios implantados | Pigmento depositado |
+| Técnica | Adorno de microfibras aplicado | Pigmento depositado |
 | Durabilidade | ~6 meses | 12–18 meses |
 | Aspeto | Ultra-natural 3D | Natural 2D |
 | Recuperação | Mínima | 7–10 dias |

@@ -117,7 +117,7 @@ const faqItems = [
   },
   {
     q: 'Posso usar henna nas sobrancelhas depois?',
-    a: 'Sim. O fio tem acabamento selado e não absorve corantes. A henna ou qualquer coloração só pigmenta os fios naturais — o fio implantado mantém sempre a cor original.',
+    a: 'Sim. O fio tem acabamento selado e não absorve corantes. A henna ou qualquer coloração só pigmenta os fios naturais — o adorno aplicado mantém sempre a cor original.',
   },
   {
     q: 'Quem não pode fazer?',
@@ -130,6 +130,18 @@ const faqItems = [
   {
     q: 'Quando estará disponível?',
     a: 'A Francielly Costa estará certificada a partir de Maio 2026, sendo uma das primeiras profissionais a oferecer este serviço em Portugal. Deixe o seu contacto na lista de espera abaixo para ser das primeiras a ser contactada.',
+  },
+  {
+    q: 'A FiberBROWS 360º é um procedimento médico?',
+    a: 'Não. A FiberBROWS 360º é uma técnica de embelezamento facial, não médica. Não requer prescrição clínica e não tem finalidade terapêutica.',
+  },
+  {
+    q: 'O que são as microfibras utilizadas?',
+    a: 'São microfibras sintéticas, não absorvíveis, atóxicas, estéreis e de uso individual. São aplicadas com uma nanoagulha de calibre extremamente fino.',
+  },
+  {
+    q: 'O que pode reduzir a duração do resultado?',
+    a: 'Pele inflamada, profundidade incorreta na aplicação e o estilo de vida da cliente podem influenciar a duração, que é de até 6 meses.',
   },
 ]
 
@@ -204,7 +216,7 @@ export default function FiberBROWSDetailPage() {
             <span>/</span>
             <Link href="/servicos" className="hover:text-golden transition-colors">Serviços</Link>
             <span>/</span>
-            <span className="text-golden">FiberBROWS</span>
+            <span className="text-golden">FiberBROWS 360º</span>
           </div>
 
           {/* Badge */}
@@ -221,7 +233,7 @@ export default function FiberBROWSDetailPage() {
             Fiber
             <span className="bg-clip-text text-transparent"
               style={{ backgroundImage: 'linear-gradient(135deg, #C9A96E 0%, #B76E79 50%, #C9A96E 100%)' }}>
-              BROWS
+              BROWS 360º
             </span>
           </motion.h1>
 
@@ -280,19 +292,21 @@ export default function FiberBROWSDetailPage() {
               </span>
               <h2 className="font-playfair font-bold text-4xl text-white mt-4 mb-4">
                 O Que É a <span className="bg-clip-text text-transparent"
-                  style={{ backgroundImage: 'linear-gradient(135deg, #C9A96E, #B76E79)' }}>FiberBROWS?</span>
+                  style={{ backgroundImage: 'linear-gradient(135deg, #C9A96E, #B76E79)' }}>FiberBROWS 360º?</span>
               </h2>
             </div>
 
             <div className="grid md:grid-cols-2 gap-8">
               <div className="space-y-4">
                 {[
-                  'Técnica estética, NÃO cirúrgica e NÃO médica.',
-                  'Aplicação superficial de um adorno estético na pele (profundidade máxima 2mm).',
-                  'NÃO é implante nem transplante capilar — não envolve extração de folículos.',
+                  'Técnica de embelezamento facial, NÃO cirúrgica e NÃO médica — focada na valorização das sobrancelhas.',
+                  'Aplicação de um adorno sintético temporário na pele (profundidade máxima 2mm).',
+                  'Conceito estético próximo de piercing, micropigmentação e extensão de cílios, mas numa categoria estética à parte.',
+                  'Utiliza microfibras sintéticas: não absorvíveis, atóxicas, estéreis e de uso individual.',
+                  'Aplicação com nanoagulha de calibre extremamente fino (tipo insulina) — não é agulha médica.',
+                  'NÃO é cirurgia nem transplante capilar — não envolve extração de folículos.',
                   'Não utiliza dispositivos com finalidade terapêutica ou médica.',
-                  'Mais superficial que tatuagem, mais leve que micropigmentação, menos invasiva que piercing.',
-                  'Não utiliza agulhas ou cânulas de uso médico.',
+                  'Ambiente higienizado, protocolo técnico estrito de segurança.',
                 ].map((item, i) => (
                   <div key={i} className="flex items-start gap-3">
                     <CheckCircle className="w-5 h-5 text-golden flex-shrink-0 mt-0.5" />
@@ -315,8 +329,44 @@ export default function FiberBROWSDetailPage() {
         </div>
       </section>
 
-      {/* ── COMO FUNCIONA ───────────────────────────────────────────────── */}
+      {/* ── O QUE NÃO É ─────────────────────────────────────────────────── */}
       <section className="py-24" style={{ background: '#0d0a00' }}>
+        <div className="max-w-5xl mx-auto px-4">
+          <Section>
+            <div className="text-center mb-14">
+              <span className="section-tag" style={{ color: '#ef4444', borderColor: '#ef444433', background: '#ef444411' }}>
+                Importante
+              </span>
+              <h2 className="font-playfair font-bold text-4xl text-white mt-4 mb-4">
+                O Que a <span className="bg-clip-text text-transparent"
+                  style={{ backgroundImage: 'linear-gradient(135deg, #C9A96E, #B76E79)' }}>FiberBROWS 360º NÃO É</span>
+              </h2>
+              <p className="text-white/50 font-inter text-base max-w-xl mx-auto">
+                A FiberBROWS 360º é uma técnica estética com identidade própria. Esclareça as diferenças.
+              </p>
+            </div>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[
+                'Não é Micropigmentação — não há introdução de pigmento na pele',
+                'Não é Piercing',
+                'Não é cirurgia, nem envolve extração de folículos',
+                'Não tem finalidade médica, terapêutica ou funcional',
+                'Não atinge camadas profundas da pele, vasos sanguíneos ou estruturas da derme',
+                'Não altera a estrutura ou função biológica do corpo',
+              ].map((item, i) => (
+                <div key={i} className="flex items-start gap-3 rounded-2xl border border-red-500/20 p-5"
+                  style={{ background: 'rgba(239,68,68,0.04)' }}>
+                  <span className="text-red-500 font-bold text-lg flex-shrink-0 leading-none mt-0.5">✗</span>
+                  <p className="text-white/70 font-inter text-sm leading-relaxed">{item}</p>
+                </div>
+              ))}
+            </div>
+          </Section>
+        </div>
+      </section>
+
+      {/* ── COMO FUNCIONA ───────────────────────────────────────────────── */}
+      <section className="py-24" style={{ background: '#111008' }}>
         <div className="max-w-5xl mx-auto px-4">
           <Section>
             <div className="text-center mb-14">
@@ -338,7 +388,7 @@ export default function FiberBROWSDetailPage() {
                   title: 'O Protocolo Técnico',
                   items: [
                     'Protocolo rigoroso que controla profundidade, ângulo de inserção e distância segura.',
-                    'Respeita a distância segura entre agulha, fio implantado e folículos naturais.',
+                    'Respeita a distância segura entre agulha, adorno aplicado e folículos naturais.',
                     'Preserva 100% a integridade dos folículos capilares naturais.',
                     'Executado por profissional certificada — Francielly Costa, pioneira em Portugal.',
                   ],
@@ -367,14 +417,14 @@ export default function FiberBROWSDetailPage() {
         <div className="max-w-5xl mx-auto px-4">
           <Section>
             <h2 className="font-playfair font-bold text-4xl text-white text-center mb-12">
-              Detalhes do Procedimento
+              Duração e Manutenção
             </h2>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-10">
               {[
-                { icon: Clock, label: 'Duração do resultado', value: '6 Meses' },
+                { icon: Clock, label: 'Duração do resultado', value: 'Até 6 Meses' },
                 { icon: Shield, label: 'Tipo', value: 'Não cirúrgico' },
                 { icon: Zap, label: 'Dor', value: 'Muito ligeira' },
-                { icon: Star, label: 'Sessões', value: 'A definir' },
+                { icon: Star, label: 'Manutenção', value: 'Simples' },
                 { icon: TrendingDown, label: 'Profundidade', value: 'Máx. 2mm' },
               ].map((item, i) => (
                 <div key={i} className="text-center rounded-2xl border border-golden/15 p-5"
@@ -384,6 +434,24 @@ export default function FiberBROWSDetailPage() {
                   <p className="text-white/40 text-xs font-inter mt-1">{item.label}</p>
                 </div>
               ))}
+            </div>
+            <div className="rounded-2xl border border-amber-500/20 p-6"
+              style={{ background: 'rgba(245,158,11,0.04)' }}>
+              <h3 className="font-playfair font-bold text-white text-lg mb-4">
+                Fatores que podem reduzir a duração
+              </h3>
+              <ul className="grid sm:grid-cols-3 gap-3">
+                {[
+                  'Pele inflamada',
+                  'Profundidade incorreta na aplicação',
+                  'Estilo de vida da cliente',
+                ].map((item, i) => (
+                  <li key={i} className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-amber-400/70 flex-shrink-0" />
+                    <span className="text-white/60 font-inter text-sm">{item}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
           </Section>
         </div>

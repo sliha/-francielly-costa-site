@@ -9,7 +9,7 @@ const diferenciais = [
   {
     icon: Shield,
     title: 'Não Cirúrgico',
-    desc: 'Sem implante, sem transplante. Técnica estética minimamente invasiva com profundidade máxima de 2mm.',
+    desc: 'Sem cirurgia, sem transplante. Técnica de embelezamento facial minimamente invasiva com profundidade máxima de 2mm.',
   },
   {
     icon: Zap,
