@@ -56,6 +56,7 @@ export async function POST(request: NextRequest) {
     }
 
     const apiKey = process.env.GEMINI_API_KEY
+    console.log('GEMINI_API_KEY exists:', !!apiKey)
 
     if (!apiKey) {
       console.error('GEMINI_API_KEY não está configurada no ambiente de runtime')

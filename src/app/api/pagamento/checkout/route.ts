@@ -1,15 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 
-const stripe = process.env.STRIPE_SECRET_KEY
-  ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2026-03-25.dahlia' })
-  : null
+export const runtime = 'nodejs'
 
 export async function POST(req: NextRequest) {
-  if (!stripe) return NextResponse.json({ error: 'Pagamentos não configurados' }, { status: 503 })
+  // ── diagnóstico de chave ──────────────────────────────────────────────────
+  const secretKey = process.env.STRIPE_SECRET_KEY
+  console.log('STRIPE_SECRET_KEY exists:', !!secretKey)
+
+  if (!secretKey) {
+    console.error('STRIPE_SECRET_KEY não está configurada no ambiente de runtime')
+    return NextResponse.json({ error: 'Pagamentos não configurados' }, { status: 503 })
+  }
+
+  // Inicializar Stripe DENTRO do handler (garante leitura em runtime, não em build)
+  const stripe = new Stripe(secretKey, {
+    // Versão estável compatível com stripe@21
+    apiVersion: '2024-09-30.acacia',
+  })
 
   try {
-    const { agendamentoId, servicoNome, clienteEmail, caucaoValor } = await req.json()
+    const body = await req.json()
+    const { agendamentoId, servicoNome, clienteEmail, caucaoValor } = body
+
+    console.log('Stripe checkout payload:', { agendamentoId, servicoNome, clienteEmail, caucaoValor })
 
     if (!agendamentoId || !servicoNome || !clienteEmail) {
       return NextResponse.json(
@@ -18,9 +32,9 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const baseUrl =
-      process.env.NEXT_PUBLIC_BASE_URL || 'https://franciellycosta.com'
-    const valorCentimos = Math.round((caucaoValor || 30) * 100)
+    // 30 € em cêntimos
+    const valorCentimos = Math.round((Number(caucaoValor) || 30) * 100) // = 3000
+    console.log('Valor em cêntimos:', valorCentimos)
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
@@ -40,15 +54,16 @@ export async function POST(req: NextRequest) {
         },
       ],
       mode: 'payment',
-      success_url: `${baseUrl}/agendamento/confirmado?session_id={CHECKOUT_SESSION_ID}&id=${agendamentoId}`,
-      cancel_url: `${baseUrl}/agendamento/cancelado`,
+      success_url: `https://www.franciellycosta.pt/agendamento/confirmado?session_id={CHECKOUT_SESSION_ID}&id=${agendamentoId}`,
+      cancel_url: `https://www.franciellycosta.pt/agendamento/cancelado`,
       metadata: { agendamentoId },
       locale: 'pt',
     })
 
+    console.log('Stripe session criada com sucesso:', session.id, '| URL:', session.url ? 'OK' : 'NULA')
     return NextResponse.json({ url: session.url })
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Erro desconhecido'
+    const message = err instanceof Error ? err.message : String(err)
     console.error('Erro ao criar sessão Stripe:', message)
     return NextResponse.json(
       { error: 'Erro ao iniciar pagamento. Por favor, tente novamente.' },
