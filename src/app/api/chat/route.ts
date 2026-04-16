@@ -21,17 +21,24 @@ const SOFIA_SYSTEM_PROMPT = `Você é Sofia, a assistente virtual especializada 
 - Contraindicações: gravidez, amamentação, isotretinoína, hemofilia, diabetes descontrolada, epilepsia, quimioterapia
 - Recuperação: 7-14 dias com cuidados específicos
 
+## AGENDAMENTO
+- Para agendar, recolhe: nome completo, telefone, email, serviço de interesse, data preferida e hora preferida
+- Informa que é necessária uma caução de reserva de **30€** (descontada no valor do procedimento) para confirmar o agendamento
+- O agendamento só fica confirmado após pagamento da caução via Stripe (cartão de crédito/débito)
+- Telefone / WhatsApp direto: +351 917 132 116
+- Página de agendamento online: /agendar
+
 ## SEU PAPEL
 - Responda SEMPRE em Português Europeu (de Portugal)
 - Seja calorosa, profissional e empática
 - Forneça informações precisas sobre os serviços
 - Incentive o agendamento quando apropriado
-- Para marcar consulta: dirija para o WhatsApp (https://wa.link/kwctpf) ou página de contacto
+- Para marcar consulta: dirija para o WhatsApp (+351 917 132 116) ou página de agendamento (/agendar)
 - Nunca invente preços ou informações não mencionadas
 - Se não souber algo, oriente para entrar em contacto diretamente
 
 ## TOM DE VOZ
-- Elegant, sofisticado mas acessível
+- Elegante, sofisticado mas acessível
 - Use "você" formalmente
 - Seja sucinta mas completa
 - Transmita confiança e profissionalismo
@@ -51,10 +58,11 @@ export async function POST(request: NextRequest) {
     const apiKey = process.env.GEMINI_API_KEY
 
     if (!apiKey) {
+      console.error('GEMINI_API_KEY não está configurada no ambiente de runtime')
       // Fallback response when no API key
       return NextResponse.json({
         response:
-          'Olá! Estou aqui para ajudá-la com informações sobre os nossos tratamentos. Para mais detalhes ou para agendar uma consulta, por favor contacte-nos pelo WhatsApp: https://wa.link/kwctpf ou ligue-nos. Teremos todo o gosto em atendê-la! ✨',
+          'Olá! Estou aqui para ajudá-la com informações sobre os nossos tratamentos. Para mais detalhes ou para agendar, contacte-nos pelo WhatsApp: +351 917 132 116 ou aceda a /agendar. Teremos todo o gosto em atendê-la! ✨',
       })
     }
 
@@ -67,7 +75,7 @@ export async function POST(request: NextRequest) {
       }))
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -98,8 +106,8 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       const error = await response.text()
-      console.error('Gemini API error:', error)
-      throw new Error(`Gemini API error: ${response.status}`)
+      console.error(`Gemini API error [${response.status}]:`, error)
+      throw new Error(`Gemini API error: ${response.status} — ${error}`)
     }
 
     const data = await response.json()

@@ -63,9 +63,19 @@ service cloud.firestore {
       allow update, delete: if isAuthenticated();
     }
 
-    // ── Admin-only collections ────────────────────────────────────────────────
+    // ── Contactos (formulário público) ───────────────────────────────────────
+    match /contactos/{docId} {
+      allow create: if true;
+      allow read, update, delete: if isAuthenticated();
+    }
+
+    // ── Clientes ──────────────────────────────────────────────────────────────
+    // Criação pública (via agendamento) · leitura/edição apenas admin
     match /clientes/{docId} {
-      allow read, write: if isAuthenticated();
+      allow create: if
+        request.resource.data.keys().hasAll(['nome', 'email']) &&
+        isValidEmail(request.resource.data.email);
+      allow read, update, delete: if isAuthenticated();
     }
 
     match /pagamentos/{docId} {

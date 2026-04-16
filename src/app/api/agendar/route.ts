@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { criarAgendamento } from '@/lib/booking'
+import { criarAgendamento, upsertCliente } from '@/lib/booking'
 import { sendBookingConfirmation } from '@/lib/email'
 
 export async function POST(req: NextRequest) {
@@ -51,11 +51,20 @@ export async function POST(req: NextRequest) {
       data,
       horaInicio,
       horaFim: horaFim || '',
-      estado: 'pendente',
+      estado: 'pendente_pagamento',
       caucaoPaga: false,
       notas: notas || '',
       criadoPor: 'cliente',
     })
+
+    // Upsert client record — fire and forget
+    upsertCliente({
+      nome: clienteNome,
+      email: clienteEmail,
+      telefone: clienteTelefone || '',
+      ultimoServico: servicoNome || '',
+      ultimoAgendamentoData: data,
+    }).catch((err) => console.error('Erro ao guardar cliente:', err))
 
     // Send confirmation emails — fire and forget
     sendBookingConfirmation({

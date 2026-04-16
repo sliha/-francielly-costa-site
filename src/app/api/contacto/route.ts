@@ -66,9 +66,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Email inválido' }, { status: 400 })
     }
 
-    // Save to Firestore
+    // Save to Firestore — non-blocking so email still sends even if Firestore fails
     if (db) {
-      await addDoc(collection(db, 'contactos'), {
+      addDoc(collection(db, 'contactos'), {
         nome: name.trim(),
         email: email.trim().toLowerCase(),
         telefone: phone?.trim() || '',
@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
         mensagem: message?.trim() || '',
         criadoEm: serverTimestamp(),
         lido: false,
-      })
+      }).catch((err) => console.error('Firestore contacto save error:', err))
     }
 
     // Send emails — fire and forget

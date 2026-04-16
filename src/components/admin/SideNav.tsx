@@ -20,6 +20,7 @@ import {
   Video,
   Sparkles,
   Scissors,
+  MessageSquare,
 } from 'lucide-react'
 import { signOut } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
@@ -29,6 +30,7 @@ const navItems = [
   { href: '/admin', icon: LayoutDashboard, label: 'Dashboard', exact: true },
   { href: '/admin/agenda', icon: Calendar, label: 'Agenda', exact: false },
   { href: '/admin/clientes', icon: Users, label: 'Clientes', exact: false },
+  { href: '/admin/contactos', icon: MessageSquare, label: 'Contactos', exact: false },
   { href: '/admin/acompanhamento', icon: Heart, label: 'Acompanhamento', exact: false },
   { href: '/admin/lista-espera', icon: Clock, label: 'Lista de Espera', exact: false },
   { href: '/admin/fiberbrows-waitlist', icon: Sparkles, label: 'FiberBROWS Waitlist', exact: false },

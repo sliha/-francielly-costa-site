@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Sparkles, MapPin, Phone, Mail, Clock, Facebook, Instagram, Linkedin } from 'lucide-react'
+import { Sparkles, MapPin, Phone, Mail, Clock, Facebook, Instagram } from 'lucide-react'
 
 const navLinks = [
   { href: '/', label: 'Início' },
@@ -45,7 +45,7 @@ export default function Footer() {
             {/* Social */}
             <div className="flex items-center gap-3">
               <a
-                href="https://facebook.com"
+                href="https://www.facebook.com/Franciellycostaespecialista/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-9 h-9 rounded-full border border-white/20 flex items-center justify-center hover:border-rose-gold hover:bg-rose-gold transition-all duration-300 group"
@@ -54,22 +54,13 @@ export default function Footer() {
                 <Facebook className="w-4 h-4 text-white/60 group-hover:text-white" />
               </a>
               <a
-                href="https://instagram.com"
+                href="https://www.instagram.com/franciellycostamaster/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-9 h-9 rounded-full border border-white/20 flex items-center justify-center hover:border-rose-gold hover:bg-rose-gold transition-all duration-300 group"
                 aria-label="Instagram"
               >
                 <Instagram className="w-4 h-4 text-white/60 group-hover:text-white" />
-              </a>
-              <a
-                href="https://linkedin.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-9 h-9 rounded-full border border-white/20 flex items-center justify-center hover:border-rose-gold hover:bg-rose-gold transition-all duration-300 group"
-                aria-label="LinkedIn"
-              >
-                <Linkedin className="w-4 h-4 text-white/60 group-hover:text-white" />
               </a>
             </div>
           </div>
@@ -136,10 +127,10 @@ export default function Footer() {
                   <Phone className="w-3.5 h-3.5 text-rose-gold" />
                 </div>
                 <a
-                  href="tel:+351000000000"
+                  href="tel:+351917132116"
                   className="text-white/60 hover:text-white text-sm font-inter transition-colors duration-200"
                 >
-                  +351 000 000 000
+                  +351 917 132 116
                 </a>
               </li>
               <li className="flex items-center gap-3">
@@ -147,10 +138,10 @@ export default function Footer() {
                   <Mail className="w-3.5 h-3.5 text-rose-gold" />
                 </div>
                 <a
-                  href="mailto:info@franciellycosta.com"
+                  href="mailto:geral@franciellycosta.com"
                   className="text-white/60 hover:text-white text-sm font-inter transition-colors duration-200"
                 >
-                  info@franciellycosta.com
+                  geral@franciellycosta.com
                 </a>
               </li>
               <li className="flex items-start gap-3">
@@ -180,6 +171,13 @@ export default function Footer() {
                 className="text-white/40 hover:text-white/70 text-xs font-inter transition-colors duration-200"
               >
                 Política de Privacidade
+              </Link>
+              <span className="text-white/20">|</span>
+              <Link
+                href="/cookies"
+                className="text-white/40 hover:text-white/70 text-xs font-inter transition-colors duration-200"
+              >
+                Política de Cookies
               </Link>
               <span className="text-white/20">|</span>
               <Link

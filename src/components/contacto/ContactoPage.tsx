@@ -36,6 +36,7 @@ export default function ContactoPage() {
   const [form, setForm] = useState<FormData>(initialForm)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [submitError, setSubmitError] = useState('')
   const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.1 })
 
   const handleChange = (
@@ -47,17 +48,25 @@ export default function ContactoPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
+    setSubmitError('')
     try {
       const res = await fetch('/api/contacto', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
       })
-      if (!res.ok) throw new Error('Erro no servidor')
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || 'Erro no servidor')
+      }
       setSubmitted(true)
       setForm(initialForm)
-    } catch {
-      alert('Ocorreu um erro ao enviar. Por favor tente novamente ou contacte-nos pelo WhatsApp.')
+    } catch (err) {
+      setSubmitError(
+        err instanceof Error
+          ? err.message
+          : 'Ocorreu um erro ao enviar. Por favor tente novamente ou contacte-nos pelo WhatsApp.'
+      )
     } finally {
       setIsSubmitting(false)
     }
@@ -234,6 +243,12 @@ export default function ContactoPage() {
                       </div>
                     </div>
 
+                    {submitError && (
+                      <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
+                        {submitError}
+                      </div>
+                    )}
+
                     <button
                       type="submit"
                       disabled={isSubmitting}
@@ -281,16 +296,16 @@ export default function ContactoPage() {
                 },
                 {
                   icon: Phone,
-                  title: 'Telefone',
-                  content: '+351 000 000 000',
-                  href: 'tel:+351000000000',
+                  title: 'Telefone / WhatsApp',
+                  content: '+351 917 132 116',
+                  href: 'tel:+351917132116',
                   color: 'golden',
                 },
                 {
                   icon: Mail,
                   title: 'Email',
-                  content: 'info@franciellycosta.com',
-                  href: 'mailto:info@franciellycosta.com',
+                  content: 'geral@franciellycosta.com',
+                  href: 'mailto:geral@franciellycosta.com',
                   color: 'rose-gold',
                 },
                 {
@@ -346,7 +361,7 @@ export default function ContactoPage() {
 
               {/* WhatsApp */}
               <a
-                href="https://wa.link/kwctpf"
+                href="https://wa.me/351917132116"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center justify-center gap-3 w-full bg-[#25D366] hover:bg-[#1da851] text-white font-semibold py-4 rounded-2xl transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg font-inter"
@@ -354,6 +369,26 @@ export default function ContactoPage() {
                 <MessageCircle className="w-5 h-5" />
                 Falar pelo WhatsApp
               </a>
+
+              {/* Social */}
+              <div className="flex gap-3">
+                <a
+                  href="https://www.instagram.com/franciellycostamaster/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold py-3 rounded-2xl transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg font-inter text-sm"
+                >
+                  Instagram
+                </a>
+                <a
+                  href="https://www.facebook.com/Franciellycostaespecialista/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 flex items-center justify-center gap-2 bg-[#1877F2] hover:bg-[#166FE5] text-white font-semibold py-3 rounded-2xl transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg font-inter text-sm"
+                >
+                  Facebook
+                </a>
+              </div>
 
               {/* Map */}
               <div className="rounded-2xl overflow-hidden shadow-card">

@@ -3,11 +3,13 @@ import {
   collection,
   doc,
   addDoc,
+  setDoc,
   updateDoc,
   getDocs,
   query,
   where,
   orderBy,
+  increment,
   Timestamp,
   serverTimestamp,
 } from 'firebase/firestore'
@@ -22,7 +24,7 @@ export interface Agendamento {
   data: string // 'YYYY-MM-DD'
   horaInicio: string // 'HH:MM'
   horaFim: string
-  estado: 'pendente' | 'confirmado' | 'pago' | 'concluido' | 'cancelado'
+  estado: 'pendente' | 'pendente_pagamento' | 'confirmado' | 'pago' | 'concluido' | 'cancelado'
   caucaoPaga: boolean
   metodoPagamento?: string
   notas?: string
@@ -138,6 +140,32 @@ export async function getTodosAgendamentos(): Promise<Agendamento[]> {
   } catch {
     return []
   }
+}
+
+// Upsert client record — uses email (sanitised) as doc ID so duplicates are avoided
+export async function upsertCliente(params: {
+  nome: string
+  email: string
+  telefone: string
+  ultimoServico: string
+  ultimoAgendamentoData: string
+}): Promise<void> {
+  if (!db) return
+  const clienteId = params.email.toLowerCase().replace(/[@.]/g, '_')
+  const ref = doc(db, 'clientes', clienteId)
+  await setDoc(
+    ref,
+    {
+      nome: params.nome,
+      email: params.email.toLowerCase(),
+      telefone: params.telefone,
+      ultimoServico: params.ultimoServico,
+      ultimoAgendamento: params.ultimoAgendamentoData,
+      totalAgendamentos: increment(1),
+      criadoEm: serverTimestamp(),
+    },
+    { merge: true }
+  )
 }
 
 // Get bookings by estado

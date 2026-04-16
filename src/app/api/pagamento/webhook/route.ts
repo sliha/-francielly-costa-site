@@ -56,7 +56,7 @@ const agendamentoId = session.metadata?.agendamentoId
 
 if (agendamentoId) {
 
-await atualizarEstadoAgendamento(agendamentoId, 'pago', {
+await atualizarEstadoAgendamento(agendamentoId, 'confirmado', {
 
 caucaoPaga: true,
 

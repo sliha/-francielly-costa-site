@@ -63,8 +63,5 @@ env:
     secret: stripe-secret-key
   - variable: STRIPE_WEBHOOK_SECRET
     secret: stripe-webhook-secret
-
   - variable: RESEND_API_KEY
     secret: resend-api-key
-    availability:
-      - RUNTIME

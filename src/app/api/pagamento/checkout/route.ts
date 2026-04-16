@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
 
     const baseUrl =
       process.env.NEXT_PUBLIC_BASE_URL || 'https://franciellycosta.com'
-    const valorCentimos = Math.round((caucaoValor || 20) * 100)
+    const valorCentimos = Math.round((caucaoValor || 30) * 100)
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],

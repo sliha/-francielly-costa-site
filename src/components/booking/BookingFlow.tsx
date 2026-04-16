@@ -117,7 +117,7 @@ export default function BookingFlow({ servicoPreSelecionado, onClose }: Props) {
           agendamentoId,
           servicoNome: servico?.name,
           clienteEmail: email,
-          caucaoValor: 20,
+          caucaoValor: 30,
         }),
       })
       const json = await res.json()
@@ -428,7 +428,7 @@ export default function BookingFlow({ servicoPreSelecionado, onClose }: Props) {
             </h2>
             <p className="text-gray-500 text-sm mb-6">
               Para confirmar a sua reserva, pedimos uma caução de{' '}
-              <strong className="text-rose-gold">€20</strong> (descontada no procedimento).
+              <strong className="text-rose-gold">€30</strong> (descontada no procedimento).
             </p>
 
             <div className="bg-gray-50 rounded-2xl p-4 mb-6 text-left space-y-1">
@@ -459,7 +459,7 @@ export default function BookingFlow({ servicoPreSelecionado, onClose }: Props) {
               className="w-full bg-gradient-to-r from-rose-gold to-golden text-white font-semibold py-4 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2 mb-3"
             >
               <CreditCard size={18} />
-              {loading ? 'A redirecionar...' : 'Pagar Caução €20 →'}
+              {loading ? 'A redirecionar...' : 'Pagar Caução €30 →'}
             </button>
 
             <p className="text-xs text-gray-400 mb-4">
