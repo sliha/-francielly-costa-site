@@ -94,7 +94,7 @@ export default function Navbar() {
             {/* CTA Button */}
             <div className="hidden lg:flex items-center">
               <Link
-                href="/contacto"
+                href="/agendar"
                 className="btn-primary text-sm px-6 py-2.5"
               >
                 Agendar
@@ -180,7 +180,7 @@ export default function Navbar() {
               {/* Mobile CTA */}
               <div className="p-6 border-t border-cream-dark">
                 <Link
-                  href="/contacto"
+                  href="/agendar"
                   onClick={() => setIsMobileOpen(false)}
                   className="btn-primary w-full text-center"
                 >

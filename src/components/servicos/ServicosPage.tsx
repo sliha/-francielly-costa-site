@@ -154,7 +154,7 @@ export default function ServicosPage() {
                       <ArrowRight className="w-4 h-4" />
                     </Link>
                     <Link
-                      href="/contacto"
+                      href="/agendar"
                       className="btn-outline text-sm px-6 py-2.5"
                     >
                       Agendar
@@ -178,7 +178,7 @@ export default function ServicosPage() {
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
-              href="/contacto"
+              href="/agendar"
               className="inline-flex items-center gap-2 px-8 py-4 bg-white text-rose-gold font-semibold rounded-full hover:bg-cream transition-all duration-300 hover:-translate-y-0.5 shadow-lg font-inter"
             >
               Agendar Agora

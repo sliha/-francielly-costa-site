@@ -53,28 +53,23 @@ export async function POST(request: NextRequest) {
     }
 
     const apiKey = process.env.GEMINI_API_KEY
-    console.log('GEMINI_API_KEY exists:', !!apiKey)
-    console.log('GEMINI KEY format:', apiKey?.substring(0, 5))
 
     if (!apiKey) {
-      console.error('GEMINI_API_KEY não está configurada no ambiente de runtime')
       return NextResponse.json({
         response:
           'Olá! Estou aqui para ajudá-la. Para mais detalhes ou para agendar, contacte-nos pelo WhatsApp: +351 917 132 116 ou aceda a /agendar. ✨',
       })
     }
 
-    // Inicializar SDK com a chave (suporta formatos AIzaSy... e AQ....)
     const genAI = new GoogleGenerativeAI(apiKey)
     const model = genAI.getGenerativeModel({
       model: 'gemini-2.5-flash',
       systemInstruction: SOFIA_SYSTEM_PROMPT,
     })
 
-    // Filtrar mensagens de sistema e separar histórico da última mensagem
-    const userMessages = messages.filter((m: any) => m.role !== 'system')
+    const userMessages = messages.filter((m: { role: string }) => m.role !== 'system')
     const lastMessage = userMessages[userMessages.length - 1]
-    const history = userMessages.slice(0, -1).map((m: any) => ({
+    const history = userMessages.slice(0, -1).map((m: { role: string; content: string }) => ({
       role: m.role === 'user' ? 'user' : 'model',
       parts: [{ text: m.content }],
     }))

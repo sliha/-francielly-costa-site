@@ -81,7 +81,7 @@ export default function ServiceDetailPage({ service }: { service: Service }) {
               </div>
 
               <div className="flex flex-wrap gap-4 mb-6">
-                <Link href="/contacto" className="btn-primary">
+                <Link href="/agendar" className="btn-primary">
                   Agendar Este Serviço
                   <ArrowRight className="w-4 h-4" />
                 </Link>
