@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Webhook não configurado' }, { status: 500 })
   }
 
-  const stripe = new Stripe(secretKey, { apiVersion: '2024-09-30.acacia' })
+  const stripe = new Stripe(secretKey, { apiVersion: '2026-03-25.dahlia' })
 
   const body = await req.text()
   const sig = req.headers.get('stripe-signature') || ''

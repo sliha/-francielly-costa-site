@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
   // Inicializar Stripe DENTRO do handler (garante leitura em runtime, não em build)
   const stripe = new Stripe(secretKey, {
     // Versão estável compatível com stripe@21
-    apiVersion: '2024-09-30.acacia',
+    apiVersion: '2026-03-25.dahlia',
   })
 
   try {
