@@ -4,7 +4,7 @@ runConfig:
   concurrency: 80
 
 env:
-  # Firebase public config (safe to commit — exposed in browser bundle)
+  # ── Firebase public config (seguro para commitar — exposto no browser bundle) ──
   - variable: NEXT_PUBLIC_FIREBASE_API_KEY
     value: AIzaSyDX28D_klJKZjNIpyhuDv-869XUCCA4rrA
     availability:
@@ -47,27 +47,14 @@ env:
       - BUILD
       - RUNTIME
 
+  # Chave pública Stripe — segura para commitar (exposta no frontend)
   - variable: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
-    value: pk_live_placeholder
+    value: pk_live_51TJxodFPIfHmLw8h0TqX2GBYdv4afq1SZN6QRU8Yrxccozpq8TmEKzlKeTiHzKhucHhYqrAWMRsmw9yeflXnpDon00J32uO0cz
     availability:
       - BUILD
       - RUNTIME
 
-  # Secrets (sensitive — stored in Secret Manager)
-  - variable: GEMINI_API_KEY
-    secret: gemini-api-key
-    availability:
-      - BUILD
-      - RUNTIME
-  - variable: STRIPE_SECRET_KEY
-    secret: stripe-secret-key
-    availability:
-      - RUNTIME
-  - variable: STRIPE_WEBHOOK_SECRET
-    secret: stripe-webhook-secret
-    availability:
-      - RUNTIME
-  - variable: RESEND_API_KEY
-    secret: resend-api-key
-    availability:
-      - RUNTIME
+  # ── Segredos — configurados diretamente na Firebase Console (não no Secret Manager) ──
+  # GEMINI_API_KEY, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, RESEND_API_KEY
+  # são lidos automaticamente das variáveis de ambiente definidas na consola Firebase.
+  # NÃO declarar aqui com "secret:" para não conflituar com o Secret Manager.
