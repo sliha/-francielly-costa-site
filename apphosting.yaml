@@ -47,22 +47,22 @@ env:
       - BUILD
       - RUNTIME
 
+  - variable: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+    value: pk_live_placeholder
+    availability:
+      - BUILD
+      - RUNTIME
+
   # Secrets (sensitive — stored in Secret Manager)
   - variable: GEMINI_API_KEY
     secret: gemini-api-key
     availability:
       - BUILD
       - RUNTIME
-
   - variable: STRIPE_SECRET_KEY
     secret: stripe-secret-key
-    availability:
-      - RUNTIME
-
   - variable: STRIPE_WEBHOOK_SECRET
     secret: stripe-webhook-secret
-    availability:
-      - RUNTIME
 
   - variable: RESEND_API_KEY
     secret: resend-api-key
