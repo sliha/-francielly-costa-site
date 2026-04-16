@@ -1,128 +1,109 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { GoogleGenerativeAI } from '@google/generative-ai'
 
 const SOFIA_SYSTEM_PROMPT = `Você é Sofia, a assistente virtual especializada da Francielly Costa, clínica de Dermopigmentação Avançada em Braga, Portugal.
 
 ## SOBRE A FRANCIELLY COSTA
 - Especialista em Dermopigmentação com mais de 8 anos de experiência
 - Localização: Av. Dr. António Palha 53, 4715-091 Braga, Portugal
-- Contato WhatsApp: https://wa.link/kwctpf
+- Telefone / WhatsApp: +351 917 132 116
 - Horário: Segunda-Sexta 9h-18h, Sábado 9h-13h
 
 ## SERVIÇOS OFERECIDOS
-0. **FiberBROWS 360º** (A partir de €1.000) — SERVIÇO CARRO-CHEFE E GRANDE NOVIDADE: Técnica de embelezamento facial NÃO cirúrgica e NÃO médica. Consiste na aplicação de um adorno estético de microfibras sintéticas (não absorvíveis, atóxicas, estéreis, de uso individual) nas sobrancelhas, com nanoagulha de calibre extremamente fino. Profundidade máxima 2mm. Resultado dura até 6 meses com manutenção simples. Não é micropigmentação, não é cirurgia, não tem finalidade terapêutica. Dor muito inferior à micropigmentação. A Francielly é uma das primeiras profissionais certificadas em Portugal. DISPONÍVEL A PARTIR DE MAIO 2026. Para já, recolher nome, email e telefone de interessadas e informar que serão contactadas. Quando uma cliente perguntar sobre sobrancelhas, SEMPRE mencionar a FiberBROWS 360º como opção premium. NUNCA usar a palavra "implante" ao falar da FiberBROWS 360º — usar sempre "aplicação de adorno estético" ou "adorno aplicado".
-1. **Microblading** (€200-€350): Técnica manual de fio a fio para sobrancelhas naturais. Duração: 2-3h, 2 sessões, resultados 1-3 anos.
-2. **Microshading** (€180-€300): Efeito sombra para sobrancelhas com volume. Duração: 2-2.5h, 2 sessões, resultados 1-2 anos.
-3. **Eyeliner Permanente** (€150-€250): Delineado duradouro para olhos definidos. Duração: 1.5-2h, 2 sessões, resultados 2-4 anos.
-4. **Micropigmentação Labial** (€200-€350): Contorno e cor permanente nos lábios. Duração: 2-3h, 2 sessões, resultados 1-3 anos.
+0. **FiberBROWS 360º** (A partir de €1.000) — SERVIÇO CARRO-CHEFE E GRANDE NOVIDADE: Técnica de embelezamento facial NÃO cirúrgica e NÃO médica. Aplicação de adorno estético de microfibras sintéticas nas sobrancelhas com nanoagulha. Profundidade máxima 2mm. Resultado dura até 6 meses. Dor mínima. DISPONÍVEL A PARTIR DE MAIO 2026. Mencionar SEMPRE quando perguntarem sobre sobrancelhas. NUNCA usar a palavra "implante".
+1. **Microblading** (€200-€350): Técnica manual de fio a fio para sobrancelhas naturais. 2-3h, 2 sessões, 1-3 anos.
+2. **Microshading** (€180-€300): Efeito sombra para sobrancelhas com volume. 2-2.5h, 2 sessões, 1-2 anos.
+3. **Eyeliner Permanente** (€150-€250): Delineado duradouro. 1.5-2h, 2 sessões, 2-4 anos.
+4. **Micropigmentação Labial** (€200-€350): Contorno e cor permanente nos lábios. 2-3h, 2 sessões, 1-3 anos.
+5. **Tricopigmentação** (consulte-nos): Micropigmentação capilar para calvície/cabelo ralo. 2-3 sessões, 2-5 anos. Mencionar SEMPRE para perguntas sobre calvície ou cabelo ralo.
 
 ## INFORMAÇÕES IMPORTANTES
 - Todos os procedimentos incluem anestesia tópica
-- Retoque obrigatório entre 4-8 semanas após a sessão inicial
+- Retoque obrigatório entre 4-8 semanas após sessão inicial
 - Contraindicações: gravidez, amamentação, isotretinoína, hemofilia, diabetes descontrolada, epilepsia, quimioterapia
 - Recuperação: 7-14 dias com cuidados específicos
 
 ## AGENDAMENTO
-- Para agendar, recolhe: nome completo, telefone, email, serviço de interesse, data preferida e hora preferida
-- Informa que é necessária uma caução de reserva de **30€** (descontada no valor do procedimento) para confirmar o agendamento
-- O agendamento só fica confirmado após pagamento da caução via Stripe (cartão de crédito/débito)
-- Telefone / WhatsApp direto: +351 917 132 116
+- Recolhe: nome completo, telefone, email, serviço de interesse, data e hora preferidas
+- Caução de reserva de **30€** (descontada no procedimento) obrigatória para confirmar
+- Agendamento só confirmado após pagamento da caução via Stripe
 - Página de agendamento online: /agendar
 
 ## SEU PAPEL
 - Responda SEMPRE em Português Europeu (de Portugal)
 - Seja calorosa, profissional e empática
-- Forneça informações precisas sobre os serviços
-- Incentive o agendamento quando apropriado
-- Para marcar consulta: dirija para o WhatsApp (+351 917 132 116) ou página de agendamento (/agendar)
+- Para marcar: dirija para WhatsApp (+351 917 132 116) ou /agendar
 - Nunca invente preços ou informações não mencionadas
-- Se não souber algo, oriente para entrar em contacto diretamente
 
 ## TOM DE VOZ
 - Elegante, sofisticado mas acessível
 - Use "você" formalmente
 - Seja sucinta mas completa
-- Transmita confiança e profissionalismo
-- Finalize com perguntas abertas para manter o diálogo
+- Finalize com perguntas abertas
 
 ## IDIOMA
-Deteta automaticamente o idioma da mensagem da cliente e responde SEMPRE nesse mesmo idioma. Mantém o mesmo nível de profissionalismo independentemente do idioma.`
+Deteta automaticamente o idioma e responde SEMPRE nesse idioma.`
 
 export async function POST(request: NextRequest) {
   try {
     const { messages } = await request.json()
 
-    if (!messages || !Array.isArray(messages)) {
+    if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return NextResponse.json({ error: 'Mensagens inválidas' }, { status: 400 })
     }
 
     const apiKey = process.env.GEMINI_API_KEY
     console.log('GEMINI_API_KEY exists:', !!apiKey)
+    console.log('GEMINI KEY format:', apiKey?.substring(0, 5))
 
     if (!apiKey) {
       console.error('GEMINI_API_KEY não está configurada no ambiente de runtime')
-      // Fallback response when no API key
       return NextResponse.json({
         response:
-          'Olá! Estou aqui para ajudá-la com informações sobre os nossos tratamentos. Para mais detalhes ou para agendar, contacte-nos pelo WhatsApp: +351 917 132 116 ou aceda a /agendar. Teremos todo o gosto em atendê-la! ✨',
+          'Olá! Estou aqui para ajudá-la. Para mais detalhes ou para agendar, contacte-nos pelo WhatsApp: +351 917 132 116 ou aceda a /agendar. ✨',
       })
     }
 
-    // Build Gemini API request
-    const geminiMessages = messages
-      .filter((m: any) => m.role !== 'system')
-      .map((m: any) => ({
-        role: m.role === 'user' ? 'user' : 'model',
-        parts: [{ text: m.content }],
-      }))
+    // Inicializar SDK com a chave (suporta formatos AIzaSy... e AQ....)
+    const genAI = new GoogleGenerativeAI(apiKey)
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-2.5-flash',
+      systemInstruction: SOFIA_SYSTEM_PROMPT,
+    })
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          system_instruction: {
-            parts: [{ text: SOFIA_SYSTEM_PROMPT }],
-          },
-          contents: geminiMessages,
-          generationConfig: {
-            temperature: 0.7,
-            topK: 40,
-            topP: 0.95,
-            maxOutputTokens: 512,
-          },
-          safetySettings: [
-            {
-              category: 'HARM_CATEGORY_HARASSMENT',
-              threshold: 'BLOCK_MEDIUM_AND_ABOVE',
-            },
-            {
-              category: 'HARM_CATEGORY_HATE_SPEECH',
-              threshold: 'BLOCK_MEDIUM_AND_ABOVE',
-            },
-          ],
-        }),
-      }
-    )
+    // Filtrar mensagens de sistema e separar histórico da última mensagem
+    const userMessages = messages.filter((m: any) => m.role !== 'system')
+    const lastMessage = userMessages[userMessages.length - 1]
+    const history = userMessages.slice(0, -1).map((m: any) => ({
+      role: m.role === 'user' ? 'user' : 'model',
+      parts: [{ text: m.content }],
+    }))
 
-    if (!response.ok) {
-      const error = await response.text()
-      console.error(`Gemini API error [${response.status}]:`, error)
-      throw new Error(`Gemini API error: ${response.status} — ${error}`)
+    const chat = model.startChat({
+      history,
+      generationConfig: {
+        temperature: 0.7,
+        topK: 40,
+        topP: 0.95,
+        maxOutputTokens: 512,
+      },
+    })
+
+    const result = await chat.sendMessage(lastMessage?.content || '')
+    const text = result.response.text()
+
+    if (!text) {
+      throw new Error('Resposta vazia da API Gemini')
     }
 
-    const data = await response.json()
-    const text =
-      data?.candidates?.[0]?.content?.parts?.[0]?.text ||
-      'Desculpe, não consegui processar a sua mensagem. Por favor, tente novamente ou contacte-nos pelo WhatsApp.'
-
     return NextResponse.json({ response: text })
-  } catch (error) {
-    console.error('Chat API error:', error)
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error)
+    console.error('Chat API error:', msg)
     return NextResponse.json(
       {
         response:
-          'Desculpe, ocorreu um erro técnico. Por favor, contacte-nos diretamente pelo WhatsApp: https://wa.link/kwctpf',
+          'Desculpe, ocorreu um erro técnico. Por favor, contacte-nos diretamente pelo WhatsApp: +351 917 132 116',
       },
       { status: 200 }
     )

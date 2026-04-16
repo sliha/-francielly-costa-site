@@ -9,7 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@google/generative-ai": "^0.16.0",
+    "@google/generative-ai": "^0.24.1",
     "@stripe/stripe-js": "^4.1.0",
     "date-fns": "^3.6.0",
     "firebase": "^10.12.4",

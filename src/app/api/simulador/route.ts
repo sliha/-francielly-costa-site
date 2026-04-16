@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
     const prompt = `Analisa esta foto de rosto de forma gentil e profissional. Descreve como ficaria o resultado de ${servico} nesta pessoa, considerando o formato do rosto, tom de pele, traços e proporções faciais. Dá uma descrição detalhada, personalizada e encorajadora do resultado esperado. Foca nos aspectos positivos que o procedimento iria realçar. Responde em português europeu, num tom caloroso e profissional. Máximo 3 parágrafos curtos.`
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
