@@ -46,18 +46,7 @@ Deteta automaticamente o idioma e responde SEMPRE nesse idioma.
 
 ## REGRAS OBRIGATÓRIAS DE LINGUAGEM — FIBERBROWS
 NUNCA usar: implante, implantação, cirúrgico, cirurgia, invasivo, permanente, sintético, perfuração, agulha cirúrgica, anestesia, remoção, definitivo, transplante.
-USAR SEMPRE: aplicação, fio estético biocompatível, nanofio, embelezamento facial, temporário, reversível, nanoagulha, anestésico tópico, inserção, reversão.
-
-Frases corretas para FiberBROWS:
-- "Aplicação com fios estéticos fixados superficialmente"
-- "Técnica estética sem fins terapêuticos, com finalidade de embelezamento"
-- "Sem agressão profunda à pele (máx. 2mm de profundidade)"
-- "Resultado temporário com duração até 6 meses"
-- "Reversão ou retirada do material aplicado"
-- "Anestésico tópico para maior conforto"
-- "Esta técnica conta com parecer jurídico que valida a sua prática como estética e segura"
-- "Profissionais da estética capacitados e certificados podem aplicar"
-- Se perguntarem se é cirúrgico: "Não. É uma técnica estética sem fins terapêuticos, com finalidade exclusiva de embelezamento facial."`
+USAR SEMPRE: aplicação, fio estético biocompatível, nanofio, embelezamento facial, temporário, reversível, nanoagulha, anestésico tópico, inserção, reversão.`
 
 export async function POST(request: NextRequest) {
   try {
@@ -71,14 +60,13 @@ export async function POST(request: NextRequest) {
 
     if (!apiKey) {
       return NextResponse.json({
-        response:
-          'Olá! Estou aqui para ajudá-la. Para mais detalhes ou para agendar, contacte-nos pelo WhatsApp: +351 917 132 116 ou aceda a /agendar. ✨',
+        response: 'Olá! Estamos a configurar a assistente. Por favor contacte-nos pelo WhatsApp: +351 917 132 116',
       })
     }
 
     const genAI = new GoogleGenerativeAI(apiKey)
     const model = genAI.getGenerativeModel({
-      model:'gemini-1.5-flash',
+      model: 'gemini-1.5-flash',
       systemInstruction: SOFIA_SYSTEM_PROMPT,
     })
 
@@ -107,13 +95,14 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ response: text })
+    
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : String(error)
     console.error('Chat API error:', msg)
     
-    // MUDANÇA AQUI: Retornar a mensagem real do erro
     return NextResponse.json(
       { response: `ERRO DE SISTEMA: ${msg}` }, 
       { status: 200 }
     )
   }
+}
