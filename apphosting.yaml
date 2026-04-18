@@ -55,8 +55,8 @@ env:
       - RUNTIME
 
   # ── Segredos via Secret Manager ──────────────────────────────────────────────
-  - variable: ANTHROPIC_API_KEY
-    secret: ANTHROPIC_API_KEY
+  - variable: CLAUDE_API_KEY
+    secret: CLAUDE_API_KEY
 
   # STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, RESEND_API_KEY
   # continuam configurados diretamente na Firebase Console.
