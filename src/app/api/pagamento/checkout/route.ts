@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
+import { db } from '@/lib/firebase'
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore'
 
 export const runtime = 'nodejs'
 
 export async function POST(req: NextRequest) {
-  // ── diagnóstico de chave ──────────────────────────────────────────────────
   const secretKey = process.env.STRIPE_SECRET_KEY
   console.log('STRIPE_SECRET_KEY exists:', !!secretKey)
 
@@ -13,15 +14,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Pagamentos não configurados' }, { status: 503 })
   }
 
-  // Inicializar Stripe DENTRO do handler (garante leitura em runtime, não em build)
   const stripe = new Stripe(secretKey, {
-    // Versão estável compatível com stripe@21
     apiVersion: '2026-03-25.dahlia',
   })
 
   try {
     const body = await req.json()
-    const { agendamentoId, servicoNome, clienteEmail, caucaoValor } = body
+    const {
+      agendamentoId,
+      servicoNome,
+      clienteEmail,
+      caucaoValor,
+      clienteNome,
+      clienteTelefone,
+      dataAgendamento,
+    } = body
 
     console.log('Stripe checkout payload:', { agendamentoId, servicoNome, clienteEmail, caucaoValor })
 
@@ -32,13 +39,39 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // 30 € em cêntimos
-    const valorCentimos = Math.round((Number(caucaoValor) || 30) * 100) // = 3000
+    // Guardar/actualizar dados do cliente no Firestore antes de iniciar pagamento
+    if (db) {
+      try {
+        await setDoc(
+          doc(db, 'clientes', agendamentoId),
+          {
+            nome: clienteNome || '',
+            email: clienteEmail,
+            telefone: clienteTelefone || '',
+            servico: servicoNome,
+            dataAgendamento: dataAgendamento || '',
+            estado: 'pendente',
+            criadoEm: serverTimestamp(),
+          },
+          { merge: true }
+        )
+        console.log('Cliente guardado no Firestore:', agendamentoId)
+      } catch (firestoreErr) {
+        console.error('Erro ao guardar cliente no Firestore:', firestoreErr)
+        // Não bloquear o pagamento por erro de Firestore
+      }
+    }
+
+    const valorCentimos = Math.round((Number(caucaoValor) || 30) * 100)
     console.log('Valor em cêntimos:', valorCentimos)
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       customer_email: clienteEmail,
+      // receipt_email é configurado via payment_intent_data para envio automático
+      payment_intent_data: {
+        receipt_email: clienteEmail,
+      },
       line_items: [
         {
           price_data: {

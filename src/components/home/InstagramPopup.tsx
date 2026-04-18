@@ -40,7 +40,7 @@ export default function InstagramPopup() {
             A Francielly partilhou um novo trabalho no Instagram ✨
           </p>
           <a
-            href="https://www.instagram.com/franciellycostapmu"
+            href="https://www.instagram.com/franciellycostamaster"
             target="_blank"
             rel="noopener noreferrer"
             onClick={fechar}

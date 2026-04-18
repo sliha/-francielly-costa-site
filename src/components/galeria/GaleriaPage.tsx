@@ -8,7 +8,6 @@ import { db } from '@/lib/firebase'
 import { collection, getDocs, query, where } from 'firebase/firestore'
 
 const categories = [
-  { id: 'all', label: 'Todos' },
   { id: 'fiberbrows', label: 'FiberBROWS' },
   { id: 'tricopigmentacao', label: 'Tricopigmentação' },
   { id: 'microblading', label: 'Microblading' },
@@ -46,7 +45,7 @@ const placeholders: MediaItem[] = Array.from({ length: 8 }, (_, i) => ({
 }))
 
 export default function GaleriaPage() {
-  const [activeCategory, setActiveCategory] = useState('all')
+  const [activeCategory, setActiveCategory] = useState('fiberbrows')
   const [items, setItems] = useState<MediaItem[]>([])
   const [loading, setLoading] = useState(true)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
@@ -76,9 +75,7 @@ export default function GaleriaPage() {
   const displayItems = items.length > 0 ? items : placeholders
   const isPlaceholder = items.length === 0
 
-  const filtered = activeCategory === 'all'
-    ? displayItems
-    : displayItems.filter((item) => item.servico === activeCategory)
+  const filtered = displayItems.filter((item) => item.servico === activeCategory)
 
   const photos = filtered.filter((i) => i.mediaType !== 'video')
   const videos = filtered.filter((i) => i.mediaType === 'video')

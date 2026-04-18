@@ -136,6 +136,7 @@ export default function GaleriaPage() {
               console.log(`[Upload] ✅ Concluído: ${file.name}`)
               try {
                 const url = await getDownloadURL(task.snapshot.ref)
+                console.log('Upload URL:', url)
                 const newFoto: Omit<Foto, 'id'> = {
                   servico: uploadMeta.servico,
                   tipo: uploadMeta.tipo,

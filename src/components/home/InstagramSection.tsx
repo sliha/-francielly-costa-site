@@ -2,58 +2,35 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { motion, useInView } from 'framer-motion'
-import { Instagram, ExternalLink, Heart, X } from 'lucide-react'
+import { Instagram, ExternalLink, Heart } from 'lucide-react'
+import { db } from '@/lib/firebase'
+import { collection, getDocs, query, where } from 'firebase/firestore'
 
-const instagramPosts = [
+const INSTAGRAM_URL = 'https://www.instagram.com/franciellycostamaster'
+
+const servicosConfig = [
   {
-    id: '1',
-    imageGradient: 'from-rose-gold/40 to-golden/30',
-    symbol: '✦',
-    likes: 312,
+    servico: 'microblading',
+    label: 'Microblading',
     caption: 'Microblading natural e elegante ✨ Resultado que dura anos!',
-    tag: 'Microblading',
   },
   {
-    id: '2',
-    imageGradient: 'from-golden/40 to-rose-gold/20',
-    symbol: '◆',
-    likes: 287,
+    servico: 'labial',
+    label: 'Micropigmentação Labial',
     caption: 'Lábios perfeitos com micropigmentação 💋 Cor natural e duradoura',
-    tag: 'Micropigmentação Labial',
   },
   {
-    id: '3',
-    imageGradient: 'from-rose-gold-dark/30 to-rose-gold/40',
-    symbol: '◇',
-    likes: 401,
+    servico: 'microshading',
+    label: 'Microshading',
     caption: 'Microshading para um look perfeito todos os dias ✨',
-    tag: 'Microshading',
-  },
-  {
-    id: '4',
-    imageGradient: 'from-golden-dark/30 to-golden/40',
-    symbol: '❋',
-    likes: 256,
-    caption: 'Eyeliner permanente — acorda sempre impecável 😍',
-    tag: 'Eyeliner Permanente',
-  },
-  {
-    id: '5',
-    imageGradient: 'from-rose-gold/30 to-rose-gold-dark/40',
-    symbol: '✦',
-    likes: 334,
-    caption: 'Transformação total 💫 Antes e depois que vai surpreender',
-    tag: 'Microblading',
-  },
-  {
-    id: '6',
-    imageGradient: 'from-golden/30 to-golden-dark/40',
-    symbol: '◆',
-    likes: 198,
-    caption: 'A perfeição está nos detalhes 🌸 Agenda já a tua consulta!',
-    tag: 'Micropigmentação Labial',
   },
 ]
+
+interface GaleriaItem {
+  url: string
+  servico: string
+  criadoEm?: { seconds: number } | null
+}
 
 function AnimatedCounter({ target, duration = 2000 }: { target: number; duration?: number }) {
   const [count, setCount] = useState(0)
@@ -77,9 +54,34 @@ function AnimatedCounter({ target, duration = 2000 }: { target: number; duration
 }
 
 export default function InstagramSection() {
-  const [hoveredPost, setHoveredPost] = useState<string | null>(null)
+  const [photosByService, setPhotosByService] = useState<Record<string, GaleriaItem>>({})
+  const [loading, setLoading] = useState(true)
   const sectionRef = useRef<HTMLDivElement>(null)
   const inView = useInView(sectionRef, { once: true, margin: '-100px' })
+
+  useEffect(() => {
+    if (!db) { setLoading(false); return }
+    const q = query(collection(db, 'galeria'), where('ativa', '==', true))
+    getDocs(q)
+      .then((snap) => {
+        const all = snap.docs.map((d) => ({ ...d.data() } as GaleriaItem))
+        const byService: Record<string, GaleriaItem> = {}
+        for (const svc of servicosConfig) {
+          const photos = all
+            .filter((item) => item.servico === svc.servico && item.url)
+            .sort((a, b) => (b.criadoEm?.seconds ?? 0) - (a.criadoEm?.seconds ?? 0))
+          if (photos.length > 0) byService[svc.servico] = photos[0]
+        }
+        setPhotosByService(byService)
+      })
+      .catch((err) => console.error('[InstagramSection] erro:', err))
+      .finally(() => setLoading(false))
+  }, [])
+
+  const visibleCards = servicosConfig.filter((s) => photosByService[s.servico])
+
+  // Não mostrar a secção se não houver fotos reais
+  if (!loading && visibleCards.length === 0) return null
 
   return (
     <section ref={sectionRef} className="py-20 bg-white overflow-hidden">
@@ -104,7 +106,6 @@ export default function InstagramSection() {
             <span className="gradient-text">Francielly</span>
           </h2>
 
-          {/* Contador de seguidores animado */}
           <div className="inline-flex items-center gap-2 bg-gradient-to-r from-rose-gold/10 to-golden/10 border border-rose-gold/20 rounded-full px-5 py-2.5 mb-4">
             <Heart size={14} className="text-rose-gold fill-rose-gold" />
             <p className="text-text-secondary font-inter text-sm">
@@ -121,64 +122,81 @@ export default function InstagramSection() {
         </motion.div>
 
         {/* Grid de posts */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 mb-8">
-          {instagramPosts.map((post, i) => (
-            <motion.div
-              key={post.id}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={inView ? { opacity: 1, scale: 1 } : {}}
-              transition={{ duration: 0.5, delay: i * 0.08 }}
-              className="relative aspect-square rounded-2xl overflow-hidden cursor-pointer group"
-              onMouseEnter={() => setHoveredPost(post.id)}
-              onMouseLeave={() => setHoveredPost(null)}
-            >
-              {/* Fundo gradiente (placeholder até Instagram API) */}
-              <div className={`absolute inset-0 bg-gradient-to-br ${post.imageGradient}`} />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-white/30 text-6xl">{post.symbol}</span>
-              </div>
+        {loading ? (
+          <div className="flex justify-center py-10">
+            <div className="w-8 h-8 border-2 border-rose-gold border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : (
+          <div
+            className={`grid gap-3 md:gap-4 mb-8 ${
+              visibleCards.length === 1
+                ? 'grid-cols-1 max-w-sm mx-auto'
+                : visibleCards.length === 2
+                ? 'grid-cols-2 max-w-2xl mx-auto'
+                : 'grid-cols-2 md:grid-cols-3'
+            }`}
+          >
+            {visibleCards.map((svc, i) => {
+              const item = photosByService[svc.servico]
+              return (
+                <motion.a
+                  key={svc.servico}
+                  href={INSTAGRAM_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={inView ? { opacity: 1, scale: 1 } : {}}
+                  transition={{ duration: 0.5, delay: i * 0.08 }}
+                  className="relative aspect-square rounded-2xl overflow-hidden cursor-pointer group"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={item.url}
+                    alt={svc.label}
+                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    loading="lazy"
+                  />
 
-              {/* Tag do serviço */}
-              <div className="absolute top-3 left-3">
-                <span className="text-xs bg-black/40 backdrop-blur-sm text-white px-2 py-1 rounded-full">
-                  {post.tag}
-                </span>
-              </div>
+                  {/* Tag do serviço */}
+                  <div className="absolute top-3 left-3">
+                    <span className="text-xs bg-black/40 backdrop-blur-sm text-white px-2 py-1 rounded-full">
+                      {svc.label}
+                    </span>
+                  </div>
 
-              {/* Overlay no hover */}
-              <div className={`absolute inset-0 bg-black/50 backdrop-blur-[2px] flex flex-col items-center justify-center gap-2 transition-opacity duration-300 ${
-                hoveredPost === post.id ? 'opacity-100' : 'opacity-0'
-              }`}>
-                <div className="flex items-center gap-1.5 text-white">
-                  <Heart size={18} className="fill-white" />
-                  <span className="font-semibold">{post.likes}</span>
-                </div>
-                <p className="text-white/80 text-xs text-center px-4 leading-relaxed">
-                  {post.caption}
-                </p>
-              </div>
-            </motion.div>
-          ))}
-        </div>
+                  {/* Overlay no hover */}
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 flex flex-col items-center justify-center gap-2 transition-all duration-300">
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-center px-4">
+                      <Instagram size={24} className="text-white mx-auto mb-2" />
+                      <p className="text-white/90 text-xs leading-relaxed">{svc.caption}</p>
+                    </div>
+                  </div>
+                </motion.a>
+              )
+            })}
+          </div>
+        )}
 
         {/* CTA */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.6, delay: 0.5 }}
-          className="text-center"
-        >
-          <a
-            href="https://www.instagram.com/franciellycostapmu"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 bg-gradient-to-r from-rose-gold to-golden text-white font-semibold font-inter px-8 py-3.5 rounded-full hover:shadow-rose-lg transition-all duration-300 hover:scale-105"
+        {!loading && visibleCards.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={inView ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.6, delay: 0.5 }}
+            className="text-center"
           >
-            <Instagram size={18} />
-            Ver no Instagram
-            <ExternalLink size={14} />
-          </a>
-        </motion.div>
+            <a
+              href={INSTAGRAM_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 bg-gradient-to-r from-rose-gold to-golden text-white font-semibold font-inter px-8 py-3.5 rounded-full hover:shadow-rose-lg transition-all duration-300 hover:scale-105"
+            >
+              <Instagram size={18} />
+              Ver no Instagram
+              <ExternalLink size={14} />
+            </a>
+          </motion.div>
+        )}
       </div>
     </section>
   )
