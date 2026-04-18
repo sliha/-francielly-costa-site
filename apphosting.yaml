@@ -54,7 +54,11 @@ env:
       - BUILD
       - RUNTIME
 
-  # ── Segredos — configurados diretamente na Firebase Console (não no Secret Manager) ──
-  # GEMINI_API_KEY, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, RESEND_API_KEY
-  # são lidos automaticamente das variáveis de ambiente definidas na consola Firebase.
-  # NÃO declarar aqui com "secret:" para não conflituar com o Secret Manager.
+  # ── Segredos via Secret Manager ──────────────────────────────────────────────
+  - variable: GEMINI_API_KEY
+    secret: GEMINI_API_KEY
+    availability:
+      - RUNTIME
+
+  # STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, RESEND_API_KEY
+  # continuam configurados diretamente na Firebase Console.
