@@ -22,7 +22,7 @@ NUNCA inventar informações.`;
 
 export async function POST(req: NextRequest) {
   try {
-    const apiKey = process.env.CLAUDE_API_KEY;
+    const apiKey = process.env.ANTHROPIC_API_KEY;
 
     if (!apiKey) {
       return NextResponse.json({
