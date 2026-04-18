@@ -13,25 +13,25 @@ export const blogArticles: BlogArticle[] = [
     slug: 'fiberbrows-nova-tecnica',
     title: 'FiberBROWS: A Nova Técnica Que Está a Revolucionar as Sobrancelhas',
     excerpt:
-      'Descubra a FiberBROWS, a técnica não cirúrgica com fios sintéticos biocompatíveis que promete sobrancelhas naturais durante 6 meses — disponível em breve na Francielly Costa.',
+      'Descubra a FiberBROWS, a técnica estética inovadora com fios biocompatíveis que promete sobrancelhas naturais durante 6 meses — disponível em breve na Francielly Costa.',
     category: 'FiberBROWS',
     readTime: '5 min',
     date: '2026-04-06',
     content: `
 ## O Que é a FiberBROWS?
 
-A FiberBROWS 360º é uma técnica de embelezamento facial inovadora, não cirúrgica e não médica, que utiliza microfibras sintéticas biocompatíveis para criar sobrancelhas mais volumosas, definidas e naturais. Ao contrário das técnicas de dermopigmentação tradicionais, a FiberBROWS 360º não deposita pigmento na pele — em vez disso, aplica adornos de microfibras ultrafinas que imitam os pelos naturais da sobrancelha.
+A FiberBROWS 360º é uma técnica de embelezamento facial inovadora, sem fins terapêuticos ou médicos, que utiliza microfibras biocompatíveis de uso estético para criar sobrancelhas mais volumosas, definidas e naturais. Ao contrário das técnicas de dermopigmentação tradicionais, a FiberBROWS 360º não deposita pigmento na pele — em vez disso, aplica adornos de microfibras ultrafinas que imitam os pelos naturais da sobrancelha.
 
 O resultado é imediato, natural e com uma durabilidade de aproximadamente 6 meses, sem necessidade de retoques frequentes.
 
 ## Como Funciona?
 
-O procedimento é realizado em consultório, com anestesia tópica para máximo conforto. A especialista aplica as microfibras sintéticas biocompatíveis na camada superficial da pele, a uma profundidade máxima de 2mm, seguindo o traçado natural da sobrancelha.
+O procedimento é realizado em consultório, com aplicação de anestésico tópico para máximo conforto. A especialista aplica as microfibras biocompatíveis de uso estético na camada superficial da pele, a uma profundidade máxima de 2mm, seguindo o traçado natural da sobrancelha.
 
 **O processo passo a passo:**
 
 1. **Consulta de design** — Avaliação do rosto, desenho personalizado da sobrancelha e escolha da espessura/cor dos fios
-2. **Anestesia tópica** — Aplicação de creme anestésico para garantir conforto total durante o procedimento
+2. **Anestésico tópico** — Aplicação de pomadinha anestésica para garantir conforto total durante o procedimento
 3. **Aplicação das microfibras** — Com precisão milimétrica, os adornos são aplicados seguindo a direção natural dos pelos
 4. **Resultado imediato** — As sobrancelhas ficam prontas logo após o procedimento, sem período de recuperação
 
@@ -39,7 +39,7 @@ O procedimento é realizado em consultório, com anestesia tópica para máximo 
 
 | Característica | FiberBROWS | Microblading |
 |---|---|---|
-| Técnica | Adorno de microfibras aplicado | Pigmento depositado |
+| Técnica | Adorno de microfibras biocompatíveis | Pigmento depositado |
 | Durabilidade | ~6 meses | 12–18 meses |
 | Aspeto | Ultra-natural 3D | Natural 2D |
 | Recuperação | Mínima | 7–10 dias |
@@ -52,14 +52,16 @@ A FiberBROWS é ideal para quem:
 - Tem sobrancelhas ralas, esparsas ou com falhas
 - Perdeu sobrancelhas por alopecia, quimioterapia ou sobre-epilação
 - Deseja sobrancelhas mais volumosas sem aspeto artificial
-- Procura uma alternativa não permanente antes de optar por técnicas definitivas
+- Procura uma alternativa temporária antes de optar por técnicas de longo prazo
 - Tem pele oleosa (onde o microblading pode ter menor durabilidade)
 
 ## Segurança e Biocompatibilidade
 
-Os fios utilizados na FiberBROWS são **100% biocompatíveis** e aprovados para uso estético. São desenvolvidos especificamente para este procedimento, com características que minimizam qualquer risco de reação alérgica ou rejeição.
+O fio utilizado na FiberBROWS é **estético e biocompatível**, produzido em laboratório com alto grau de purificação, dermatologicamente testado e com tecnologia internacional segura. Trata-se de um microfio com estrutura leve, segura e aprovada para uso externo — um nanofio biocompatível, não absorvível, com padrão estético internacional.
 
-A Francielly Costa é a **primeira profissional certificada em FiberBROWS em Portugal**, tendo recebido formação direta da criadora da técnica. Esta certificação garante o mais alto padrão de segurança e resultado.
+A técnica FiberBROWS 360º conta com um **parecer jurídico assinado por especialista reconhecido**, que valida a sua prática como estética e segura.
+
+A Francielly Costa é a **primeira profissional certificada em FiberBROWS em Portugal**, garantindo o mais alto padrão de segurança e resultado.
 
 ## Quando Estará Disponível?
 
@@ -317,7 +319,7 @@ O Microblading, originário da Ásia (particularmente da China e da Coreia do Su
 
 ## Hoje: Inovação Constante
 
-Atualmente, o setor da dermopigmentação está em constante evolução. Técnicas como o Powder Brows, Ombre Brows, Eyeliner Permanente, e agora a **FiberBROWS** (fios sintéticos biocompatíveis) e a **Tricopigmentação** (para calvície) demonstram como esta arte continua a inovar.
+Atualmente, o setor da dermopigmentação está em constante evolução. Técnicas como o Powder Brows, Ombre Brows, Eyeliner Permanente, e agora a **FiberBROWS** (nanofios biocompatíveis de uso estético) e a **Tricopigmentação** (para calvície) demonstram como esta arte continua a inovar.
 
 O foco atual é na naturalidade, durabilidade e segurança — com pigmentos cada vez mais seguros, técnicas menos invasivas e resultados cada vez mais personalizados.
 

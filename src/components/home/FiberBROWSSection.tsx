@@ -8,13 +8,13 @@ import Link from 'next/link'
 const diferenciais = [
   {
     icon: Shield,
-    title: 'Não Cirúrgico',
-    desc: 'Sem cirurgia, sem transplante. Técnica de embelezamento facial minimamente invasiva com profundidade máxima de 2mm.',
+    title: 'Embelezamento Estético',
+    desc: 'Sem fins terapêuticos. Técnica de embelezamento facial com profundidade máxima de 2mm, sem agressão profunda à pele.',
   },
   {
     icon: Zap,
-    title: 'Indolor',
-    desc: 'Desconforto muito inferior à micropigmentação ou microagulhamento. Anestesia tópica incluída.',
+    title: 'Muito Confortável',
+    desc: 'Desconforto muito inferior à micropigmentação ou microagulhamento. Anestésico tópico incluído.',
   },
   {
     icon: Clock,
@@ -24,7 +24,7 @@ const diferenciais = [
   {
     icon: TrendingDown,
     title: 'Preço Acessível',
-    desc: 'Alternativa a cirurgias de €7.000-€30.000. Sobrancelhas naturais a partir de €1.000.',
+    desc: 'Alternativa altamente atrativa a procedimentos de €7.000-€30.000. Sobrancelhas naturais a partir de €1.000.',
   },
 ]
 
@@ -77,7 +77,7 @@ export default function FiberBROWSSection() {
           </h2>
 
           <p className="text-white/60 text-lg md:text-xl font-inter max-w-2xl mx-auto">
-            Resultados naturais sem cirurgia.{' '}
+            Resultados naturais e imediatos.{' '}
             <span className="text-golden/80">Disponível em breve.</span>
           </p>
         </motion.div>

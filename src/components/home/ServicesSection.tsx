@@ -5,11 +5,13 @@ import { motion } from 'framer-motion'
 import { useInView } from 'react-intersection-observer'
 import { ArrowRight, Clock, RefreshCw, Sparkles } from 'lucide-react'
 import { services } from '@/data/services'
+import { useServicosPrecos } from '@/lib/useServicosPrecos'
 
 const iconComponents = ['✦', '◆', '◇', '❋']
 
 export default function ServicesSection() {
   const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.1 })
+  const precosFirestore = useServicosPrecos()
 
   return (
     <section ref={ref} id="servicos" className="py-24 bg-cream relative overflow-hidden">
@@ -101,7 +103,7 @@ export default function ServicesSection() {
                   </div>
                   <div className="flex items-center gap-2 text-xs font-semibold font-inter" style={{ color: service.color }}>
                     <Sparkles className="w-3.5 h-3.5 flex-shrink-0" />
-                    <span>{service.priceRange}</span>
+                    <span>{precosFirestore[service.id] ?? service.priceRange}</span>
                   </div>
                 </div>
 

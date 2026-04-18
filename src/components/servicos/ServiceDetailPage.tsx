@@ -16,9 +16,11 @@ import {
 import type { Service } from '@/data/services'
 import SimuladorIA from '@/components/servicos/SimuladorIA'
 import ServicoMediaGaleria from '@/components/servicos/ServicoMediaGaleria'
+import { useServicosPrecos } from '@/lib/useServicosPrecos'
 
 export default function ServiceDetailPage({ service }: { service: Service }) {
   const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.1 })
+  const precosFirestore = useServicosPrecos()
 
   return (
     <div className="pt-20">
@@ -90,7 +92,7 @@ export default function ServiceDetailPage({ service }: { service: Service }) {
                   style={{ borderColor: service.color, color: service.color }}
                 >
                   <Sparkles className="w-4 h-4" />
-                  {service.priceRange}
+                  {precosFirestore[service.id] ?? service.priceRange}
                 </span>
               </div>
 

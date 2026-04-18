@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import ServicoMediaGaleria from '@/components/servicos/ServicoMediaGaleria'
+import { useServicosPrecos } from '@/lib/useServicosPrecos'
 
 // ─── Countdown ───────────────────────────────────────────────────────────────
 const TARGET_DATE = new Date('2026-05-01T00:00:00')
@@ -105,15 +106,27 @@ function WaitlistForm() {
 const faqItems = [
   {
     q: 'A FiberBROWS é permanente?',
-    a: 'A duração é de aproximadamente 6 meses. Pode ser renovada quando a cliente desejar, mantendo sempre um resultado natural e adaptado à evolução do rosto.',
+    a: 'Não. O resultado é temporário, com duração de aproximadamente 6 meses. Pode ser renovada quando a cliente desejar, mantendo sempre um resultado natural e adaptado à evolução do rosto.',
+  },
+  {
+    q: 'A FiberBROWS é um procedimento cirúrgico?',
+    a: 'Não. É uma técnica estética sem fins terapêuticos, com finalidade exclusiva de embelezamento facial. Não requer prescrição clínica, não envolve extração de folículos e não atinge estruturas profundas da pele.',
+  },
+  {
+    q: 'O fio utilizado é seguro?',
+    a: 'Sim. Trata-se de um fio estético biocompatível, produzido em laboratório com alto grau de purificação, dermatologicamente testado e com tecnologia internacional segura. É não absorvível, atóxico, estéril e de uso individual.',
+  },
+  {
+    q: 'É possível reverter?',
+    a: 'Sim. É possível fazer a reversão ou retirada do material aplicado, tranquilamente. O resultado é temporário, com duração de até 6 meses.',
   },
   {
     q: 'Dói muito?',
-    a: 'O desconforto é muito inferior ao da micropigmentação ou microagulhamento. A maioria das clientes descreve o procedimento como muito suportável. É aplicada anestesia tópica para maximizar o conforto.',
+    a: 'O desconforto é muito inferior ao da micropigmentação ou microagulhamento. A maioria das clientes descreve o procedimento como muito suportável. Embora seja superficial, é aplicado um anestésico tópico para maior conforto.',
   },
   {
     q: 'É seguro?',
-    a: 'Sim, quando executado com protocolo técnico rigoroso. O fio é sintético e biocompatível com a grande maioria dos tipos de pele. Existe uma margem natural de 3–5% de sensibilidade, como acontece com qualquer material sintético.',
+    a: 'Sim, quando executado com protocolo técnico rigoroso. O fio é estético e biocompatível com a grande maioria dos tipos de pele. Existe uma margem natural de 3–5% de sensibilidade, como acontece com qualquer material de uso estético.',
   },
   {
     q: 'Posso usar henna nas sobrancelhas depois?',
@@ -121,11 +134,19 @@ const faqItems = [
   },
   {
     q: 'Quem não pode fazer?',
-    a: 'Está contraindicado para pessoas com alergia conhecida a níquel ou componentes sintéticos. Recomendamos testes de tolerância prévios para clientes com histórico alérgico, gravidez, amamentação, doenças autoimunes ativas ou uso de isotretinoína.',
+    a: 'Está contraindicado para pessoas com alergia conhecida a níquel ou materiais de uso estético. Recomendamos testes de tolerância prévios para clientes com histórico alérgico, gravidez, amamentação, doenças autoimunes ativas ou uso de isotretinoína.',
   },
   {
     q: 'Qual a diferença para o transplante capilar?',
-    a: 'A FiberBROWS não é cirúrgica, não envolve extração de folículos, não requer anestesia geral, é minimamente invasiva (máx. 2mm de profundidade) e custa uma fração do preço dos transplantes, que variam entre €7.000 e €30.000.',
+    a: 'A FiberBROWS não tem fins cirúrgicos, não envolve extração de folículos, não requer anestesia geral, tem profundidade máxima de 2mm (sem agressão profunda à pele) e custa uma fração do preço dos transplantes, que variam entre €7.000 e €30.000. Não é transplante — é uma técnica estética sem finalidade terapêutica, ideal para quem quer resultado temporário.',
+  },
+  {
+    q: 'Precisa ser médico para aplicar?',
+    a: 'Não. Profissionais da estética capacitados e certificados pelo método podem aplicar. Só quem faz a formação completa recebe o selo oficial com número de registo que autoriza a aplicação.',
+  },
+  {
+    q: 'Existe parecer jurídico sobre a técnica?',
+    a: 'Sim. A técnica FiberBROWS 360º conta com um parecer jurídico assinado por especialista reconhecido, que valida a sua prática como estética e segura.',
   },
   {
     q: 'Quando estará disponível?',
@@ -133,11 +154,11 @@ const faqItems = [
   },
   {
     q: 'A FiberBROWS 360º é um procedimento médico?',
-    a: 'Não. A FiberBROWS 360º é uma técnica de embelezamento facial, não médica. Não requer prescrição clínica e não tem finalidade terapêutica.',
+    a: 'Não. A FiberBROWS 360º é uma técnica de embelezamento facial, sem fins terapêuticos ou médicos. Não requer prescrição clínica e não tem finalidade terapêutica.',
   },
   {
     q: 'O que são as microfibras utilizadas?',
-    a: 'São microfibras sintéticas, não absorvíveis, atóxicas, estéreis e de uso individual. São aplicadas com uma nanoagulha de calibre extremamente fino.',
+    a: 'São microfibras biocompatíveis de uso estético, não absorvíveis, atóxicas, estéreis e de uso individual. São aplicadas com uma nanoagulha de calibre extremamente fino, semelhante ao calibre de insulina — não é agulha cirúrgica.',
   },
   {
     q: 'O que pode reduzir a duração do resultado?',
@@ -190,6 +211,8 @@ export default function FiberBROWSDetailPage() {
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
   const time = useCountdown()
+  const precosFirestore = useServicosPrecos()
+  const preco = precosFirestore['fiberbrows'] ?? 'A partir de €1.000'
 
   return (
     <div style={{ background: '#0d0a0b' }}>
@@ -239,7 +262,7 @@ export default function FiberBROWSDetailPage() {
 
           <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
             className="text-white/70 text-xl md:text-2xl font-inter leading-relaxed max-w-3xl mx-auto mb-10">
-            Sobrancelhas Naturais, Sem Cirurgia.{' '}
+            Sobrancelhas Naturais. Resultado Imediato.{' '}
             <span className="text-golden">A Técnica que Está a Revolucionar a Estética.</span>
           </motion.p>
 
@@ -264,7 +287,7 @@ export default function FiberBROWSDetailPage() {
             {[
               { label: 'Profundidade', value: 'Máx. 2mm' },
               { label: 'Resultado', value: '6 Meses' },
-              { label: 'Invasividade', value: 'Mínima' },
+              { label: 'Ação na pele', value: 'Superficial' },
               { label: 'Dor', value: 'Muito ligeira' },
             ].map((s, i) => (
               <div key={i} className="text-center">
@@ -299,10 +322,10 @@ export default function FiberBROWSDetailPage() {
             <div className="grid md:grid-cols-2 gap-8">
               <div className="space-y-4">
                 {[
-                  'Técnica de embelezamento facial, NÃO cirúrgica e NÃO médica — focada na valorização das sobrancelhas.',
-                  'Aplicação de um adorno sintético temporário na pele (profundidade máxima 2mm).',
+                  'Técnica de embelezamento facial, sem fins terapêuticos ou médicos — focada na valorização das sobrancelhas.',
+                  'Aplicação de um adorno estético temporário na pele (profundidade máxima 2mm).',
                   'Conceito estético próximo de piercing, micropigmentação e extensão de cílios, mas numa categoria estética à parte.',
-                  'Utiliza microfibras sintéticas: não absorvíveis, atóxicas, estéreis e de uso individual.',
+                  'Utiliza microfibras biocompatíveis de uso estético: não absorvíveis, atóxicas, estéreis e de uso individual.',
                   'Aplicação com nanoagulha de calibre extremamente fino (tipo insulina) — não é agulha médica.',
                   'NÃO é cirurgia nem transplante capilar — não envolve extração de folículos.',
                   'Não utiliza dispositivos com finalidade terapêutica ou médica.',
@@ -319,9 +342,9 @@ export default function FiberBROWSDetailPage() {
                 <Star className="w-8 h-8 text-golden mb-4" />
                 <h3 className="font-playfair font-bold text-white text-xl mb-3">Porquê a FiberBROWS?</h3>
                 <p className="text-white/60 font-inter text-sm leading-relaxed">
-                  Para quem deseja sobrancelhas naturais e preenchidas sem recorrer a cirurgia, a FiberBROWS representa
-                  um salto evolutivo na estética. Resultado imediato, mínima invasividade e preço acessível comparado
-                  com alternativas cirúrgicas de €7.000 a €30.000.
+                  Para quem deseja sobrancelhas naturais e preenchidas sem intervenção profunda, a FiberBROWS representa
+                  um salto evolutivo na estética. Resultado imediato, sem agressão profunda à pele, e preço altamente
+                  atrativo comparado com alternativas de €7.000 a €30.000.
                 </p>
               </div>
             </div>
@@ -376,10 +399,10 @@ export default function FiberBROWSDetailPage() {
             <div className="grid md:grid-cols-2 gap-8">
               {[
                 {
-                  title: 'O Fio Sintético',
+                  title: 'O Fio Estético',
                   items: [
-                    'Fio sintético biocompatível com a maioria dos tipos de pele.',
-                    'NÃO é fio cirúrgico.',
+                    'Fio estético biocompatível com a maioria dos tipos de pele.',
+                    'NÃO é fio cirúrgico — é um nanofio biocompatível com finalidade estética.',
                     'Acabamento selado — não absorve corantes nem pigmentos.',
                     'Se usar henna ou coloração, apenas os pelos naturais são tingidos; o fio mantém a cor original.',
                   ],
@@ -422,7 +445,7 @@ export default function FiberBROWSDetailPage() {
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-10">
               {[
                 { icon: Clock, label: 'Duração do resultado', value: 'Até 6 Meses' },
-                { icon: Shield, label: 'Tipo', value: 'Não cirúrgico' },
+                { icon: Shield, label: 'Tipo', value: 'Estético' },
                 { icon: Zap, label: 'Dor', value: 'Muito ligeira' },
                 { icon: Star, label: 'Manutenção', value: 'Simples' },
                 { icon: TrendingDown, label: 'Profundidade', value: 'Máx. 2mm' },
@@ -469,7 +492,7 @@ export default function FiberBROWSDetailPage() {
                 <div className="space-y-4">
                   {[
                     'Procedimento seguro quando executado com protocolo técnico adequado.',
-                    '3% a 5% de margem de reação de sensibilidade (como qualquer material sintético).',
+                    '3% a 5% de margem de sensibilidade (como em qualquer material de uso estético).',
                     'Testes de tolerância prévios recomendados para clientes com histórico alérgico.',
                     'Mesmas contraindicações gerais de qualquer procedimento estético.',
                   ].map((item, i) => (
@@ -486,7 +509,7 @@ export default function FiberBROWSDetailPage() {
                 <h3 className="font-playfair font-bold text-white text-lg mb-4">Contraindicado para</h3>
                 <ul className="space-y-2">
                   {[
-                    'Alergia a níquel ou componentes sintéticos',
+                    'Alergia a níquel ou materiais de uso estético',
                     'Histórico de reações a materiais estéticos',
                     'Gravidez e amamentação',
                     'Doenças autoimunes activas',
@@ -557,13 +580,21 @@ export default function FiberBROWSDetailPage() {
               <span className="section-tag" style={{ color: '#C9A96E', borderColor: '#C9A96E33', background: '#C9A96E11' }}>
                 Investimento
               </span>
-              <p className="font-playfair font-bold text-6xl text-white mt-6 mb-2">A partir de</p>
-              <p className="font-playfair font-bold text-7xl bg-clip-text text-transparent mb-4"
-                style={{ backgroundImage: 'linear-gradient(135deg, #C9A96E, #B76E79)' }}>€1.000</p>
-              <p className="text-white/50 font-inter text-base mb-8 max-w-md mx-auto">
-                Alternativa altamente atrativa para quem procura resultados estéticos sem cirurgia.
+              <p className="font-playfair font-bold text-5xl bg-clip-text text-transparent mt-6 mb-4"
+                style={{ backgroundImage: 'linear-gradient(135deg, #C9A96E, #B76E79)' }}>{preco}</p>
+              <p className="text-white/50 font-inter text-base mb-4 max-w-md mx-auto">
+                Alternativa altamente atrativa para quem procura resultados estéticos sem intervenção.
                 Valor exacto a confirmar em consulta.
               </p>
+              <div className="text-left bg-white/5 border border-golden/15 rounded-xl p-5 mb-8 max-w-md mx-auto">
+                <p className="text-golden text-xs font-bold uppercase tracking-wider mb-2">Material utilizado</p>
+                <p className="text-white/60 font-inter text-sm leading-relaxed">
+                  O fio utilizado é estético e biocompatível, produzido em laboratório com alto grau de purificação, dermatologicamente testado, com tecnologia internacional segura — um nanofio biocompatível, não absorvível, com padrão estético internacional.
+                </p>
+                <p className="text-white/40 font-inter text-xs mt-3 leading-relaxed">
+                  A técnica FiberBROWS 360º conta com um parecer jurídico de especialista reconhecido que valida a sua prática como estética e segura.
+                </p>
+              </div>
               <button onClick={openChat}
                 className="group inline-flex items-center gap-2 px-10 py-4 rounded-full font-semibold font-inter text-white text-lg transition-all hover:-translate-y-1"
                 style={{ background: 'linear-gradient(135deg, #C9A96E, #B76E79)', boxShadow: '0 8px 30px rgba(201,169,110,0.35)' }}>

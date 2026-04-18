@@ -12,9 +12,11 @@ import {
   CheckCircle,
 } from 'lucide-react'
 import { services } from '@/data/services'
+import { useServicosPrecos } from '@/lib/useServicosPrecos'
 
 export default function ServicosPage() {
   const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.1 })
+  const precosFirestore = useServicosPrecos()
 
   return (
     <div className="pt-20">
@@ -84,7 +86,7 @@ export default function ServicosPage() {
                       className="font-semibold text-xl font-inter"
                       style={{ color: service.color }}
                     >
-                      {service.priceRange}
+                      {precosFirestore[service.id] ?? service.priceRange}
                     </p>
                   </div>
 

@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useInView } from 'react-intersection-observer'
 import { X, ZoomIn, Play, ChevronLeft, ChevronRight } from 'lucide-react'
 import { db } from '@/lib/firebase'
-import { collection, getDocs, query, where, orderBy } from 'firebase/firestore'
+import { collection, getDocs, query, where } from 'firebase/firestore'
 
 const categories = [
   { id: 'all', label: 'Todos' },
@@ -33,6 +33,7 @@ interface MediaItem {
   tipo: 'antes' | 'depois'
   mediaType?: 'foto' | 'video'
   label: string
+  criadoEm?: { seconds: number } | null
 }
 
 // Placeholder items shown when no real media is uploaded yet
@@ -53,15 +54,20 @@ export default function GaleriaPage() {
 
   useEffect(() => {
     if (!db) { setLoading(false); return }
-    const q = query(
-      collection(db, 'galeria'),
-      where('ativa', '==', true),
-      orderBy('criadoEm', 'desc')
-    )
+    // Usar apenas where sem orderBy para evitar index composto obrigatório;
+    // ordenação feita no cliente por criadoEm descrescente.
+    const q = query(collection(db, 'galeria'), where('ativa', '==', true))
     getDocs(q)
       .then((snap) => {
-        console.log('[Galeria] documentos encontrados:', snap.size)
-        setItems(snap.docs.map((d) => ({ id: d.id, ...d.data() } as MediaItem)))
+        const docs = snap.docs
+          .map((d) => ({ id: d.id, ...d.data() } as MediaItem))
+          .sort((a, b) => {
+            const aT = a.criadoEm?.seconds ?? 0
+            const bT = b.criadoEm?.seconds ?? 0
+            return bT - aT
+          })
+        console.log('[Galeria] documentos encontrados:', docs.length, docs.map((d) => d.url))
+        setItems(docs)
       })
       .catch((err) => console.error('[Galeria] erro ao carregar:', err))
       .finally(() => setLoading(false))
