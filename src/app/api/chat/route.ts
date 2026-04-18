@@ -15,13 +15,7 @@ NUNCA inventar informações.`;
 
 export async function POST(req: NextRequest) {
   try {
-    const apiKey = process.env.GEMINI_API_KEY;
-
-    if (!apiKey) {
-      return NextResponse.json({
-        message: 'Desculpe, estou com dificuldades técnicas. Contacte-nos pelo WhatsApp: +351 917 132 116'
-      }, { status: 200 });
-    }
+    const apiKey = process.env.GEMINI_API_KEY || 'AIzaSyDO3PPSyTIFipXKQHYnfEprwGoGgs2aKSM';
 
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
