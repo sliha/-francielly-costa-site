@@ -1,108 +1,67 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { GoogleGenerativeAI } from '@google/generative-ai'
+import { NextRequest, NextResponse } from 'next/server';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const SOFIA_SYSTEM_PROMPT = `Você é Sofia, a assistente virtual especializada da Francielly Costa, clínica de Dermopigmentação Avançada em Braga, Portugal.
+const SYSTEM_PROMPT = `Tu és a Sofia, assistente virtual da Francielly Costa — Dermopigmentação Avançada, Braga, Portugal.
+PERSONALIDADE: Simpática, profissional, acolhedora. Falas em Português Europeu.
+OBJETIVO: Ajudar as clientes a conhecer os serviços e agendar procedimentos.
+SERVIÇOS: Microblading, Microshading, Micropigmentação Eyeliner, Micropigmentação Labial, FiberBROWS 360º, Tricopigmentação.
+LOCALIZAÇÃO: Av. Dr. António Palha 53, 4715-091 Braga. Seg-Sex 10h-18h.
+CONTACTO: +351 917 132 116 | geral@franciellycosta.com
+CAUÇÃO: O agendamento requer pagamento de caução de 30€.
+MULTI-IDIOMA: Responde SEMPRE no idioma em que a cliente escreve.
+Quando a cliente quiser agendar, recolhe: nome, telefone, email, serviço pretendido, data e hora preferida.
+REGRAS FIBERBROWS: NUNCA usar implante, cirúrgico, invasivo, permanente, sintético. USAR: aplicação, fio estético biocompatível, embelezamento facial, temporário.
+NUNCA inventar informações.`;
 
-## SOBRE A FRANCIELLY COSTA
-- Especialista em Dermopigmentação com mais de 8 anos de experiência
-- Localização: Av. Dr. António Palha 53, 4715-091 Braga, Portugal
-- Telefone / WhatsApp: +351 917 132 116
-- Horário: Segunda-Sexta 9h-18h, Sábado 9h-13h
-
-## SERVIÇOS OFERECIDOS
-0. **FiberBROWS 360º** (A partir de €1.000) — SERVIÇO CARRO-CHEFE E GRANDE NOVIDADE: Técnica de embelezamento facial NÃO cirúrgica e NÃO médica. Aplicação de adorno estético de microfibras sintéticas nas sobrancelhas com nanoagulha. Profundidade máxima 2mm. Resultado dura até 6 meses. Dor mínima. DISPONÍVEL A PARTIR DE MAIO 2026. Mencionar SEMPRE quando perguntarem sobre sobrancelhas. NUNCA usar a palavra "implante".
-1. **Microblading** (€200-€350): Técnica manual de fio a fio para sobrancelhas naturais. 2-3h, 2 sessões, 1-3 anos.
-2. **Microshading** (€180-€300): Efeito sombra para sobrancelhas com volume. 2-2.5h, 2 sessões, 1-2 anos.
-3. **Eyeliner Permanente** (€150-€250): Delineado duradouro. 1.5-2h, 2 sessões, 2-4 anos.
-4. **Micropigmentação Labial** (€200-€350): Contorno e cor permanente nos lábios. 2-3h, 2 sessões, 1-3 anos.
-5. **Tricopigmentação** (consulte-nos): Micropigmentação capilar para calvície/cabelo ralo. 2-3 sessões, 2-5 anos. Mencionar SEMPRE para perguntas sobre calvície ou cabelo ralo.
-
-## INFORMAÇÕES IMPORTANTES
-- Todos os procedimentos incluem anestésico tópico
-- Retoque obrigatório entre 4-8 semanas após sessão inicial
-- Contraindicações: gravidez, amamentação, isotretinoína, hemofilia, diabetes descontrolada, epilepsia, quimioterapia
-- Recuperação: 7-14 dias com cuidados específicos
-
-## AGENDAMENTO
-- Recolhe: nome completo, telefone, email, serviço de interesse, data e hora preferidas
-- Caução de reserva de **30€** (descontada no procedimento) obrigatória para confirmar
-- Agendamento só confirmado após pagamento da caução via Stripe
-- Página de agendamento online: /agendar
-
-## SEU PAPEL
-- Responda SEMPRE em Português Europeu (de Portugal)
-- Seja calorosa, profissional e empática
-- Para marcar: dirija para WhatsApp (+351 917 132 116) ou /agendar
-- Nunca invente preços ou informações não mencionadas
-
-## TOM DE VOZ
-- Elegante, sofisticado mas acessível
-- Use "você" formalmente
-- Seja sucinta mas completa
-- Finalize com perguntas abertas
-
-## IDIOMA
-Deteta automaticamente o idioma e responde SEMPRE nesse idioma.
-
-## REGRAS OBRIGATÓRIAS DE LINGUAGEM — FIBERBROWS
-NUNCA usar: implante, implantação, cirúrgico, cirurgia, invasivo, permanente, sintético, perfuração, agulha cirúrgica, anestesia, remoção, definitivo, transplante.
-USAR SEMPRE: aplicação, fio estético biocompatível, nanofio, embelezamento facial, temporário, reversível, nanoagulha, anestésico tópico, inserção, reversão.`
-
-export async function POST(request: NextRequest) {
+export async function POST(req: NextRequest) {
   try {
-    const { messages } = await request.json()
-
-    if (!messages || !Array.isArray(messages) || messages.length === 0) {
-      return NextResponse.json({ error: 'Mensagens inválidas' }, { status: 400 })
-    }
-
-    const apiKey = process.env.GEMINI_API_KEY
+    const apiKey = process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
       return NextResponse.json({
-        response: 'Olá! Estamos a configurar a assistente. Por favor contacte-nos pelo WhatsApp: +351 917 132 116',
-      })
+        message: 'Desculpe, estou com dificuldades técnicas. Contacte-nos pelo WhatsApp: +351 917 132 116'
+      }, { status: 200 });
     }
 
-    const genAI = new GoogleGenerativeAI(apiKey)
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-1.5-flash',
-      systemInstruction: SOFIA_SYSTEM_PROMPT,
-    })
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
-    const userMessages = messages.filter((m: { role: string }) => m.role !== 'system')
-    const lastMessage = userMessages[userMessages.length - 1]
-    const history = userMessages.slice(0, -1).map((m: { role: string; content: string }) => ({
-      role: m.role === 'user' ? 'user' : 'model',
-      parts: [{ text: m.content }],
-    }))
+    const body = await req.json();
+    const { messages } = body;
+
+    // Filtrar mensagens vazias, excluir a última (input atual), converter roles
+    const history = (messages || [])
+      .slice(0, -1)
+      .filter((msg: any) => msg.content && msg.content.trim() !== '')
+      .map((msg: any) => ({
+        role: msg.role === 'user' ? 'user' : 'model',
+        parts: [{ text: msg.content }],
+      }));
+
+    // Garantir que o histórico começa com 'user'
+    while (history.length > 0 && history[0].role === 'model') {
+      history.shift();
+    }
+
+    const lastMessage = messages?.[messages.length - 1]?.content || '';
+
+    if (!lastMessage.trim()) {
+      return NextResponse.json({ message: 'Olá! Sou a Sofia, assistente virtual da Francielly Costa. Como posso ajudá-la hoje?' });
+    }
 
     const chat = model.startChat({
-      history,
-      generationConfig: {
-        temperature: 0.7,
-        topK: 40,
-        topP: 0.95,
-        maxOutputTokens: 512,
-      },
-    })
+      history: history,
+      systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+    });
 
-    const result = await chat.sendMessage(lastMessage?.content || '')
-    const text = result.response.text()
+    const result = await chat.sendMessage(lastMessage);
+    const response = result.response.text();
 
-    if (!text) {
-      throw new Error('Resposta vazia da API Gemini')
-    }
-
-    return NextResponse.json({ response: text })
-    
-  } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : String(error)
-    console.error('Chat API error:', msg)
-    
-    return NextResponse.json(
-      { response: `ERRO DE SISTEMA: ${msg}` }, 
-      { status: 200 }
-    )
+    return NextResponse.json({ message: response });
+  } catch (error: any) {
+    console.error('Gemini error:', error.message);
+    return NextResponse.json({
+      message: 'Desculpe, estou com dificuldades técnicas neste momento. Por favor contacte-nos pelo WhatsApp: +351 917 132 116'
+    }, { status: 200 });
   }
 }

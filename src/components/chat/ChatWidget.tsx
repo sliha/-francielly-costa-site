@@ -8,6 +8,7 @@ interface Message {
   role: 'user' | 'assistant'
   content: string
   timestamp: Date
+  isGreeting?: boolean
 }
 
 const STORAGE_KEY = 'sofia_chat_history'
@@ -17,6 +18,7 @@ const welcomeMessage: Message = {
   content:
     'Olá! Sou a Sofia, assistente virtual da Francielly Costa. Estou aqui para ajudá-la com informações sobre os nossos tratamentos de dermopigmentação, agendamentos e qualquer dúvida que possa ter. Como posso ajudá-la hoje? ✨',
   timestamp: new Date(),
+  isGreeting: true,
 }
 
 export default function ChatWidget() {
@@ -87,10 +89,12 @@ export default function ChatWidget() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          messages: [...messages, userMessage].map((m) => ({
-            role: m.role,
-            content: m.content,
-          })),
+          messages: [...messages, userMessage]
+            .filter((m) => !m.isGreeting)
+            .map((m) => ({
+              role: m.role,
+              content: m.content,
+            })),
         }),
       })
 
@@ -99,7 +103,7 @@ export default function ChatWidget() {
       const data = await response.json()
       const assistantMessage: Message = {
         role: 'assistant',
-        content: data.response || 'Desculpe, não consegui processar a sua mensagem.',
+        content: data.message || 'Desculpe, não consegui processar a sua mensagem.',
         timestamp: new Date(),
       }
       setMessages((prev) => [...prev, assistantMessage])
