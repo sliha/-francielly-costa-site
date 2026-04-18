@@ -110,12 +110,10 @@ export async function POST(request: NextRequest) {
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : String(error)
     console.error('Chat API error:', msg)
+    
+    // MUDANÇA AQUI: Retornar a mensagem real do erro
     return NextResponse.json(
-      {
-        response:
-          'Desculpe, ocorreu um erro técnico. Por favor, contacte-nos diretamente pelo WhatsApp: +351 917 132 116',
-      },
+      { response: `ERRO DE SISTEMA: ${msg}` }, 
       { status: 200 }
     )
   }
-}
