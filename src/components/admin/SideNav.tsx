@@ -21,6 +21,7 @@ import {
   Sparkles,
   Scissors,
   MessageSquare,
+  Award,
 } from 'lucide-react'
 import { signOut } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
@@ -40,6 +41,7 @@ const navItems = [
   { href: '/admin/referencias', icon: Gift, label: 'Referências', exact: false },
   { href: '/admin/relatorio', icon: BarChart3, label: 'Relatório', exact: false },
   { href: '/admin/galeria', icon: Image, label: 'Galeria', exact: false },
+  { href: '/admin/certificacoes', icon: Award, label: 'Certificações', exact: false },
   { href: '/admin/blog', icon: BookOpen, label: 'Blog', exact: false },
   { href: '/admin/definicoes', icon: Settings, label: 'Definições', exact: false },
 ]

@@ -6,12 +6,30 @@ import { useInView } from 'react-intersection-observer'
 import { ArrowRight, Clock, RefreshCw, Sparkles } from 'lucide-react'
 import { services } from '@/data/services'
 import { useServicosPrecos } from '@/lib/useServicosPrecos'
+import { useEffect, useState } from 'react'
+import { db } from '@/lib/firebase'
+import { doc, getDoc } from 'firebase/firestore'
 
 const iconComponents = ['✦', '◆', '◇', '❋']
+
+interface ServicoInfo { id: string; fotoUrl?: string }
 
 export default function ServicesSection() {
   const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.1 })
   const precosFirestore = useServicosPrecos()
+  const [servicosInfo, setServicosInfo] = useState<Record<string, ServicoInfo>>({})
+
+  useEffect(() => {
+    if (!db) return
+    getDoc(doc(db, 'settings', 'servicos')).then((snap) => {
+      if (!snap.exists()) return
+      const lista = snap.data().lista
+      if (!Array.isArray(lista)) return
+      const map: Record<string, ServicoInfo> = {}
+      for (const s of lista) { if (s.id) map[s.id] = s }
+      setServicosInfo(map)
+    }).catch(() => {})
+  }, [])
 
   return (
     <section ref={ref} id="servicos" className="py-24 bg-cream relative overflow-hidden">
@@ -63,13 +81,33 @@ export default function ServicesSection() {
                 </div>
               )}
 
-              {/* Top color bar */}
-              <div
-                className="h-1 w-full transition-all duration-300 group-hover:h-1.5"
-                style={{ background: isFlagship
-                  ? 'linear-gradient(90deg, #C9A96E, #B76E79, #C9A96E)'
-                  : `linear-gradient(90deg, ${service.color}, ${i % 2 === 0 ? '#C9A96E' : '#B76E79'})` }}
-              />
+              {/* Top: photo or color bar */}
+              {servicosInfo[service.id]?.fotoUrl ? (
+                <div className="relative w-full aspect-video overflow-hidden">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={servicosInfo[service.id].fotoUrl}
+                    alt={service.name}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    loading="lazy"
+                  />
+                  {(precosFirestore[service.id] ?? service.priceRange) && (
+                    <div className="absolute bottom-2 right-2">
+                      <span className="text-[11px] font-bold font-inter px-2.5 py-1 rounded-full text-white backdrop-blur-sm"
+                        style={{ background: `${service.color}CC` }}>
+                        {precosFirestore[service.id] ?? service.priceRange}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div
+                  className="h-1 w-full transition-all duration-300 group-hover:h-1.5"
+                  style={{ background: isFlagship
+                    ? 'linear-gradient(90deg, #C9A96E, #B76E79, #C9A96E)'
+                    : `linear-gradient(90deg, ${service.color}, ${i % 2 === 0 ? '#C9A96E' : '#B76E79'})` }}
+                />
+              )}
 
               {/* Card content */}
               <div className="p-6 flex flex-col flex-1">

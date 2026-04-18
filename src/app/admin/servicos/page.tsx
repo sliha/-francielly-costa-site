@@ -1,17 +1,18 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { CheckCircle2, Save, Eye, EyeOff, Euro } from 'lucide-react'
-import { db } from '@/lib/firebase'
+import { useState, useEffect, useRef } from 'react'
+import { CheckCircle2, Save, Eye, EyeOff, Euro, Upload, Trash2 } from 'lucide-react'
+import { db, storage } from '@/lib/firebase'
 import { doc, getDoc, setDoc } from 'firebase/firestore'
+import { ref as storageRef, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage'
 
 const DEFAULT_SERVICOS = [
-  { id: 'fiberbrows', nome: 'FiberBROWS', preco: 'A partir de €1.000', ativo: true, destaque: true },
-  { id: 'microblading', nome: 'Microblading', preco: '€200 – €350', ativo: true, destaque: false },
-  { id: 'microshading', nome: 'Microshading', preco: '€180 – €300', ativo: true, destaque: false },
-  { id: 'eyeliner', nome: 'Micropigmentação Eyeliner', preco: '€150 – €250', ativo: true, destaque: false },
-  { id: 'labial', nome: 'Micropigmentação Labial', preco: '€200 – €350', ativo: true, destaque: false },
-  { id: 'tricopigmentacao', nome: 'Tricopigmentação', preco: 'A consultar', ativo: false, destaque: false },
+  { id: 'fiberbrows', nome: 'FiberBROWS', preco: 'A partir de €1.000', ativo: true, destaque: true, fotoUrl: '', fotoPath: '' },
+  { id: 'microblading', nome: 'Microblading', preco: '€200 – €350', ativo: true, destaque: false, fotoUrl: '', fotoPath: '' },
+  { id: 'microshading', nome: 'Microshading', preco: '€180 – €300', ativo: true, destaque: false, fotoUrl: '', fotoPath: '' },
+  { id: 'eyeliner', nome: 'Micropigmentação Eyeliner', preco: '€150 – €250', ativo: true, destaque: false, fotoUrl: '', fotoPath: '' },
+  { id: 'labial', nome: 'Micropigmentação Labial', preco: '€200 – €350', ativo: true, destaque: false, fotoUrl: '', fotoPath: '' },
+  { id: 'tricopigmentacao', nome: 'Tricopigmentação', preco: 'A consultar', ativo: false, destaque: false, fotoUrl: '', fotoPath: '' },
 ]
 
 type Servico = typeof DEFAULT_SERVICOS[0]
@@ -29,13 +30,17 @@ export default function ServicosAdminPage() {
   const [servicos, setServicos] = useState<Servico[]>(DEFAULT_SERVICOS)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [uploading, setUploading] = useState<Record<string, number>>({})
+  const fileRefs = useRef<Record<string, HTMLInputElement | null>>({})
 
   useEffect(() => {
     if (!db) return
     getDoc(doc(db, 'settings', 'servicos')).then((snap) => {
       if (snap.exists()) {
         const data = snap.data()
-        if (Array.isArray(data.lista)) setServicos(data.lista)
+        if (Array.isArray(data.lista)) {
+          setServicos(data.lista.map((s: Servico) => ({ ...s, fotoUrl: s.fotoUrl || '', fotoPath: s.fotoPath || '' })))
+        }
       }
     }).catch(() => {})
   }, [])
@@ -47,6 +52,36 @@ export default function ServicosAdminPage() {
 
   const toggleAtivo = (id: string) => {
     setServicos((prev) => prev.map((s) => s.id === id ? { ...s, ativo: !s.ativo } : s))
+    setSaved(false)
+  }
+
+  const handleFotoUpload = async (id: string, file: File) => {
+    if (!storage) return
+    setUploading((prev) => ({ ...prev, [id]: 0 }))
+    const path = `servicos/${id}/foto_${Date.now()}`
+    const sRef = storageRef(storage, path)
+    const task = uploadBytesResumable(sRef, file)
+    task.on('state_changed',
+      (snap) => setUploading((prev) => ({ ...prev, [id]: Math.round(snap.bytesTransferred / snap.totalBytes * 100) })),
+      () => { toast('Erro ao fazer upload.', true); setUploading((prev) => { const n = { ...prev }; delete n[id]; return n }) },
+      async () => {
+        const url = await getDownloadURL(task.snapshot.ref)
+        console.log('Upload URL:', url)
+        setServicos((prev) => prev.map((s) => s.id === id ? { ...s, fotoUrl: url, fotoPath: path } : s))
+        setUploading((prev) => { const n = { ...prev }; delete n[id]; return n })
+        setSaved(false)
+        toast('Foto carregada! Guarda para aplicar.')
+      }
+    )
+  }
+
+  const handleFotoRemove = async (id: string) => {
+    const servico = servicos.find((s) => s.id === id)
+    if (!servico?.fotoPath || !storage) return
+    try {
+      await deleteObject(storageRef(storage, servico.fotoPath))
+    } catch { /* ignore if already deleted */ }
+    setServicos((prev) => prev.map((s) => s.id === id ? { ...s, fotoUrl: '', fotoPath: '' } : s))
     setSaved(false)
   }
 
@@ -69,7 +104,7 @@ export default function ServicosAdminPage() {
       <div className="px-4 pt-5 pb-3 md:px-6 md:pt-6 flex items-center justify-between border-b border-white/5">
         <div>
           <h1 className="text-white text-xl font-playfair font-semibold">Serviços & Preços</h1>
-          <p className="text-white/40 text-xs mt-0.5">Editar preços e visibilidade dos serviços</p>
+          <p className="text-white/40 text-xs mt-0.5">Editar preços, fotos e visibilidade dos serviços</p>
         </div>
         <button onClick={handleSave} disabled={saving}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium transition-all ${
@@ -84,7 +119,7 @@ export default function ServicosAdminPage() {
 
       <div className="px-4 md:px-6 pb-8 pt-4 space-y-3">
         <p className="text-white/30 text-xs">
-          Os preços alterados aqui são guardados no Firestore e podem ser exibidos no site público.
+          As alterações são guardadas no Firestore e exibidas no site público.
         </p>
 
         {servicos.map((s) => (
@@ -92,7 +127,7 @@ export default function ServicosAdminPage() {
             className={`bg-[#1A1A1A] rounded-2xl p-4 border transition-colors ${
               s.ativo ? 'border-white/5' : 'border-white/3 opacity-60'
             }`}>
-            <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start justify-between gap-3 mb-3">
               <div className="flex items-center gap-2 min-w-0">
                 {s.destaque && (
                   <span className="text-[10px] px-2 py-0.5 rounded-full bg-golden/15 text-golden font-bold flex-shrink-0">
@@ -113,7 +148,35 @@ export default function ServicosAdminPage() {
               </button>
             </div>
 
-            <div className="mt-3">
+            {/* Foto do serviço */}
+            <div className="mb-3">
+              <label className="text-white/40 text-xs mb-2 block">Foto do Serviço (homepage)</label>
+              {s.fotoUrl ? (
+                <div className="relative w-full max-w-xs">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={s.fotoUrl} alt={s.nome} className="w-full aspect-video object-cover rounded-xl" />
+                  <button onClick={() => handleFotoRemove(s.id)}
+                    className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 hover:bg-red-500/80 flex items-center justify-center transition-colors">
+                    <Trash2 size={13} className="text-white" />
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <input type="file" accept="image/*"
+                    ref={(el) => { fileRefs.current[s.id] = el }}
+                    className="hidden"
+                    onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFotoUpload(s.id, f) }} />
+                  <button onClick={() => fileRefs.current[s.id]?.click()}
+                    disabled={uploading[s.id] !== undefined}
+                    className="flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white/60 hover:text-white text-xs px-3 py-2 rounded-xl transition-colors">
+                    <Upload size={13} />
+                    {uploading[s.id] !== undefined ? `A enviar… ${uploading[s.id]}%` : 'Carregar foto'}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div>
               <label className="text-white/40 text-xs mb-1 block">Preço</label>
               <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 focus-within:border-rose-gold/50 transition-colors">
                 <Euro size={13} className="text-white/30 flex-shrink-0" />

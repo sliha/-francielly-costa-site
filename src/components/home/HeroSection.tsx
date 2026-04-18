@@ -86,17 +86,19 @@ export default function HeroSection() {
         </motion.button>
 
         {/* Badge */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.25 }}
-          className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full border border-golden/30 bg-golden/10 mb-6"
-        >
-          <Award className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-golden" />
-          <span className="text-golden text-[10px] sm:text-xs font-semibold tracking-wider sm:tracking-widest uppercase font-inter">
-            Especialista Certificada em Portugal
-          </span>
-        </motion.div>
+        <Link href="/certificacoes">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.25 }}
+            className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full border border-golden/30 bg-golden/10 mb-6 hover:border-golden/60 hover:bg-golden/20 transition-all duration-300 cursor-pointer"
+          >
+            <Award className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-golden" />
+            <span className="text-golden text-[10px] sm:text-xs font-semibold tracking-wider sm:tracking-widest uppercase font-inter">
+              Especialista Certificada em Portugal
+            </span>
+          </motion.div>
+        </Link>
 
         {/* Main heading */}
         <motion.h1
