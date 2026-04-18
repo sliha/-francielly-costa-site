@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { useInView } from 'react-intersection-observer'
@@ -12,6 +13,8 @@ import {
   CheckCircle,
   ArrowRight,
 } from 'lucide-react'
+import { db } from '@/lib/firebase'
+import { doc, getDoc } from 'firebase/firestore'
 
 const timeline = [
   {
@@ -77,9 +80,19 @@ const certifications = [
 ]
 
 export default function SobrePage() {
+  const [fotoUrl, setFotoUrl] = useState<string | null>(null)
   const { ref: heroRef, inView: heroInView } = useInView({ triggerOnce: true, threshold: 0.1 })
   const { ref: timelineRef, inView: timelineInView } = useInView({ triggerOnce: true, threshold: 0.1 })
   const { ref: valuesRef, inView: valuesInView } = useInView({ triggerOnce: true, threshold: 0.1 })
+
+  useEffect(() => {
+    if (!db) return
+    getDoc(doc(db, 'settings', 'negocio')).then((snap) => {
+      if (snap.exists() && snap.data().fotoPessoalUrl) {
+        setFotoUrl(snap.data().fotoPessoalUrl as string)
+      }
+    }).catch(() => {})
+  }, [])
 
   return (
     <div className="pt-20">
@@ -141,22 +154,31 @@ export default function SobrePage() {
               className="relative"
             >
               <div className="rounded-3xl overflow-hidden aspect-[4/5] max-w-md mx-auto relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-rose-gold/20 via-rose-gold/40 to-golden/30 flex flex-col items-center justify-center">
-                  <div className="w-28 h-28 rounded-full bg-white/20 flex items-center justify-center mb-4">
-                    <Award className="w-14 h-14 text-white/80" />
+                {fotoUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={fotoUrl}
+                    alt="Francielly Costa"
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="absolute inset-0 bg-gradient-to-br from-rose-gold/20 via-rose-gold/40 to-golden/30 flex flex-col items-center justify-center">
+                    <div className="w-28 h-28 rounded-full bg-white/20 flex items-center justify-center mb-4">
+                      <Award className="w-14 h-14 text-white/80" />
+                    </div>
+                    <p className="text-white font-playfair text-2xl mb-2">Francielly Costa</p>
+                    <p className="text-white/70 text-sm font-inter text-center px-8">
+                      Dermopigmentação Avançada · Braga, Portugal
+                    </p>
+                    <div className="flex items-center gap-1 mt-4">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} className="w-4 h-4 text-golden fill-golden" />
+                      ))}
+                    </div>
                   </div>
-                  <p className="text-white font-playfair text-2xl mb-2">Francielly Costa</p>
-                  <p className="text-white/70 text-sm font-inter text-center px-8">
-                    Dermopigmentação Avançada · Braga, Portugal
-                  </p>
-                  <div className="flex items-center gap-1 mt-4">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="w-4 h-4 text-golden fill-golden" />
-                    ))}
-                  </div>
-                </div>
-                <div className="absolute top-4 left-4 w-12 h-12 border-l-2 border-t-2 border-white/30 rounded-tl-xl" />
-                <div className="absolute bottom-4 right-4 w-12 h-12 border-r-2 border-b-2 border-white/30 rounded-br-xl" />
+                )}
+                <div className="absolute top-4 left-4 w-12 h-12 border-l-2 border-t-2 border-white/30 rounded-tl-xl pointer-events-none" />
+                <div className="absolute bottom-4 right-4 w-12 h-12 border-r-2 border-b-2 border-white/30 rounded-br-xl pointer-events-none" />
               </div>
             </motion.div>
           </div>

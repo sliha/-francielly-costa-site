@@ -1,8 +1,8 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { Search, UserPlus, Phone, Mail, Calendar, ChevronRight, RefreshCw } from 'lucide-react'
+import { Search, UserPlus, Phone, Mail, Calendar, ChevronRight, RefreshCw, X, CheckCircle2, Clock, XCircle } from 'lucide-react'
 import { db } from '@/lib/firebase'
-import { collection, getDocs, orderBy, query } from 'firebase/firestore'
+import { collection, getDocs, orderBy, query, where } from 'firebase/firestore'
 
 interface ClienteRow {
   id: string
@@ -14,15 +14,148 @@ interface ClienteRow {
   totalAgendamentos: number
 }
 
+interface Agendamento {
+  id: string
+  servicoNome: string
+  data: string
+  horaInicio: string
+  estado: string
+  caucaoPaga: boolean
+  criadoEm?: unknown
+}
+
+const estadoConfig: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
+  pendente_pagamento: { label: 'Pendente', color: 'text-amber-400', icon: <Clock size={12} /> },
+  pendente: { label: 'Pendente', color: 'text-amber-400', icon: <Clock size={12} /> },
+  confirmado: { label: 'Confirmado', color: 'text-emerald-400', icon: <CheckCircle2 size={12} /> },
+  concluido: { label: 'Concluído', color: 'text-blue-400', icon: <CheckCircle2 size={12} /> },
+  cancelado: { label: 'Cancelado', color: 'text-red-400', icon: <XCircle size={12} /> },
+}
+
+function ClienteModal({ cliente, onClose }: { cliente: ClienteRow; onClose: () => void }) {
+  const [agendamentos, setAgendamentos] = useState<Agendamento[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!db || !cliente.email) { setLoading(false); return }
+    getDocs(
+      query(
+        collection(db, 'agendamentos'),
+        where('clienteEmail', '==', cliente.email),
+        orderBy('criadoEm', 'desc')
+      )
+    ).then((snap) => {
+      setAgendamentos(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Agendamento)))
+    }).catch(() => {}).finally(() => setLoading(false))
+  }, [cliente.email])
+
+  const formatData = (iso: string) => {
+    if (!iso) return '—'
+    try {
+      return new Date(iso + 'T12:00:00').toLocaleDateString('pt-PT', {
+        day: 'numeric', month: 'short', year: 'numeric',
+      })
+    } catch { return iso }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4"
+      onClick={onClose}>
+      <div className="bg-[#1A1A1A] rounded-2xl border border-white/10 w-full max-w-lg max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
+        <div className="flex items-center justify-between p-5 border-b border-white/5">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-rose-gold/30 to-golden/20 flex items-center justify-center">
+              <span className="text-rose-gold font-bold text-lg">{cliente.nome.charAt(0).toUpperCase()}</span>
+            </div>
+            <div>
+              <p className="text-white font-semibold">{cliente.nome}</p>
+              <p className="text-white/40 text-xs">{cliente.totalAgendamentos} marcação(ões)</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors">
+            <X size={16} className="text-white/60" />
+          </button>
+        </div>
+
+        {/* Contact info */}
+        <div className="p-5 space-y-2 border-b border-white/5">
+          <p className="text-white/40 text-xs uppercase tracking-wider font-semibold mb-3">Dados Pessoais</p>
+          <div className="flex items-center gap-2 text-sm text-white/70">
+            <Mail size={14} className="text-white/30" />
+            <span className="truncate">{cliente.email}</span>
+          </div>
+          {cliente.telefone && (
+            <div className="flex items-center gap-2 text-sm text-white/70">
+              <Phone size={14} className="text-white/30" />
+              <span>{cliente.telefone}</span>
+            </div>
+          )}
+          {cliente.ultimoAgendamento && (
+            <div className="flex items-center gap-2 text-sm text-white/70">
+              <Calendar size={14} className="text-white/30" />
+              <span>Última visita: {formatData(cliente.ultimoAgendamento)}</span>
+            </div>
+          )}
+          <div className="pt-2">
+            <a
+              href={`mailto:${cliente.email}?subject=Francielly Costa — Marcação`}
+              className="inline-flex items-center gap-2 text-xs bg-rose-gold/10 text-rose-gold hover:bg-rose-gold/20 px-3 py-2 rounded-xl transition-colors"
+            >
+              <Mail size={12} />
+              Enviar mensagem
+            </a>
+          </div>
+        </div>
+
+        {/* Booking history */}
+        <div className="p-5">
+          <p className="text-white/40 text-xs uppercase tracking-wider font-semibold mb-3">Histórico de Marcações</p>
+          {loading ? (
+            <div className="flex justify-center py-6">
+              <div className="w-6 h-6 border-2 border-rose-gold border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : agendamentos.length === 0 ? (
+            <p className="text-white/30 text-sm text-center py-4">Sem marcações encontradas</p>
+          ) : (
+            <div className="space-y-2">
+              {agendamentos.map((ag) => {
+                const est = estadoConfig[ag.estado] ?? estadoConfig.pendente
+                return (
+                  <div key={ag.id} className="bg-[#111] rounded-xl p-3 border border-white/5">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-white text-sm font-medium">{ag.servicoNome || '—'}</p>
+                      <span className={`flex items-center gap-1 text-xs ${est.color}`}>
+                        {est.icon} {est.label}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-white/40">
+                      <span>{formatData(ag.data)}{ag.horaInicio ? ` · ${ag.horaInicio}` : ''}</span>
+                      <span className={ag.caucaoPaga ? 'text-emerald-400' : 'text-amber-400'}>
+                        {ag.caucaoPaga ? '✓ Caução paga' : 'Caução pendente'}
+                      </span>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function ClientesPage() {
   const [clientes, setClientes] = useState<ClienteRow[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [selected, setSelected] = useState<ClienteRow | null>(null)
 
   const carregar = async () => {
     setLoading(true)
     try {
-      // Derive clients from agendamentos (covers historical data)
       const snap = await getDocs(
         query(collection(db!, 'agendamentos'), orderBy('criadoEm', 'desc'))
       )
@@ -44,7 +177,6 @@ export default function ClientesPage() {
         } else {
           const c = map.get(key)!
           c.totalAgendamentos++
-          // keep the most recent service (first doc is newest due to orderBy desc)
         }
       }
 
@@ -76,7 +208,6 @@ export default function ClientesPage() {
 
   return (
     <div className="min-h-screen bg-[#0F0F0F] text-white">
-      {/* Header */}
       <div className="px-4 pt-6 pb-4 md:px-8 md:pt-8 flex items-center justify-between">
         <div>
           <h1 className="text-white text-2xl font-playfair font-semibold">Clientes</h1>
@@ -92,15 +223,10 @@ export default function ClientesPage() {
           >
             <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
           </button>
-          <button className="flex items-center gap-1.5 bg-rose-gold text-white text-sm px-4 py-2 rounded-xl font-medium hover:bg-opacity-90 transition-colors">
-            <UserPlus size={16} />
-            <span className="hidden sm:inline">Novo</span>
-          </button>
         </div>
       </div>
 
       <div className="px-4 md:px-8 pb-8 space-y-4">
-        {/* Search */}
         <div className="relative">
           <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30" />
           <input
@@ -127,7 +253,8 @@ export default function ClientesPage() {
             {filtered.map((cliente) => (
               <div
                 key={cliente.id}
-                className="bg-[#1A1A1A] rounded-2xl p-4 border border-white/5 hover:border-white/10 transition-colors cursor-pointer group"
+                onClick={() => setSelected(cliente)}
+                className="bg-[#1A1A1A] rounded-2xl p-4 border border-white/5 hover:border-rose-gold/30 transition-colors cursor-pointer group"
               >
                 <div className="flex items-center gap-3">
                   <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-rose-gold/30 to-golden/20 flex items-center justify-center flex-shrink-0">
@@ -143,7 +270,7 @@ export default function ClientesPage() {
                     <p className="text-golden text-sm font-semibold">{cliente.totalAgendamentos}</p>
                     <p className="text-white/30 text-xs">marcaç{cliente.totalAgendamentos === 1 ? 'ão' : 'ões'}</p>
                   </div>
-                  <ChevronRight size={14} className="text-white/20 group-hover:text-white/40 transition-colors flex-shrink-0" />
+                  <ChevronRight size={14} className="text-white/20 group-hover:text-rose-gold/60 transition-colors flex-shrink-0" />
                 </div>
 
                 <div className="flex items-center gap-4 mt-3 pt-3 border-t border-white/5 flex-wrap">
@@ -169,6 +296,10 @@ export default function ClientesPage() {
           </div>
         )}
       </div>
+
+      {selected && (
+        <ClienteModal cliente={selected} onClose={() => setSelected(null)} />
+      )}
     </div>
   )
 }

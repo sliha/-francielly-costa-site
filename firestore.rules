@@ -86,5 +86,14 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAuthenticated();
     }
+
+    // ── Lista de Espera ───────────────────────────────────────────────────────
+    // Criação pública (via site) · leitura/edição apenas admin
+    match /lista-espera/{docId} {
+      allow create: if
+        request.resource.data.keys().hasAll(['clienteNome', 'email', 'servico']) &&
+        isValidEmail(request.resource.data.email);
+      allow read, update, delete: if isAuthenticated();
+    }
   }
 }

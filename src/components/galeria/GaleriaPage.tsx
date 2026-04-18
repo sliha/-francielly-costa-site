@@ -59,8 +59,11 @@ export default function GaleriaPage() {
       orderBy('criadoEm', 'desc')
     )
     getDocs(q)
-      .then((snap) => setItems(snap.docs.map((d) => ({ id: d.id, ...d.data() } as MediaItem))))
-      .catch(() => {})
+      .then((snap) => {
+        console.log('[Galeria] documentos encontrados:', snap.size)
+        setItems(snap.docs.map((d) => ({ id: d.id, ...d.data() } as MediaItem)))
+      })
+      .catch((err) => console.error('[Galeria] erro ao carregar:', err))
       .finally(() => setLoading(false))
   }, [])
 
