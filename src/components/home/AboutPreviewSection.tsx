@@ -27,10 +27,11 @@ export default function AboutPreviewSection() {
   const [data, setData] = useState(DEFAULTS)
 
   useEffect(() => {
-    if (!db) return
+    if (!db) { console.warn('[AboutPreview] db not available'); return }
     getDoc(doc(db, 'settings', 'homepage-about')).then((snap) => {
-      if (snap.exists()) setData({ ...DEFAULTS, ...snap.data() })
-    }).catch(() => {})
+      console.log('[AboutPreview] snap exists:', snap.exists(), snap.data())
+      if (snap.exists()) setData({ ...DEFAULTS, ...snap.data() } as typeof DEFAULTS)
+    }).catch((err) => console.error('[AboutPreview] Firestore error:', err))
   }, [])
 
   return (

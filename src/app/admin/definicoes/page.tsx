@@ -149,6 +149,7 @@ export default function DefinicoesPage() {
           async () => {
             const url = await getDownloadURL(task.snapshot.ref)
             setHomepageAbout((prev) => ({ ...prev, fotoUrl: url, fotoPath: path }))
+            if (db) await setDoc(doc(db, 'settings', 'homepage-about'), { fotoUrl: url, fotoPath: path }, { merge: true })
             resolve()
           }
         )
