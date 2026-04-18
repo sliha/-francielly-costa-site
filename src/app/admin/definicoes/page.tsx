@@ -39,6 +39,16 @@ function toast(msg: string) {
   setTimeout(() => el.remove(), 3000)
 }
 
+const DEFAULT_HOMEPAGE_ABOUT = {
+  titulo: 'Sobre Francielly',
+  subtitulo: 'Paixão pela Arte de Realçar Beleza',
+  texto: 'Com mais de 8 anos de experiência em dermopigmentação avançada, Francielly Costa é reconhecida como uma das profissionais mais conceituadas do Norte de Portugal, com formação de excelência realizada em Milão, Itália.\n\nA sua missão é transformar a vida das suas clientes através de técnicas de precisão artística, proporcionando beleza natural e duradoura que respeita as características únicas de cada rosto.',
+  fotoUrl: '',
+  fotoPath: '',
+}
+
+type HomepageAbout = typeof DEFAULT_HOMEPAGE_ABOUT
+
 export default function DefinicoesPage() {
   const [config, setConfig] = useState<Config>(DEFAULT_CONFIG)
   const [saving, setSaving] = useState(false)
@@ -47,11 +57,21 @@ export default function DefinicoesPage() {
   const [photoProgress, setPhotoProgress] = useState(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  const [homepageAbout, setHomepageAbout] = useState<HomepageAbout>(DEFAULT_HOMEPAGE_ABOUT)
+  const [savingHomepage, setSavingHomepage] = useState(false)
+  const [savedHomepage, setSavedHomepage] = useState(false)
+  const [loadingHomepagePhoto, setLoadingHomepagePhoto] = useState(false)
+  const [homepagePhotoProgress, setHomepagePhotoProgress] = useState(0)
+  const homepageFileInputRef = useRef<HTMLInputElement>(null)
+
   // Load from Firestore on mount
   useEffect(() => {
     if (!db) return
     getDoc(doc(db, 'settings', 'negocio')).then((snap) => {
       if (snap.exists()) setConfig({ ...DEFAULT_CONFIG, ...snap.data() } as Config)
+    }).catch(() => {})
+    getDoc(doc(db, 'settings', 'homepage-about')).then((snap) => {
+      if (snap.exists()) setHomepageAbout({ ...DEFAULT_HOMEPAGE_ABOUT, ...snap.data() } as HomepageAbout)
     }).catch(() => {})
   }, [])
 
@@ -111,6 +131,57 @@ export default function DefinicoesPage() {
       setConfig((prev) => ({ ...prev, fotoPessoalUrl: '', fotoPessoalPath: '' }))
     } catch {
       toast('Erro ao remover foto.')
+    }
+  }
+
+  const handleHomepagePhotoUpload = async (file: File) => {
+    if (!storage || !db) { toast('Storage não configurado'); return }
+    setLoadingHomepagePhoto(true)
+    setHomepagePhotoProgress(0)
+    try {
+      const path = `about/homepage_${Date.now()}`
+      const storageRef = ref(storage, path)
+      const task = uploadBytesResumable(storageRef, file)
+      await new Promise<void>((resolve, reject) => {
+        task.on('state_changed',
+          (snap) => setHomepagePhotoProgress(Math.round(snap.bytesTransferred / snap.totalBytes * 100)),
+          reject,
+          async () => {
+            const url = await getDownloadURL(task.snapshot.ref)
+            setHomepageAbout((prev) => ({ ...prev, fotoUrl: url, fotoPath: path }))
+            resolve()
+          }
+        )
+      })
+    } catch {
+      toast('Erro no upload da foto.')
+    } finally {
+      setLoadingHomepagePhoto(false)
+      setHomepagePhotoProgress(0)
+    }
+  }
+
+  const handleHomepagePhotoDelete = async () => {
+    if (!storage || !homepageAbout.fotoPath) return
+    try {
+      await deleteObject(ref(storage, homepageAbout.fotoPath))
+      setHomepageAbout((prev) => ({ ...prev, fotoUrl: '', fotoPath: '' }))
+    } catch {
+      toast('Erro ao remover foto.')
+    }
+  }
+
+  const handleSaveHomepage = async () => {
+    setSavingHomepage(true)
+    try {
+      if (db) await setDoc(doc(db, 'settings', 'homepage-about'), homepageAbout, { merge: true })
+      setSavedHomepage(true)
+      toast('Secção "Sobre" guardada com sucesso!')
+      setTimeout(() => setSavedHomepage(false), 3000)
+    } catch {
+      toast('Erro ao guardar. Tente novamente.')
+    } finally {
+      setSavingHomepage(false)
     }
   }
 
@@ -174,6 +245,78 @@ export default function DefinicoesPage() {
               />
             </div>
           </div>
+        </Section>
+
+        {/* Homepage About */}
+        <Section title="Sobre Francielly (Homepage)">
+          <p className="text-white/30 text-xs -mt-1 mb-2">Texto e foto exibidos na secção "Sobre" da página inicial</p>
+          {/* Photo upload */}
+          <div className="flex items-start gap-4 mb-3">
+            <div className="flex-shrink-0">
+              {homepageAbout.fotoUrl ? (
+                <div className="relative group">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={homepageAbout.fotoUrl} alt="Foto homepage"
+                    className="w-20 h-20 rounded-2xl object-cover border border-white/10" />
+                  <button onClick={handleHomepagePhotoDelete}
+                    className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Trash2 size={10} className="text-white" />
+                  </button>
+                </div>
+              ) : (
+                <button onClick={() => homepageFileInputRef.current?.click()} disabled={loadingHomepagePhoto}
+                  className="w-20 h-20 rounded-2xl border-2 border-dashed border-white/20 hover:border-rose-gold/50 flex flex-col items-center justify-center gap-1 transition-colors">
+                  {loadingHomepagePhoto ? (
+                    <div className="text-center">
+                      <div className="w-5 h-5 border-2 border-rose-gold border-t-transparent rounded-full animate-spin mx-auto mb-1" />
+                      <span className="text-white/30 text-[9px]">{homepagePhotoProgress}%</span>
+                    </div>
+                  ) : (
+                    <>
+                      <ImagePlus size={18} className="text-white/30" />
+                      <span className="text-white/30 text-[10px]">Foto</span>
+                    </>
+                  )}
+                </button>
+              )}
+              <input ref={homepageFileInputRef} type="file" accept="image/*,.heic,.heif"
+                className="hidden"
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) handleHomepagePhotoUpload(f) }} />
+            </div>
+            <div className="flex-1 text-white/40 text-xs leading-relaxed pt-1">
+              Foto principal da secção &quot;Sobre&quot; na homepage.<br />
+              Formatos: JPG, PNG, HEIC. Recomendado: 3:4 vertical.
+            </div>
+          </div>
+          {/* Text fields */}
+          <div className="space-y-2">
+            <div>
+              <label className="text-white/40 text-[11px] mb-1 block">Título</label>
+              <input type="text"
+                value={homepageAbout.titulo}
+                onChange={(e) => setHomepageAbout((p) => ({ ...p, titulo: e.target.value }))}
+                placeholder="Sobre Francielly"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-rose-gold/50 transition-colors" />
+            </div>
+            <div>
+              <label className="text-white/40 text-[11px] mb-1 block">Subtítulo</label>
+              <input type="text"
+                value={homepageAbout.subtitulo}
+                onChange={(e) => setHomepageAbout((p) => ({ ...p, subtitulo: e.target.value }))}
+                placeholder="Paixão pela Arte de Realçar Beleza"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-rose-gold/50 transition-colors" />
+            </div>
+            <div>
+              <label className="text-white/40 text-[11px] mb-1 block">Texto da bio</label>
+              <textarea
+                value={homepageAbout.texto}
+                onChange={(e) => setHomepageAbout((p) => ({ ...p, texto: e.target.value }))}
+                placeholder="Escreva aqui a bio para a homepage..."
+                rows={5}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-rose-gold/50 resize-none transition-colors" />
+            </div>
+          </div>
+          <SaveButton saving={savingHomepage} saved={savedHomepage} onClick={handleSaveHomepage} full />
         </Section>
 
         {/* Business info */}

@@ -1,9 +1,12 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { useInView } from 'react-intersection-observer'
 import { ArrowRight, CheckCircle, Award, Globe, GraduationCap } from 'lucide-react'
+import { db } from '@/lib/firebase'
+import { doc, getDoc } from 'firebase/firestore'
 
 const credentials = [
   { icon: Award, text: 'Formação em Milão, Itália' },
@@ -12,8 +15,23 @@ const credentials = [
   { icon: CheckCircle, text: '+8 anos de experiência' },
 ]
 
+const DEFAULTS = {
+  titulo: 'Sobre Francielly',
+  subtitulo: 'Paixão pela Arte de Realçar Beleza',
+  texto: 'Com mais de 8 anos de experiência em dermopigmentação avançada, Francielly Costa é reconhecida como uma das profissionais mais conceituadas do Norte de Portugal, com formação de excelência realizada em Milão, Itália.\n\nA sua missão é transformar a vida das suas clientes através de técnicas de precisão artística, proporcionando beleza natural e duradoura que respeita as características únicas de cada rosto.',
+  fotoUrl: '',
+}
+
 export default function AboutPreviewSection() {
   const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.2 })
+  const [data, setData] = useState(DEFAULTS)
+
+  useEffect(() => {
+    if (!db) return
+    getDoc(doc(db, 'settings', 'homepage-about')).then((snap) => {
+      if (snap.exists()) setData({ ...DEFAULTS, ...snap.data() })
+    }).catch(() => {})
+  }, [])
 
   return (
     <section ref={ref} className="py-24 bg-white relative overflow-hidden">
@@ -29,24 +47,17 @@ export default function AboutPreviewSection() {
             animate={inView ? { opacity: 1, x: 0 } : {}}
             transition={{ duration: 0.7 }}
           >
-            <span className="section-tag">Sobre Francielly</span>
+            <span className="section-tag">{data.titulo}</span>
             <h2 className="section-title mb-6">
-              Paixão pela Arte de{' '}
-              <span className="gradient-text">Realçar Beleza</span>
+              <span className="gradient-text">{data.subtitulo}</span>
             </h2>
             <div className="divider-rose-left" />
 
-            <p className="text-text-secondary font-inter leading-relaxed mb-4 mt-6">
-              Com mais de 8 anos de experiência em dermopigmentação avançada,
-              Francielly Costa é reconhecida como uma das profissionais mais
-              conceituadas do Norte de Portugal, com formação de excelência
-              realizada em Milão, Itália.
-            </p>
-            <p className="text-text-secondary font-inter leading-relaxed mb-8">
-              A sua missão é transformar a vida das suas clientes através de
-              técnicas de precisão artística, proporcionando beleza natural e
-              duradoura que respeita as características únicas de cada rosto.
-            </p>
+            {data.texto.split('\n\n').map((para, i) => (
+              <p key={i} className={`text-text-secondary font-inter leading-relaxed ${i < data.texto.split('\n\n').length - 1 ? 'mb-4' : 'mb-8'} mt-6`}>
+                {para}
+              </p>
+            ))}
 
             {/* Credentials */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">
@@ -84,20 +95,28 @@ export default function AboutPreviewSection() {
             transition={{ duration: 0.7, delay: 0.2 }}
             className="relative"
           >
-            {/* Main photo placeholder */}
+            {/* Main photo */}
             <div className="relative rounded-3xl overflow-hidden aspect-[3/4] max-w-md mx-auto">
-              <div className="absolute inset-0 bg-gradient-to-br from-rose-gold/20 via-rose-gold/40 to-golden/30" />
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
-                <div className="w-24 h-24 rounded-full bg-white/20 flex items-center justify-center">
-                  <Award className="w-12 h-12 text-white/80" />
-                </div>
-                <p className="text-white/80 font-playfair text-xl text-center px-8">
-                  Francielly Costa
-                </p>
-                <p className="text-white/60 text-sm text-center px-8 font-inter">
-                  Dermopigmentação Avançada
-                </p>
-              </div>
+              {data.fotoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={data.fotoUrl} alt={data.titulo}
+                  className="absolute inset-0 w-full h-full object-cover" />
+              ) : (
+                <>
+                  <div className="absolute inset-0 bg-gradient-to-br from-rose-gold/20 via-rose-gold/40 to-golden/30" />
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
+                    <div className="w-24 h-24 rounded-full bg-white/20 flex items-center justify-center">
+                      <Award className="w-12 h-12 text-white/80" />
+                    </div>
+                    <p className="text-white/80 font-playfair text-xl text-center px-8">
+                      Francielly Costa
+                    </p>
+                    <p className="text-white/60 text-sm text-center px-8 font-inter">
+                      Dermopigmentação Avançada
+                    </p>
+                  </div>
+                </>
+              )}
 
               {/* Decorative corners */}
               <div className="absolute top-4 left-4 w-12 h-12 border-l-2 border-t-2 border-white/30 rounded-tl-xl" />
