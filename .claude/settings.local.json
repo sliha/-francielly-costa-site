@@ -26,7 +26,10 @@
       "Bash(xargs grep:*)",
       "Bash(wc -l C:UsersBiogefrancielly-costa-site/src/app/admin/*.tsx)",
       "Bash(grep:*)",
-      "Bash(ls src/app/sitemap*)"
+      "Bash(ls src/app/sitemap*)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); [print\\(m['name'], '-', m.get\\('supportedGenerationMethods',''\\)\\) for m in d.get\\('models',[]\\)]\")",
+      "Bash(node -e \"const p=require\\('./node_modules/@google/generative-ai/package.json'\\); console.log\\('SDK version:', p.version\\)\")",
+      "Bash(git reset *)"
     ]
   }
 }
