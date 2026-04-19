@@ -111,6 +111,7 @@ export default function DefinicoesPage() {
           reject,
           async () => {
             const url = await getDownloadURL(task.snapshot.ref)
+            console.log('Upload URL:', url)
             setConfig((prev) => ({ ...prev, fotoPessoalUrl: url, fotoPessoalPath: path }))
             resolve()
           }
@@ -148,6 +149,7 @@ export default function DefinicoesPage() {
           reject,
           async () => {
             const url = await getDownloadURL(task.snapshot.ref)
+            console.log('Upload URL:', url)
             setHomepageAbout((prev) => ({ ...prev, fotoUrl: url, fotoPath: path }))
             if (db) await setDoc(doc(db, 'settings', 'homepage-about'), { fotoUrl: url, fotoPath: path }, { merge: true })
             resolve()
