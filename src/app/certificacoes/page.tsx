@@ -75,8 +75,10 @@ export default function CertificacoesPage() {
                   className="bg-white rounded-2xl overflow-hidden shadow-card hover:shadow-card-hover transition-all duration-300 hover:-translate-y-1"
                 >
                   {item.fotoUrl && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={item.fotoUrl} alt={item.titulo} className="w-full aspect-video object-cover" loading="lazy" />
+                    <div className="w-full flex justify-center bg-white p-4">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={item.fotoUrl} alt={item.titulo} className="max-h-[600px] w-auto object-contain rounded-lg" loading="lazy" />
+                    </div>
                   )}
                   <div className="p-5">
                     <div className="flex items-start gap-3">

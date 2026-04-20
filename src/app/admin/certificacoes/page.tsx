@@ -153,7 +153,7 @@ export default function CertificacoesAdminPage() {
               {form.fotoUrl ? (
                 <div className="relative inline-block">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={form.fotoUrl} alt="certificação" className="w-48 aspect-video object-cover rounded-xl" />
+                  <img src={form.fotoUrl} alt="certificação" className="max-h-48 w-auto object-contain rounded-xl" />
                   <button onClick={() => setForm((f) => ({ ...f, fotoUrl: '', fotoPath: '' }))}
                     className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-black/60 hover:bg-red-500/80 flex items-center justify-center transition-colors">
                     <Trash2 size={13} className="text-white" />
@@ -203,7 +203,7 @@ export default function CertificacoesAdminPage() {
                 <GripVertical size={16} className="text-white/20 flex-shrink-0" />
                 {item.fotoUrl && (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={item.fotoUrl} alt={item.titulo} className="w-14 h-10 object-cover rounded-lg flex-shrink-0" />
+                  <img src={item.fotoUrl} alt={item.titulo} className="w-14 h-14 object-contain rounded-lg flex-shrink-0 bg-white/5" />
                 )}
                 <div className="flex-1 min-w-0">
                   <p className="text-white text-sm font-medium truncate">{item.titulo}</p>
