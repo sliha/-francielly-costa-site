@@ -13,10 +13,28 @@ import {
 } from 'lucide-react'
 import { services } from '@/data/services'
 import { useServicosPrecos } from '@/lib/useServicosPrecos'
+import { useEffect, useState } from 'react'
+import { db } from '@/lib/firebase'
+import { doc, getDoc } from 'firebase/firestore'
+
+interface ServicoInfo { id: string; fotoUrl?: string }
 
 export default function ServicosPage() {
   const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.1 })
   const precosFirestore = useServicosPrecos()
+  const [servicosInfo, setServicosInfo] = useState<Record<string, ServicoInfo>>({})
+
+  useEffect(() => {
+    if (!db) return
+    getDoc(doc(db, 'settings', 'servicos')).then((snap) => {
+      if (!snap.exists()) return
+      const lista = snap.data().lista
+      if (!Array.isArray(lista)) return
+      const map: Record<string, ServicoInfo> = {}
+      for (const s of lista) { if (s.id) map[s.id] = s }
+      setServicosInfo(map)
+    }).catch(() => {})
+  }, [])
 
   return (
     <div className="pt-20">
@@ -65,40 +83,63 @@ export default function ServicosPage() {
               >
                 {/* Visual side */}
                 <div
-                  className={`relative min-h-[300px] flex items-center justify-center p-12 ${
+                  className={`relative min-h-[300px] flex items-center justify-center ${
                     i % 2 === 1 ? 'lg:col-start-2' : ''
-                  }`}
-                  style={{
+                  } ${servicosInfo[service.id]?.fotoUrl ? 'p-0 overflow-hidden' : 'p-12'}`}
+                  style={servicosInfo[service.id]?.fotoUrl ? {} : {
                     background: `linear-gradient(135deg, ${service.color}20, ${service.color}40)`,
                   }}
                 >
-                  <div className="text-center">
-                    <div
-                      className="text-8xl mb-4 block"
-                      style={{ color: service.color }}
-                    >
-                      {['✦', '◆', '◇', '❋'][i]}
+                  {servicosInfo[service.id]?.fotoUrl ? (
+                    <>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={servicosInfo[service.id].fotoUrl}
+                        alt={service.name}
+                        className="w-full h-full object-cover absolute inset-0"
+                      />
+                      <div className="relative z-10 text-center p-8 bg-black/40 w-full h-full flex flex-col items-center justify-center">
+                        <h2 className="font-playfair font-bold text-3xl text-white mb-2">
+                          {service.name}
+                        </h2>
+                        <p className="font-semibold text-xl font-inter text-white/90">
+                          {precosFirestore[service.id] ?? service.priceRange}
+                        </p>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-center">
+                      <div
+                        className="text-8xl mb-4 block"
+                        style={{ color: service.color }}
+                      >
+                        {['✦', '◆', '◇', '❋'][i]}
+                      </div>
+                      <h2 className="font-playfair font-bold text-3xl text-text-primary mb-2">
+                        {service.name}
+                      </h2>
+                      <p
+                        className="font-semibold text-xl font-inter"
+                        style={{ color: service.color }}
+                      >
+                        {precosFirestore[service.id] ?? service.priceRange}
+                      </p>
                     </div>
-                    <h2 className="font-playfair font-bold text-3xl text-text-primary mb-2">
-                      {service.name}
-                    </h2>
-                    <p
-                      className="font-semibold text-xl font-inter"
-                      style={{ color: service.color }}
-                    >
-                      {precosFirestore[service.id] ?? service.priceRange}
-                    </p>
-                  </div>
+                  )}
 
-                  {/* Corner decorations */}
-                  <div
-                    className="absolute top-4 left-4 w-10 h-10 border-l-2 border-t-2 rounded-tl-lg opacity-40"
-                    style={{ borderColor: service.color }}
-                  />
-                  <div
-                    className="absolute bottom-4 right-4 w-10 h-10 border-r-2 border-b-2 rounded-br-lg opacity-40"
-                    style={{ borderColor: service.color }}
-                  />
+                  {/* Corner decorations (only without photo) */}
+                  {!servicosInfo[service.id]?.fotoUrl && (
+                    <>
+                      <div
+                        className="absolute top-4 left-4 w-10 h-10 border-l-2 border-t-2 rounded-tl-lg opacity-40"
+                        style={{ borderColor: service.color }}
+                      />
+                      <div
+                        className="absolute bottom-4 right-4 w-10 h-10 border-r-2 border-b-2 rounded-br-lg opacity-40"
+                        style={{ borderColor: service.color }}
+                      />
+                    </>
+                  )}
                 </div>
 
                 {/* Content side */}
