@@ -296,9 +296,9 @@ export default function ContactoPage() {
                 },
                 {
                   icon: Phone,
-                  title: 'Telefone / WhatsApp',
-                  content: '+351 917 132 116',
-                  href: 'tel:+351917132116',
+                  title: 'Telefone',
+                  content: '+351 913 112 232\n+351 917 132 116 (WhatsApp)',
+                  href: 'tel:+351913112232',
                   color: 'golden',
                 },
                 {

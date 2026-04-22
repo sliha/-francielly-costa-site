@@ -126,12 +126,20 @@ export default function Footer() {
                 <div className="w-8 h-8 rounded-full bg-rose-gold/20 flex items-center justify-center flex-shrink-0">
                   <Phone className="w-3.5 h-3.5 text-rose-gold" />
                 </div>
-                <a
-                  href="tel:+351917132116"
-                  className="text-white/60 hover:text-white text-sm font-inter transition-colors duration-200"
-                >
-                  +351 917 132 116
-                </a>
+                <div className="flex flex-col gap-0.5">
+                  <a
+                    href="tel:+351913112232"
+                    className="text-white/60 hover:text-white text-sm font-inter transition-colors duration-200"
+                  >
+                    +351 913 112 232
+                  </a>
+                  <a
+                    href="tel:+351917132116"
+                    className="text-white/60 hover:text-white text-sm font-inter transition-colors duration-200"
+                  >
+                    +351 917 132 116 (WhatsApp)
+                  </a>
+                </div>
               </li>
               <li className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-rose-gold/20 flex items-center justify-center flex-shrink-0">

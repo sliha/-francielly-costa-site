@@ -18,9 +18,9 @@ const contactCards = [
   {
     icon: Phone,
     title: 'Telefone',
-    lines: ['+351 000 000 000'],
+    lines: ['+351 913 112 232', '+351 917 132 116 (WhatsApp)'],
     color: 'golden',
-    action: { label: 'Ligar Agora', href: 'tel:+351000000000' },
+    action: { label: 'Ligar Agora', href: 'tel:+351913112232' },
   },
   {
     icon: Mail,

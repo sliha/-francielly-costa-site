@@ -11,7 +11,7 @@ import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebas
 
 const DEFAULT_CONFIG = {
   morada: 'Av. Dr. António Palha 53, 4715-091 Braga, Portugal',
-  telefone: '+351917132116',
+  telefone: '+351913112232',
   email: 'geral@franciellycosta.com',
   horario: 'Seg–Sex: 9h–18h, Sáb: 9h–13h',
   caucao: '50',
@@ -328,7 +328,7 @@ export default function DefinicoesPage() {
             <input type="text" value={config.morada} onChange={(e) => handleChange('morada', e.target.value)}
               placeholder="Morada completa" className="field-input" />
           </SettingField>
-          <SettingField label="Telefone / WhatsApp" icon={<Phone size={13} className="text-white/30" />}>
+          <SettingField label="Telefone (contacto)" icon={<Phone size={13} className="text-white/30" />}>
             <input type="tel" value={config.telefone} onChange={(e) => handleChange('telefone', e.target.value)}
               placeholder="+351 9XX XXX XXX" className="field-input" />
           </SettingField>
