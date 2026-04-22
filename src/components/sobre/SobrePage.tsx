@@ -45,7 +45,7 @@ const timeline = [
     year: '2023',
     title: 'Referência no Norte',
     description:
-      'Reconhecida como referência em dermopigmentação no Norte de Portugal, com mais de 200 clientes satisfeitas e 5 estrelas no Google.',
+      'Reconhecida como referência em dermopigmentação no Norte de Portugal, com mais de 2300 clientes satisfeitas e 5 estrelas no Google.',
   },
 ]
 

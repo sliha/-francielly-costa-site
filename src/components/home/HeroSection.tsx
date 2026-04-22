@@ -170,7 +170,7 @@ export default function HeroSection() {
           className="flex flex-wrap items-center justify-center gap-8 md:gap-16 mb-16"
         >
           {[
-            { value: '+200', label: 'Clientes Satisfeitas' },
+            { value: '+2300', label: 'Clientes Satisfeitas' },
             { value: '+8', label: 'Anos de Experiência' },
             { value: '5', label: 'Serviços Especializados' },
           ].map((stat, i) => (

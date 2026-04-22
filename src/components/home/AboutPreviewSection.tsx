@@ -151,7 +151,7 @@ export default function AboutPreviewSection() {
                 <div className="w-7 h-7 rounded-full bg-golden/10 flex items-center justify-center">
                   <CheckCircle className="w-3.5 h-3.5 text-golden" />
                 </div>
-                <span className="font-playfair font-bold text-2xl text-golden">+200</span>
+                <span className="font-playfair font-bold text-2xl text-golden">+2300</span>
               </div>
               <p className="text-xs text-text-secondary font-inter leading-tight">
                 Clientes Felizes
