@@ -91,13 +91,7 @@ export default function RootLayout({
   return (
     <html lang="pt" className={`${playfair.variable} ${inter.variable}`}>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: `
-  window.addEventListener('error', function(e) {
-    if (e.message && (e.message.includes('ChunkLoadError') || e.message.includes('Loading chunk'))) {
-      window.location.reload();
-    }
-  });
-`}} />
+        <script dangerouslySetInnerHTML={{ __html: `window.addEventListener('error',function(e){if(e.message&&(e.message.includes('ChunkLoadError')||e.message.includes('Loading chunk'))){window.location.reload();}});` }} />
       </head>
       <body className="bg-cream font-inter text-text-primary antialiased">
         <PublicShell>{children}</PublicShell>
