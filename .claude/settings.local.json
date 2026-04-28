@@ -45,7 +45,8 @@
       "Bash(npx firebase-tools@latest projects:list)",
       "Bash(npx firebase-tools@latest apphosting:secrets:describe GOOGLE_SERVICE_ACCOUNT_KEY --project francielly-7b35c)",
       "Bash(npx firebase-tools@latest apphosting:secrets:access GOOGLE_SERVICE_ACCOUNT_KEY --project francielly-7b35c)",
-      "Bash(npx firebase-tools@latest apphosting:secrets:grantaccess GOOGLE_SERVICE_ACCOUNT_KEY --backend francielly-costa --project francielly-7b35c)"
+      "Bash(npx firebase-tools@latest apphosting:secrets:grantaccess GOOGLE_SERVICE_ACCOUNT_KEY --backend francielly-costa --project francielly-7b35c)",
+      "Bash(npx firebase-tools@latest apphosting:rollouts:create francielly-costa --git-branch main --force --project francielly-7b35c)"
     ]
   }
 }
