@@ -17,9 +17,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const isLoginPage = pathname === '/admin/login'
 
   useEffect(() => {
-    // Register admin service worker
+    // Desregistar service workers antigos (causavam ChunkLoadError/CORS)
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw-admin.js').catch(console.error)
+      navigator.serviceWorker.getRegistrations().then((regs) => {
+        regs.forEach((r) => r.unregister())
+      }).catch(() => {})
     }
 
     // Show splash for 1.5s on initial load
