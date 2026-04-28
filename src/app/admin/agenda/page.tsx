@@ -1,23 +1,20 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import {
   ChevronLeft, ChevronRight, PlusCircle, Calendar, Clock, X, Ban,
 } from 'lucide-react'
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, addMonths, subMonths, getDay } from 'date-fns'
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, addMonths, subMonths, getDay, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { db } from '@/lib/firebase'
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
+import { collection, addDoc, serverTimestamp, getDocs } from 'firebase/firestore'
+import { getTodosAgendamentos, atualizarEstadoAgendamento, type Agendamento } from '@/lib/booking'
+import { useServicosPrecos } from '@/lib/useServicosPrecos'
 
-// TODO: Replace with Firestore query
-const mockMarcacoes = [
-  { id: '1', clienteNome: 'Ana Silva', servicoNome: 'Microblading', data: new Date(2026, 3, 6), horaInicio: '10:00', estado: 'confirmado', telefone: '912 345 678', valor: 180 },
-  { id: '2', clienteNome: 'Marta Santos', servicoNome: 'Micropigmentação Labial', data: new Date(2026, 3, 6), horaInicio: '14:30', estado: 'pendente', telefone: '934 567 890', valor: 150 },
-  { id: '3', clienteNome: 'Joana Ferreira', servicoNome: 'Microshading', data: new Date(2026, 3, 7), horaInicio: '16:00', estado: 'confirmado', telefone: '961 234 567', valor: 180 },
-  { id: '4', clienteNome: 'Sofia Rodrigues', servicoNome: 'Eyeliner Permanente', data: new Date(2026, 3, 8), horaInicio: '11:00', estado: 'pago', telefone: '910 111 222', valor: 120 },
-  { id: '5', clienteNome: 'Carla Mendes', servicoNome: 'Microblading', data: new Date(2026, 3, 10), horaInicio: '09:30', estado: 'confirmado', telefone: '962 333 444', valor: 180 },
-  { id: '6', clienteNome: 'Beatriz Lopes', servicoNome: 'FiberBROWS', data: new Date(2026, 4, 5), horaInicio: '10:00', estado: 'pendente', telefone: '935 555 666', valor: 1000 },
-]
+interface MarcacaoView extends Agendamento {
+  dataObj: Date
+  valor: number
+}
 
 const estadoConfig: Record<string, { label: string; color: string; bg: string; dot: string }> = {
   confirmado: { label: 'Confirmado', color: 'text-emerald-400', bg: 'bg-emerald-400/10', dot: 'bg-emerald-400' },
@@ -57,6 +54,45 @@ export default function AgendaPage() {
   })
   const [savingBlock, setSavingBlock] = useState(false)
   const [cancelandoId, setCancelandoId] = useState<string | null>(null)
+  const [marcacoes, setMarcacoes] = useState<MarcacaoView[]>([])
+  const [loadingMarcacoes, setLoadingMarcacoes] = useState(true)
+  const [actionId, setActionId] = useState<string | null>(null)
+  const precos = useServicosPrecos()
+
+  const parsePreco = useCallback((p?: string): number => {
+    if (!p) return 0
+    const match = p.replace(',', '.').match(/[\d.]+/)
+    return match ? Number(match[0]) : 0
+  }, [])
+
+  const loadMarcacoes = useCallback(async () => {
+    setLoadingMarcacoes(true)
+    try {
+      const lista = await getTodosAgendamentos()
+      const view = lista
+        .filter((a) => a.id && a.data && a.horaInicio)
+        .map<MarcacaoView>((a) => ({
+          ...a,
+          dataObj: parseISO(a.data),
+          valor: parsePreco(precos[a.servicoId]),
+        }))
+      setMarcacoes(view)
+    } catch {
+      setMarcacoes([])
+    } finally {
+      setLoadingMarcacoes(false)
+    }
+  }, [precos, parsePreco])
+
+  useEffect(() => { loadMarcacoes() }, [loadMarcacoes])
+
+  // Load blocked days
+  useEffect(() => {
+    if (!db) return
+    getDocs(collection(db, 'diasBloqueados')).then((snap) => {
+      setDiasBloqueados(snap.docs.map((d) => ({ id: d.id, ...d.data() } as DiaBloqueado)))
+    }).catch(() => {})
+  }, [])
 
   const handleCancelar = async (agendamentoId: string) => {
     if (!confirm('Cancelar este agendamento? O evento será removido do Google Calendar.')) return
@@ -68,10 +104,23 @@ export default function AgendaPage() {
         body: JSON.stringify({ agendamentoId }),
       })
       if (!res.ok) throw new Error('Falha no cancelamento')
+      await loadMarcacoes()
     } catch {
       alert('Erro ao cancelar agendamento.')
     } finally {
       setCancelandoId(null)
+    }
+  }
+
+  const handleAtualizarEstado = async (id: string, novoEstado: Agendamento['estado']) => {
+    setActionId(id)
+    try {
+      await atualizarEstadoAgendamento(id, novoEstado)
+      await loadMarcacoes()
+    } catch {
+      alert('Erro ao atualizar estado.')
+    } finally {
+      setActionId(null)
     }
   }
 
@@ -80,13 +129,13 @@ export default function AgendaPage() {
   const days = eachDayOfInterval({ start: monthStart, end: monthEnd })
   const startPadding = (getDay(monthStart) + 6) % 7
 
-  const dayMarcacoes = mockMarcacoes.filter((m) => isSameDay(m.data, selectedDate))
+  const dayMarcacoes = marcacoes.filter((m) => isSameDay(m.dataObj, selectedDate))
   const filteredMarcacoes = filterEstado === 'todos' ? dayMarcacoes : dayMarcacoes.filter((m) => m.estado === filterEstado)
 
   const getDiaBloqueado = (day: Date) =>
     diasBloqueados.find((d) => d.data === format(day, 'yyyy-MM-dd'))
 
-  const getDayDots = (day: Date) => mockMarcacoes.filter((m) => isSameDay(m.data, day)).slice(0, 3)
+  const getDayDots = (day: Date) => marcacoes.filter((m) => isSameDay(m.dataObj, day)).slice(0, 3)
 
   const toggleHora = (hora: string) => {
     setBlockForm((f) => ({
@@ -244,7 +293,11 @@ export default function AgendaPage() {
             </div>
           </div>
 
-          {filteredMarcacoes.length === 0 ? (
+          {loadingMarcacoes ? (
+            <div className="bg-[#1A1A1A] rounded-2xl p-6 text-center border border-white/5">
+              <div className="w-5 h-5 border-2 border-rose-gold border-t-transparent rounded-full animate-spin mx-auto" />
+            </div>
+          ) : filteredMarcacoes.length === 0 ? (
             <div className="bg-[#1A1A1A] rounded-2xl p-6 text-center border border-white/5">
               <Calendar size={24} className="text-white/20 mx-auto mb-2" />
               <p className="text-white/40 text-sm">
@@ -276,27 +329,43 @@ export default function AgendaPage() {
                       <div className="flex items-center gap-1 text-white/40 text-xs">
                         <Clock size={11} />{booking.horaInicio}
                       </div>
-                      <div className="text-white/40 text-xs">{booking.telefone}</div>
-                      <div className="ml-auto text-golden text-sm font-semibold">€{booking.valor}</div>
+                      <div className="text-white/40 text-xs">{booking.clienteTelefone}</div>
+                      {booking.valor > 0 && (
+                        <div className="ml-auto text-golden text-sm font-semibold">€{booking.valor}</div>
+                      )}
                     </div>
 
                     <div className="flex gap-2 mt-2.5">
                       {booking.estado === 'pendente' && (
-                        <button className="flex-1 text-xs bg-emerald-400/10 text-emerald-400 hover:bg-emerald-400/20 rounded-lg py-1.5 transition-colors font-medium">
-                          Confirmar
+                        <button
+                          onClick={() => handleAtualizarEstado(booking.id!, 'confirmado')}
+                          disabled={actionId === booking.id}
+                          className="flex-1 text-xs bg-emerald-400/10 text-emerald-400 hover:bg-emerald-400/20 rounded-lg py-1.5 transition-colors font-medium disabled:opacity-50"
+                        >
+                          {actionId === booking.id ? '...' : 'Confirmar'}
                         </button>
                       )}
                       {booking.estado === 'confirmado' && (
-                        <button className="flex-1 text-xs bg-sky-400/10 text-sky-400 hover:bg-sky-400/20 rounded-lg py-1.5 transition-colors font-medium">
-                          Marcar Pago
+                        <button
+                          onClick={() => handleAtualizarEstado(booking.id!, 'pago')}
+                          disabled={actionId === booking.id}
+                          className="flex-1 text-xs bg-sky-400/10 text-sky-400 hover:bg-sky-400/20 rounded-lg py-1.5 transition-colors font-medium disabled:opacity-50"
+                        >
+                          {actionId === booking.id ? '...' : 'Marcar Pago'}
                         </button>
                       )}
-                      <button className="flex-1 text-xs bg-white/5 text-white/50 hover:bg-white/10 rounded-lg py-1.5 transition-colors">
-                        Editar
-                      </button>
+                      {booking.estado === 'pago' && (
+                        <button
+                          onClick={() => handleAtualizarEstado(booking.id!, 'concluido')}
+                          disabled={actionId === booking.id}
+                          className="flex-1 text-xs bg-white/10 text-white/70 hover:bg-white/20 rounded-lg py-1.5 transition-colors font-medium disabled:opacity-50"
+                        >
+                          {actionId === booking.id ? '...' : 'Concluir'}
+                        </button>
+                      )}
                       {booking.estado !== 'cancelado' && booking.estado !== 'concluido' && (
                         <button
-                          onClick={() => handleCancelar(booking.id)}
+                          onClick={() => handleCancelar(booking.id!)}
                           disabled={cancelandoId === booking.id}
                           className="text-xs bg-red-400/10 text-red-400 hover:bg-red-400/20 rounded-lg px-3 py-1.5 transition-colors disabled:opacity-50"
                         >
