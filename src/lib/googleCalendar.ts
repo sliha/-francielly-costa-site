@@ -15,28 +15,38 @@ export interface AgendamentoCalendar {
   caucaoValor?: number
 }
 
-function getCalendarClient(): calendar_v3.Calendar | null {
+function getCalendarClient(): { client: calendar_v3.Calendar } | { error: string } {
   const raw = process.env.GOOGLE_SERVICE_ACCOUNT_KEY
   if (!raw) {
-    console.warn('GOOGLE_SERVICE_ACCOUNT_KEY não configurada — calendar desativado')
-    return null
+    return { error: 'GOOGLE_SERVICE_ACCOUNT_KEY não está presente em process.env (verifica apphosting.yaml + IAM da service account no secret)' }
+  }
+  if (raw.length < 50) {
+    return { error: `GOOGLE_SERVICE_ACCOUNT_KEY parece truncada (length=${raw.length})` }
   }
 
-  let credentials: { client_email: string; private_key: string }
+  let credentials: { client_email?: string; private_key?: string }
   try {
     credentials = JSON.parse(raw)
   } catch (err) {
-    console.error('GOOGLE_SERVICE_ACCOUNT_KEY inválido (não é JSON):', err)
-    return null
+    const msg = err instanceof Error ? err.message : String(err)
+    return { error: `GOOGLE_SERVICE_ACCOUNT_KEY não é JSON válido: ${msg} (primeiros chars: "${raw.slice(0, 30)}")` }
   }
 
-  const auth = new google.auth.JWT({
-    email: credentials.client_email,
-    key: credentials.private_key.replace(/\\n/g, '\n'),
-    scopes: SCOPES,
-  })
+  if (!credentials.client_email || !credentials.private_key) {
+    return { error: 'JSON do GOOGLE_SERVICE_ACCOUNT_KEY não tem client_email ou private_key' }
+  }
 
-  return google.calendar({ version: 'v3', auth })
+  try {
+    const auth = new google.auth.JWT({
+      email: credentials.client_email,
+      key: credentials.private_key.replace(/\\n/g, '\n'),
+      scopes: SCOPES,
+    })
+    return { client: google.calendar({ version: 'v3', auth }) }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    return { error: `Erro ao criar auth JWT: ${msg}` }
+  }
 }
 
 function calcularHoraFim(horaInicio: string, duracaoMin = DURACAO_PADRAO_MIN): string {
@@ -48,9 +58,17 @@ function calcularHoraFim(horaInicio: string, duracaoMin = DURACAO_PADRAO_MIN): s
 }
 
 export async function createCalendarEvent(agendamento: AgendamentoCalendar): Promise<string | null> {
-  const calendar = getCalendarClient()
+  const result = getCalendarClient()
   const calendarId = process.env.GOOGLE_CALENDAR_ID
-  if (!calendar || !calendarId) return null
+  if ('error' in result) {
+    console.warn('Calendar:', result.error)
+    return null
+  }
+  if (!calendarId) {
+    console.warn('GOOGLE_CALENDAR_ID não configurado')
+    return null
+  }
+  const calendar = result.client
 
   const horaFim = agendamento.horaFim || calcularHoraFim(agendamento.horaInicio)
   const caucao = agendamento.caucaoValor ?? 30
@@ -88,10 +106,11 @@ export async function createCalendarEvent(agendamento: AgendamentoCalendar): Pro
 }
 
 export async function createTestEvent(): Promise<{ ok: true; eventId: string; htmlLink?: string } | { ok: false; error: string }> {
-  const calendar = getCalendarClient()
+  const result = getCalendarClient()
   const calendarId = process.env.GOOGLE_CALENDAR_ID
-  if (!calendar) return { ok: false, error: 'GOOGLE_SERVICE_ACCOUNT_KEY não configurada ou inválida' }
-  if (!calendarId) return { ok: false, error: 'GOOGLE_CALENDAR_ID não configurado' }
+  if ('error' in result) return { ok: false, error: result.error }
+  if (!calendarId) return { ok: false, error: 'GOOGLE_CALENDAR_ID não configurado em process.env' }
+  const calendar = result.client
 
   const tomorrow = new Date()
   tomorrow.setDate(tomorrow.getDate() + 1)
@@ -119,9 +138,14 @@ export async function createTestEvent(): Promise<{ ok: true; eventId: string; ht
 }
 
 export async function deleteCalendarEvent(eventId: string): Promise<boolean> {
-  const calendar = getCalendarClient()
+  const result = getCalendarClient()
   const calendarId = process.env.GOOGLE_CALENDAR_ID
-  if (!calendar || !calendarId) return false
+  if ('error' in result) {
+    console.warn('Calendar:', result.error)
+    return false
+  }
+  if (!calendarId) return false
+  const calendar = result.client
 
   try {
     await calendar.events.delete({ calendarId, eventId })

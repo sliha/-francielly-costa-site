@@ -57,8 +57,14 @@ env:
   # ── Segredos via Secret Manager ──────────────────────────────────────────────
   - variable: ANTHROPIC_API_KEY
     secret: ANTHROPIC_API_KEY
+    availability:
+      - BUILD
+      - RUNTIME
   - variable: GOOGLE_SERVICE_ACCOUNT_KEY
     secret: GOOGLE_SERVICE_ACCOUNT_KEY
+    availability:
+      - BUILD
+      - RUNTIME
   - variable: GOOGLE_CALENDAR_ID
     value: masterfranciellycosta@gmail.com
     availability:

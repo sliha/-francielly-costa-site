@@ -34,7 +34,18 @@
       "Skill(claude-api)",
       "Bash(npm uninstall *)",
       "Bash(npx -y firebase-tools@latest apphosting:secrets:set ANTHROPIC_API_KEY --project francielly-7b35c)",
-      "Bash(claude auth *)"
+      "Bash(claude auth *)",
+      "Bash(npx firebase-tools@latest apphosting:backends:list)",
+      "Bash(npx firebase-tools@latest apphosting:rollouts:list francielly-costa)",
+      "Bash(npx firebase-tools@latest --help)",
+      "Read(//tmp/**)",
+      "Bash(git fetch *)",
+      "Bash(npx firebase-tools@latest apphosting:rollouts:create francielly-costa --git-branch main --force)",
+      "Bash(git ls-remote *)",
+      "Bash(npx firebase-tools@latest projects:list)",
+      "Bash(npx firebase-tools@latest apphosting:secrets:describe GOOGLE_SERVICE_ACCOUNT_KEY --project francielly-7b35c)",
+      "Bash(npx firebase-tools@latest apphosting:secrets:access GOOGLE_SERVICE_ACCOUNT_KEY --project francielly-7b35c)",
+      "Bash(npx firebase-tools@latest apphosting:secrets:grantaccess GOOGLE_SERVICE_ACCOUNT_KEY --backend francielly-costa --project francielly-7b35c)"
     ]
   }
 }
