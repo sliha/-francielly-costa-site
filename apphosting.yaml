@@ -4,6 +4,12 @@ runConfig:
   concurrency: 80
 
 env:
+  # Aumenta heap do Node durante o build para evitar OOM no runner do App Hosting
+  - variable: NODE_OPTIONS
+    value: --max-old-space-size=4096
+    availability:
+      - BUILD
+
   # ── Firebase public config (seguro para commitar — exposto no browser bundle) ──
   - variable: NEXT_PUBLIC_FIREBASE_API_KEY
     value: AIzaSyDX28D_klJKZjNIpyhuDv-869XUCCA4rrA
