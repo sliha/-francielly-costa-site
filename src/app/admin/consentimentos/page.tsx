@@ -1,160 +1,360 @@
 'use client'
-import { useState } from 'react'
-import { Shield, CheckCircle2, Clock, Download, Search, Eye } from 'lucide-react'
-
-const mockConsentimentos = [
-  {
-    id: 'cons_1',
-    clienteNome: 'Ana Silva',
-    servico: 'Microblading',
-    dataAgendamento: '5 Abr 2026',
-    dataSubmissao: '3 Abr 2026',
-    estado: 'submetido',
-    alertas: [],
-  },
-  {
-    id: 'cons_2',
-    clienteNome: 'Sofia Rodrigues',
-    servico: 'Eyeliner Permanente',
-    dataAgendamento: '8 Abr 2026',
-    dataSubmissao: null,
-    estado: 'pendente',
-    alertas: [],
-  },
-  {
-    id: 'cons_3',
-    clienteNome: 'Carla Mendes',
-    servico: 'Microblading',
-    dataAgendamento: '10 Abr 2026',
-    dataSubmissao: '8 Abr 2026',
-    estado: 'submetido',
-    alertas: ['Mencionou alergia a anestésicos locais'],
-  },
-]
+import { useState, useEffect, useCallback } from 'react'
+import { Shield, CheckCircle2, Clock, Search, Eye, Send, Plus, X, AlertTriangle } from 'lucide-react'
+import { format, parseISO } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
+import { getTodosConsentimentos, type Consentimento } from '@/lib/consentimentos'
+import { getTodosAgendamentos, type Agendamento } from '@/lib/booking'
 
 export default function ConsentimentosAdminPage() {
   const [busca, setBusca] = useState('')
-  const [selecionado, setSelecionado] = useState<string | null>(null)
+  const [consentimentos, setConsentimentos] = useState<Consentimento[]>([])
+  const [loading, setLoading] = useState(true)
+  const [enviandoId, setEnviandoId] = useState<string | null>(null)
+  const [verConsentimento, setVerConsentimento] = useState<Consentimento | null>(null)
+  const [showNovoModal, setShowNovoModal] = useState(false)
+  const [agendamentosSemConsentimento, setAgendamentosSemConsentimento] = useState<Agendamento[]>([])
+  const [carregandoAgendamentos, setCarregandoAgendamentos] = useState(false)
 
-  const filtrados = mockConsentimentos.filter(c =>
+  const load = useCallback(async () => {
+    setLoading(true)
+    try {
+      const lista = await getTodosConsentimentos()
+      setConsentimentos(lista)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { load() }, [load])
+
+  const filtrados = consentimentos.filter((c) =>
     c.clienteNome.toLowerCase().includes(busca.toLowerCase()) ||
-    c.servico.toLowerCase().includes(busca.toLowerCase())
+    c.servicoNome.toLowerCase().includes(busca.toLowerCase())
   )
 
-  const enviarLink = (id: string) => {
-    // Aqui enviaria SMS/email com o link de consentimento
-    alert('Link enviado por SMS/email!')
+  const submetidos = consentimentos.filter((c) => c.estado === 'submetido')
+  const pendentes = consentimentos.filter((c) => c.estado === 'pendente')
+  const comAlertas = consentimentos.filter((c) => (c.alertas?.length ?? 0) > 0)
+
+  const enviarLink = async (c: Consentimento, agendamento?: Agendamento) => {
+    const id = c.id || agendamento?.id || ''
+    setEnviandoId(id)
+    try {
+      const res = await fetch('/api/consentimentos/enviar-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          agendamentoId: c.agendamentoId || agendamento?.id,
+          clienteNome: c.clienteNome || agendamento?.clienteNome,
+          clienteEmail: c.clienteEmail || agendamento?.clienteEmail,
+          clienteTelefone: c.clienteTelefone || agendamento?.clienteTelefone,
+          servicoNome: c.servicoNome || agendamento?.servicoNome,
+          dataAgendamento: c.dataAgendamento || agendamento?.data,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        alert(data.error || 'Erro ao enviar link.')
+        return
+      }
+      if (data.warning) {
+        alert(`Atenção: ${data.warning}\n\nLink: ${data.link}`)
+      } else {
+        alert('Link enviado por email com sucesso!')
+      }
+      await load()
+      setShowNovoModal(false)
+    } catch {
+      alert('Erro de rede.')
+    } finally {
+      setEnviandoId(null)
+    }
+  }
+
+  const abrirNovoModal = async () => {
+    setShowNovoModal(true)
+    setCarregandoAgendamentos(true)
+    try {
+      const todos = await getTodosAgendamentos()
+      const tokensEnviados = new Set(consentimentos.filter((c) => c.agendamentoId).map((c) => c.agendamentoId))
+      const futuros = todos.filter((a) => {
+        if (a.estado === 'cancelado' || a.estado === 'concluido') return false
+        if (tokensEnviados.has(a.id)) return false
+        try {
+          return parseISO(a.data) >= new Date(new Date().setHours(0, 0, 0, 0))
+        } catch {
+          return false
+        }
+      })
+      setAgendamentosSemConsentimento(futuros)
+    } finally {
+      setCarregandoAgendamentos(false)
+    }
   }
 
   return (
     <div className="min-h-screen bg-[#0F0F0F] text-white">
-      <div className="px-4 pt-6 pb-4 md:px-8 md:pt-8">
-        <h1 className="text-white text-2xl font-playfair font-semibold">Consentimentos</h1>
-        <p className="text-white/40 text-sm mt-0.5">Formulários de anamnese e consentimento informado</p>
+      <div className="px-4 pt-6 pb-4 md:px-8 md:pt-8 flex items-center justify-between">
+        <div>
+          <h1 className="text-white text-2xl font-playfair font-semibold">Consentimentos</h1>
+          <p className="text-white/40 text-sm mt-0.5">Formulários de anamnese e consentimento informado</p>
+        </div>
+        <button onClick={abrirNovoModal}
+          className="flex items-center gap-1.5 bg-rose-gold text-white text-sm px-3 py-2 rounded-xl font-medium hover:bg-opacity-90 transition-colors">
+          <Plus size={14} />
+          Enviar
+        </button>
       </div>
 
       <div className="px-4 md:px-8 pb-8 space-y-4">
-        {/* Stats */}
         <div className="grid grid-cols-3 gap-3">
           <div className="bg-[#1A1A1A] rounded-2xl p-4 border border-white/5 text-center">
-            <p className="text-2xl font-bold text-emerald-400">{mockConsentimentos.filter(c => c.estado === 'submetido').length}</p>
+            <p className="text-2xl font-bold text-emerald-400">{submetidos.length}</p>
             <p className="text-white/40 text-xs mt-1">Submetidos</p>
           </div>
           <div className="bg-[#1A1A1A] rounded-2xl p-4 border border-white/5 text-center">
-            <p className="text-2xl font-bold text-amber-400">{mockConsentimentos.filter(c => c.estado === 'pendente').length}</p>
+            <p className="text-2xl font-bold text-amber-400">{pendentes.length}</p>
             <p className="text-white/40 text-xs mt-1">Pendentes</p>
           </div>
           <div className="bg-[#1A1A1A] rounded-2xl p-4 border border-white/5 text-center">
-            <p className="text-2xl font-bold text-red-400">{mockConsentimentos.filter(c => c.alertas.length > 0).length}</p>
+            <p className="text-2xl font-bold text-red-400">{comAlertas.length}</p>
             <p className="text-white/40 text-xs mt-1">Com Alertas</p>
           </div>
         </div>
 
-        {/* Info */}
         <div className="bg-white/5 border border-white/10 rounded-2xl p-4 flex items-start gap-2">
           <Shield size={14} className="text-white/40 flex-shrink-0 mt-0.5" />
           <p className="text-white/40 text-xs">
-            Os formulários são enviados automaticamente 48h antes do procedimento. Pode reenviar manualmente se necessário.
+            Envie o link manualmente. O cliente recebe email com o formulário e submete online.
           </p>
         </div>
 
-        {/* Busca */}
         <div className="relative">
           <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30" />
           <input
             type="text"
-            placeholder="Pesquisar cliente..."
+            placeholder="Pesquisar cliente ou serviço..."
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
             className="w-full bg-[#1A1A1A] border border-white/5 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-rose-gold/50 transition-colors"
           />
         </div>
 
-        {/* Lista */}
-        <div className="space-y-3">
-          {filtrados.map(c => (
-            <div key={c.id} className={`bg-[#1A1A1A] rounded-2xl border overflow-hidden ${
-              c.alertas.length > 0 ? 'border-amber-400/30' : 'border-white/5'
-            }`}>
-              <div className="p-4">
-                <div className="flex items-start gap-3">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                    c.estado === 'submetido' ? 'bg-emerald-400/10' : 'bg-amber-400/10'
-                  }`}>
-                    {c.estado === 'submetido'
-                      ? <CheckCircle2 size={20} className="text-emerald-400" />
-                      : <Clock size={20} className="text-amber-400" />
-                    }
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <p className="text-white font-medium text-sm">{c.clienteNome}</p>
-                    <p className="text-white/40 text-xs">{c.servico} · {c.dataAgendamento}</p>
-                    {c.alertas.length > 0 && (
-                      <div className="mt-2 bg-amber-400/10 border border-amber-400/20 rounded-lg px-2 py-1.5">
-                        {c.alertas.map((a, i) => (
-                          <p key={i} className="text-amber-400 text-xs">⚠️ {a}</p>
-                        ))}
+        {loading ? (
+          <div className="bg-[#1A1A1A] rounded-2xl p-8 text-center border border-white/5">
+            <div className="w-5 h-5 border-2 border-rose-gold border-t-transparent rounded-full animate-spin mx-auto" />
+          </div>
+        ) : filtrados.length === 0 ? (
+          <div className="bg-[#1A1A1A] rounded-2xl p-8 text-center border border-white/5">
+            <Shield size={28} className="text-white/20 mx-auto mb-2" />
+            <p className="text-white/40 text-sm">
+              {consentimentos.length === 0 ? 'Sem consentimentos. Clica em "Enviar" para criar.' : 'Nenhum resultado.'}
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {filtrados.map((c) => {
+              const dataFmt = (() => {
+                try { return format(parseISO(c.dataAgendamento), "d 'de' MMM yyyy", { locale: ptBR }) }
+                catch { return c.dataAgendamento }
+              })()
+              const temAlertas = (c.alertas?.length ?? 0) > 0
+              return (
+                <div key={c.id} className={`bg-[#1A1A1A] rounded-2xl border overflow-hidden ${
+                  temAlertas ? 'border-amber-400/30' : 'border-white/5'
+                }`}>
+                  <div className="p-4">
+                    <div className="flex items-start gap-3">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                        c.estado === 'submetido' ? 'bg-emerald-400/10' : 'bg-amber-400/10'
+                      }`}>
+                        {c.estado === 'submetido'
+                          ? <CheckCircle2 size={20} className="text-emerald-400" />
+                          : <Clock size={20} className="text-amber-400" />}
                       </div>
-                    )}
+
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white font-medium text-sm">{c.clienteNome}</p>
+                        <p className="text-white/40 text-xs">{c.servicoNome} · {dataFmt}</p>
+                        {temAlertas && (
+                          <div className="mt-2 bg-amber-400/10 border border-amber-400/20 rounded-lg px-2 py-1.5 space-y-0.5">
+                            {c.alertas!.map((a, i) => (
+                              <p key={i} className="text-amber-400 text-xs flex items-start gap-1">
+                                <AlertTriangle size={10} className="flex-shrink-0 mt-0.5" />{a}
+                              </p>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <span className={`text-xs px-2.5 py-1 rounded-full flex-shrink-0 ${
+                        c.estado === 'submetido' ? 'bg-emerald-400/10 text-emerald-400' : 'bg-amber-400/10 text-amber-400'
+                      }`}>
+                        {c.estado === 'submetido' ? 'Submetido' : 'Pendente'}
+                      </span>
+                    </div>
+
+                    <div className="flex gap-2 mt-3">
+                      {c.estado === 'submetido' ? (
+                        <button onClick={() => setVerConsentimento(c)}
+                          className="flex-1 flex items-center justify-center gap-1.5 text-xs bg-white/5 text-white/70 hover:bg-white/10 rounded-lg py-1.5 transition-colors">
+                          <Eye size={12} />Ver Formulário
+                        </button>
+                      ) : (
+                        <button onClick={() => enviarLink(c)} disabled={enviandoId === c.id}
+                          className="flex-1 flex items-center justify-center gap-1.5 text-xs bg-rose-gold/10 text-rose-gold hover:bg-rose-gold/20 rounded-lg py-1.5 transition-colors font-medium disabled:opacity-50">
+                          <Send size={12} />
+                          {enviandoId === c.id ? 'A enviar...' : 'Reenviar Link'}
+                        </button>
+                      )}
+                    </div>
                   </div>
-
-                  <span className={`text-xs px-2.5 py-1 rounded-full flex-shrink-0 ${
-                    c.estado === 'submetido'
-                      ? 'bg-emerald-400/10 text-emerald-400'
-                      : 'bg-amber-400/10 text-amber-400'
-                  }`}>
-                    {c.estado === 'submetido' ? 'Submetido' : 'Pendente'}
-                  </span>
                 </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
 
-                {/* Acções */}
-                <div className="flex gap-2 mt-3">
-                  {c.estado === 'submetido' ? (
-                    <>
-                      <button className="flex-1 flex items-center justify-center gap-1.5 text-xs bg-white/5 text-white/50 hover:bg-white/10 rounded-lg py-1.5 transition-colors">
-                        <Eye size={12} />
-                        Ver Formulário
-                      </button>
-                      <button className="flex items-center justify-center gap-1.5 text-xs bg-white/5 text-white/50 hover:bg-white/10 rounded-lg px-3 py-1.5 transition-colors">
-                        <Download size={12} />
-                        PDF
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      onClick={() => enviarLink(c.id)}
-                      className="flex-1 text-xs bg-rose-gold/10 text-rose-gold hover:bg-rose-gold/20 rounded-lg py-1.5 transition-colors font-medium"
-                    >
-                      Enviar Link de Consentimento
-                    </button>
-                  )}
-                </div>
-              </div>
+      {/* Modal: ver formulário submetido */}
+      {verConsentimento && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4">
+          <div className="bg-[#1A1A1A] rounded-2xl border border-white/10 p-5 w-full max-w-lg max-h-[85vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-white font-semibold flex items-center gap-2">
+                <Shield size={16} className="text-rose-gold" />
+                Formulário Submetido
+              </h3>
+              <button onClick={() => setVerConsentimento(null)}
+                className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center hover:bg-white/10">
+                <X size={14} className="text-white/60" />
+              </button>
             </div>
+            <FormDetails c={verConsentimento} />
+          </div>
+        </div>
+      )}
+
+      {/* Modal: novo link */}
+      {showNovoModal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4">
+          <div className="bg-[#1A1A1A] rounded-2xl border border-white/10 p-5 w-full max-w-md max-h-[85vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-white font-semibold">Enviar Consentimento</h3>
+              <button onClick={() => setShowNovoModal(false)}
+                className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center hover:bg-white/10">
+                <X size={14} className="text-white/60" />
+              </button>
+            </div>
+
+            {carregandoAgendamentos ? (
+              <div className="text-center py-6">
+                <div className="w-5 h-5 border-2 border-rose-gold border-t-transparent rounded-full animate-spin mx-auto" />
+              </div>
+            ) : agendamentosSemConsentimento.length === 0 ? (
+              <p className="text-white/40 text-sm text-center py-6">
+                Não existem agendamentos futuros sem consentimento.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-white/40 text-xs mb-2">Seleciona um agendamento futuro:</p>
+                {agendamentosSemConsentimento.map((a) => (
+                  <button key={a.id} onClick={() => {
+                    enviarLink({
+                      token: '',
+                      clienteNome: a.clienteNome,
+                      clienteEmail: a.clienteEmail,
+                      clienteTelefone: a.clienteTelefone,
+                      servicoNome: a.servicoNome,
+                      dataAgendamento: a.data,
+                      agendamentoId: a.id,
+                      estado: 'pendente',
+                    } as Consentimento, a)
+                  }}
+                    disabled={enviandoId === a.id}
+                    className="w-full text-left bg-white/5 hover:bg-white/10 rounded-xl p-3 transition-colors disabled:opacity-50">
+                    <p className="text-white text-sm font-medium">{a.clienteNome}</p>
+                    <p className="text-white/40 text-xs mt-0.5">
+                      {a.servicoNome} · {(() => {
+                        try { return format(parseISO(a.data), "d MMM", { locale: ptBR }) } catch { return a.data }
+                      })()} · {a.horaInicio}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function FormDetails({ c }: { c: Consentimento }) {
+  const r = c.respostas || {}
+  return (
+    <div className="space-y-3 text-sm">
+      <div className="bg-white/5 rounded-xl p-3">
+        <p className="text-white/40 text-xs mb-1">Cliente</p>
+        <p className="text-white">{c.clienteNome}</p>
+        <p className="text-white/60 text-xs">{c.clienteEmail}</p>
+      </div>
+      <div className="bg-white/5 rounded-xl p-3">
+        <p className="text-white/40 text-xs mb-1">Serviço · Data</p>
+        <p className="text-white">{c.servicoNome}</p>
+        <p className="text-white/60 text-xs">{c.dataAgendamento}</p>
+      </div>
+
+      <div className="bg-white/5 rounded-xl p-3 space-y-2">
+        <p className="text-white/40 text-xs uppercase tracking-wider mb-1">Anamnese</p>
+        <Item label="Alergias" value={r.alergias || '—'} />
+        <Item label="Medicação" value={r.medicacao || '—'} />
+        <ItemBool label="Grávida ou amamenta" value={r.gravidaOuAmamenta} />
+        <ItemBool label="Doenças cardiovasculares" value={r.doencasCardiovasculares} />
+        <ItemBool label="Problemas de coagulação" value={r.problemasCoagulacao} />
+        <ItemBool label="Diabetes" value={r.diabetes} />
+        <ItemBool label="Tendência a queloides" value={r.queloides} />
+        <ItemBool label="Procedimento anterior" value={r.procedimentoAnterior} />
+        {r.notasAdicionais && <Item label="Notas" value={r.notasAdicionais} />}
+      </div>
+
+      {(c.alertas?.length ?? 0) > 0 && (
+        <div className="bg-amber-400/10 border border-amber-400/20 rounded-xl p-3">
+          <p className="text-amber-400 text-xs uppercase tracking-wider mb-2">Alertas</p>
+          {c.alertas!.map((a, i) => (
+            <p key={i} className="text-amber-300 text-xs flex items-start gap-1.5 py-0.5">
+              <AlertTriangle size={11} className="flex-shrink-0 mt-0.5" />{a}
+            </p>
           ))}
         </div>
+      )}
+
+      <div className="bg-white/5 rounded-xl p-3">
+        <p className="text-white/40 text-xs mb-1">Assinatura</p>
+        <p className="text-white italic">{c.assinaturaNome || '—'}</p>
+        <p className="text-emerald-400 text-xs mt-1">✓ Termos e RGPD aceites</p>
       </div>
+    </div>
+  )
+}
+
+function Item({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-white/40 text-xs">{label}</p>
+      <p className="text-white text-sm break-words">{value}</p>
+    </div>
+  )
+}
+
+function ItemBool({ label, value }: { label: string; value: boolean | undefined }) {
+  return (
+    <div className="flex items-center justify-between">
+      <p className="text-white/60 text-xs">{label}</p>
+      <span className={`text-xs font-medium ${value ? 'text-amber-400' : 'text-white/40'}`}>
+        {value === true ? 'Sim' : value === false ? 'Não' : '—'}
+      </span>
     </div>
   )
 }
