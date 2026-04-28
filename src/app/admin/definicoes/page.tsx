@@ -8,7 +8,7 @@ import {
 import { db, storage, auth } from '@/lib/firebase'
 import { doc, getDoc, setDoc } from 'firebase/firestore'
 import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage'
-import { CalendarCheck } from 'lucide-react'
+import { CalendarCheck, ShieldCheck } from 'lucide-react'
 
 const DEFAULT_CONFIG = {
   morada: 'Av. Dr. António Palha 53, 4715-091 Braga, Portugal',
@@ -60,6 +60,53 @@ export default function DefinicoesPage() {
 
   const [calTesting, setCalTesting] = useState(false)
   const [calTestResult, setCalTestResult] = useState<{ ok: boolean; msg: string; link?: string } | null>(null)
+  const [adminGranting, setAdminGranting] = useState(false)
+  const [adminStatus, setAdminStatus] = useState<{ ok: boolean; msg: string } | null>(null)
+  const [isAdminClaim, setIsAdminClaim] = useState<boolean | null>(null)
+
+  // Verifica claim admin no carregamento
+  useEffect(() => {
+    if (!auth?.currentUser) return
+    auth.currentUser.getIdTokenResult().then((res) => {
+      setIsAdminClaim(res.claims.admin === true)
+    }).catch(() => setIsAdminClaim(null))
+  }, [])
+
+  const handleConcederAdmin = async () => {
+    setAdminGranting(true)
+    setAdminStatus(null)
+    try {
+      const user = auth?.currentUser
+      if (!user) {
+        setAdminStatus({ ok: false, msg: 'Não autenticado.' })
+        return
+      }
+      const token = await user.getIdToken()
+      const res = await fetch('/api/admin/auth/grant-claim', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setAdminStatus({ ok: false, msg: data.error || `HTTP ${res.status}` })
+        return
+      }
+      // Forçar refresh do token para apanhar a nova claim
+      await user.getIdToken(true)
+      const fresh = await user.getIdTokenResult()
+      setIsAdminClaim(fresh.claims.admin === true)
+      setAdminStatus({
+        ok: true,
+        msg: data.already
+          ? 'Já era admin. Token atualizado.'
+          : 'Admin concedido com sucesso!'
+      })
+    } catch (err) {
+      setAdminStatus({ ok: false, msg: err instanceof Error ? err.message : 'Erro' })
+    } finally {
+      setAdminGranting(false)
+    }
+  }
 
   const handleTestarCalendario = async () => {
     setCalTesting(true)
@@ -401,6 +448,35 @@ export default function DefinicoesPage() {
               placeholder="50" min="0" step="5" className="field-input" />
           </SettingField>
           <p className="text-white/30 text-xs px-1">Valor cobrado antecipadamente para confirmar a marcação</p>
+        </Section>
+
+        {/* Permissões Admin */}
+        <Section title="Permissões Admin">
+          <div className="flex items-center gap-2 text-xs">
+            <ShieldCheck size={14} className={isAdminClaim ? 'text-emerald-400' : 'text-amber-400'} />
+            <span className={isAdminClaim ? 'text-emerald-400' : 'text-white/60'}>
+              {isAdminClaim === null ? 'A verificar...' : isAdminClaim ? 'Tem permissões admin' : 'Sem claim admin no token'}
+            </span>
+          </div>
+          {!isAdminClaim && (
+            <button
+              onClick={handleConcederAdmin}
+              disabled={adminGranting}
+              className="w-full flex items-center justify-center gap-2 bg-rose-gold/10 hover:bg-rose-gold/20 border border-rose-gold/30 text-rose-gold py-2.5 rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
+            >
+              {adminGranting && <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />}
+              {adminGranting ? 'A conceder...' : 'Ativar Permissões Admin'}
+            </button>
+          )}
+          {adminStatus && (
+            <div className={`text-xs rounded-xl p-2.5 border ${
+              adminStatus.ok
+                ? 'bg-emerald-400/10 text-emerald-400 border-emerald-400/20'
+                : 'bg-red-400/10 text-red-400 border-red-400/20'
+            }`}>
+              {adminStatus.msg}
+            </div>
+          )}
         </Section>
 
         {/* Google Calendar */}

@@ -69,5 +69,9 @@ env:
     value: masterfranciellycosta@gmail.com
     availability:
       - RUNTIME
+  - variable: ADMIN_EMAILS
+    value: biogenaturais34@gmail.com,sergiofalcao92@icloud.com
+    availability:
+      - RUNTIME
   # STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, RESEND_API_KEY
   # continuam configurados diretamente na Firebase Console.
