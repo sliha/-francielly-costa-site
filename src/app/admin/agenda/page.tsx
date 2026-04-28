@@ -56,6 +56,24 @@ export default function AgendaPage() {
     horasBloqueadas: [] as string[],
   })
   const [savingBlock, setSavingBlock] = useState(false)
+  const [cancelandoId, setCancelandoId] = useState<string | null>(null)
+
+  const handleCancelar = async (agendamentoId: string) => {
+    if (!confirm('Cancelar este agendamento? O evento será removido do Google Calendar.')) return
+    setCancelandoId(agendamentoId)
+    try {
+      const res = await fetch('/api/agendamento/cancelar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ agendamentoId }),
+      })
+      if (!res.ok) throw new Error('Falha no cancelamento')
+    } catch {
+      alert('Erro ao cancelar agendamento.')
+    } finally {
+      setCancelandoId(null)
+    }
+  }
 
   const monthStart = startOfMonth(currentMonth)
   const monthEnd = endOfMonth(currentMonth)
@@ -277,8 +295,12 @@ export default function AgendaPage() {
                         Editar
                       </button>
                       {booking.estado !== 'cancelado' && booking.estado !== 'concluido' && (
-                        <button className="text-xs bg-red-400/10 text-red-400 hover:bg-red-400/20 rounded-lg px-3 py-1.5 transition-colors">
-                          Cancelar
+                        <button
+                          onClick={() => handleCancelar(booking.id)}
+                          disabled={cancelandoId === booking.id}
+                          className="text-xs bg-red-400/10 text-red-400 hover:bg-red-400/20 rounded-lg px-3 py-1.5 transition-colors disabled:opacity-50"
+                        >
+                          {cancelandoId === booking.id ? 'A cancelar...' : 'Cancelar'}
                         </button>
                       )}
                     </div>

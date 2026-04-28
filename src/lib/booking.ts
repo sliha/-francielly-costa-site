@@ -5,6 +5,7 @@ import {
   addDoc,
   setDoc,
   updateDoc,
+  getDoc,
   getDocs,
   query,
   where,
@@ -31,6 +32,7 @@ export interface Agendamento {
   criadoEm?: Timestamp
   criadoPor: 'ia' | 'admin' | 'cliente'
   stripeSessionId?: string
+  googleEventId?: string
 }
 
 export interface SlotDisponivel {
@@ -120,6 +122,17 @@ export async function criarAgendamento(
     criadoEm: serverTimestamp(),
   })
   return ref.id
+}
+
+// Get a single booking by id
+export async function getAgendamentoPorId(id: string): Promise<Agendamento | null> {
+  try {
+    const snap = await getDoc(doc(db, 'agendamentos', id))
+    if (!snap.exists()) return null
+    return { id: snap.id, ...snap.data() } as Agendamento
+  } catch {
+    return null
+  }
 }
 
 // Update booking status

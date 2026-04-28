@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
-import { atualizarEstadoAgendamento } from '@/lib/booking'
+import { atualizarEstadoAgendamento, getAgendamentoPorId } from '@/lib/booking'
+import { createCalendarEvent } from '@/lib/googleCalendar'
 
 export const runtime = 'nodejs'
 
@@ -51,6 +52,29 @@ export async function POST(req: NextRequest) {
             stripeSessionId: session.id,
           })
           console.log(`Agendamento ${agendamentoId} confirmado com sucesso`)
+
+          try {
+            const agendamento = await getAgendamentoPorId(agendamentoId)
+            if (agendamento) {
+              const eventId = await createCalendarEvent({
+                clienteNome: agendamento.clienteNome,
+                clienteEmail: agendamento.clienteEmail,
+                clienteTelefone: agendamento.clienteTelefone,
+                servicoNome: agendamento.servicoNome,
+                data: agendamento.data,
+                horaInicio: agendamento.horaInicio,
+                horaFim: agendamento.horaFim,
+              })
+              if (eventId) {
+                await atualizarEstadoAgendamento(agendamentoId, 'confirmado', {
+                  googleEventId: eventId,
+                })
+                console.log(`Google Calendar evento criado: ${eventId}`)
+              }
+            }
+          } catch (calErr) {
+            console.error('Falha ao criar evento no Google Calendar:', calErr)
+          }
         } else {
           console.warn('checkout.session.completed sem agendamentoId no metadata')
         }
