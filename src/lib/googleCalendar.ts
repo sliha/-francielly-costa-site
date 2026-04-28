@@ -105,6 +105,69 @@ export async function createCalendarEvent(agendamento: AgendamentoCalendar): Pro
   }
 }
 
+export async function createConsultaVirtualEvent(params: {
+  clienteNome: string
+  clienteEmail: string
+  servicoInteresse: string
+  data: string // 'YYYY-MM-DD'
+  hora: string // 'HH:MM'
+  duvida?: string
+}): Promise<{ ok: true; eventId: string; meetLink: string } | { ok: false; error: string; fallbackMeetLink: string }> {
+  const fallbackMeetLink = `https://meet.google.com/new`
+  const result = getCalendarClient()
+  const calendarId = process.env.GOOGLE_CALENDAR_ID
+  if ('error' in result) return { ok: false, error: result.error, fallbackMeetLink }
+  if (!calendarId) return { ok: false, error: 'GOOGLE_CALENDAR_ID em falta', fallbackMeetLink }
+  const calendar = result.client
+
+  const horaFim = (() => {
+    const [h, m] = params.hora.split(':').map(Number)
+    const total = h * 60 + m + 15
+    return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
+  })()
+
+  try {
+    const res = await calendar.events.insert({
+      calendarId,
+      conferenceDataVersion: 1,
+      requestBody: {
+        summary: `Consulta Virtual — ${params.clienteNome}`,
+        description: `Cliente: ${params.clienteNome}\nEmail: ${params.clienteEmail}\nServiço: ${params.servicoInteresse}\nDúvida: ${params.duvida || '—'}`,
+        start: { dateTime: `${params.data}T${params.hora}:00`, timeZone: TIMEZONE },
+        end: { dateTime: `${params.data}T${horaFim}:00`, timeZone: TIMEZONE },
+        attendees: [{ email: params.clienteEmail, displayName: params.clienteNome }],
+        conferenceData: {
+          createRequest: {
+            requestId: `cv-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            conferenceSolutionKey: { type: 'hangoutsMeet' },
+          },
+        },
+        reminders: {
+          useDefault: false,
+          overrides: [
+            { method: 'email', minutes: 60 },
+            { method: 'popup', minutes: 15 },
+          ],
+        },
+      },
+    })
+
+    const meetLink =
+      res.data.hangoutLink ||
+      res.data.conferenceData?.entryPoints?.find((e) => e.entryPointType === 'video')?.uri ||
+      ''
+
+    if (!res.data.id) return { ok: false, error: 'Resposta sem eventId', fallbackMeetLink }
+    if (!meetLink) {
+      return { ok: false, error: 'Não foi possível gerar Meet link (precisa de Workspace)', fallbackMeetLink }
+    }
+    return { ok: true, eventId: res.data.id, meetLink }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    return { ok: false, error: msg, fallbackMeetLink }
+  }
+}
+
 export async function createTestEvent(): Promise<{ ok: true; eventId: string; htmlLink?: string } | { ok: false; error: string }> {
   const result = getCalendarClient()
   const calendarId = process.env.GOOGLE_CALENDAR_ID

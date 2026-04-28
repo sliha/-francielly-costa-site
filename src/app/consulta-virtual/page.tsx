@@ -32,6 +32,8 @@ export default function ConsultaVirtualPage() {
     duvida: '',
   })
   const [meetLink, setMeetLink] = useState('')
+  const [enviando, setEnviando] = useState(false)
+  const [erro, setErro] = useState<string | null>(null)
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
@@ -39,13 +41,27 @@ export default function ConsultaVirtualPage() {
 
   const formValido = form.nome && form.telefone && form.email && form.servico && form.data && form.hora
 
-  const agendar = () => {
-    // Gera um link único de Google Meet (formato real)
-    const roomId = Math.random().toString(36).substring(2, 5) + '-' +
-      Math.random().toString(36).substring(2, 7) + '-' +
-      Math.random().toString(36).substring(2, 5)
-    setMeetLink(`https://meet.google.com/${roomId}`)
-    setEtapa('confirmado')
+  const agendar = async () => {
+    setEnviando(true)
+    setErro(null)
+    try {
+      const res = await fetch('/api/consulta-virtual/agendar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setErro(data.error || 'Erro ao agendar.')
+        return
+      }
+      setMeetLink(data.meetLink || '')
+      setEtapa('confirmado')
+    } catch {
+      setErro('Erro de rede. Tente novamente.')
+    } finally {
+      setEnviando(false)
+    }
   }
 
   if (etapa === 'confirmado') {
@@ -283,13 +299,23 @@ export default function ConsultaVirtualPage() {
                 />
               </div>
 
+              {erro && (
+                <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700">
+                  {erro}
+                </div>
+              )}
+
               <button
                 onClick={agendar}
-                disabled={!formValido}
+                disabled={!formValido || enviando}
                 className="btn-primary w-full justify-center disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                <Video size={16} />
-                Confirmar Consulta Virtual
+                {enviando ? (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Video size={16} />
+                )}
+                {enviando ? 'A agendar...' : 'Confirmar Consulta Virtual'}
               </button>
             </div>
           </div>

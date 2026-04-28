@@ -1,0 +1,150 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { criarConsultaVirtual } from '@/lib/consultasVirtuais'
+import { createConsultaVirtualEvent } from '@/lib/googleCalendar'
+
+export const runtime = 'nodejs'
+
+interface Payload {
+  nome: string
+  telefone: string
+  email: string
+  servico: string
+  data: string
+  hora: string
+  duvida?: string
+}
+
+async function enviarEmails(params: {
+  cliente: { nome: string; email: string }
+  servico: string
+  data: string
+  hora: string
+  meetLink: string
+}) {
+  const resendKey = process.env.RESEND_API_KEY
+  if (!resendKey) return
+  const adminEmail = process.env.ADMIN_EMAIL || 'geral@franciellycosta.com'
+
+  const dataFmt = new Date(params.data + 'T12:00:00').toLocaleDateString('pt-PT', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+  })
+
+  const htmlCliente = `
+    <div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto; background: #FDF8F5; padding: 40px;">
+      <div style="text-align: center; margin-bottom: 32px;">
+        <h1 style="color: #B76E79; font-size: 28px; margin: 0;">Francielly Costa</h1>
+        <p style="color: #C9A96E; margin: 4px 0 0; font-size: 14px;">Consulta Virtual</p>
+      </div>
+      <h2 style="color: #333; font-size: 20px;">Olá ${params.cliente.nome}!</h2>
+      <p style="color: #555; line-height: 1.6;">
+        A sua consulta virtual foi agendada com sucesso. Em baixo o link para a videochamada.
+      </p>
+      <div style="background: white; border-left: 4px solid #B76E79; padding: 20px; margin: 24px 0; border-radius: 4px;">
+        <p style="margin: 0 0 8px;"><strong>Serviço:</strong> ${params.servico}</p>
+        <p style="margin: 0 0 8px;"><strong>Data:</strong> ${dataFmt}</p>
+        <p style="margin: 0;"><strong>Hora:</strong> ${params.hora} (15 min)</p>
+      </div>
+      <div style="text-align: center; margin: 24px 0;">
+        <a href="${params.meetLink}" style="display: inline-block; background: #B76E79; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: bold;">
+          Entrar na Videochamada
+        </a>
+      </div>
+      <p style="color: #999; font-size: 12px; text-align: center;">
+        Tem dúvidas? Contacte-nos: geral@franciellycosta.com · +351 913 112 232
+      </p>
+    </div>
+  `
+
+  const htmlAdmin = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #1A1A1A; color: white; padding: 40px; border-radius: 12px;">
+      <h2 style="color: #B76E79;">Nova Consulta Virtual</h2>
+      <div style="background: #2A2A2A; padding: 20px; border-radius: 8px; margin: 20px 0;">
+        <p><strong style="color: #C9A96E;">Cliente:</strong> ${params.cliente.nome}</p>
+        <p><strong style="color: #C9A96E;">Email:</strong> ${params.cliente.email}</p>
+        <p><strong style="color: #C9A96E;">Serviço:</strong> ${params.servico}</p>
+        <p><strong style="color: #C9A96E;">Data:</strong> ${dataFmt}</p>
+        <p><strong style="color: #C9A96E;">Hora:</strong> ${params.hora}</p>
+      </div>
+      <p><a href="${params.meetLink}" style="color: #C9A96E;">Link Google Meet</a></p>
+    </div>
+  `
+
+  const send = (to: string, subject: string, html: string) => fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      from: 'Francielly Costa <noreply@franciellycosta.com>',
+      to,
+      subject,
+      html,
+    }),
+  })
+
+  await Promise.allSettled([
+    send(params.cliente.email, `Consulta virtual — ${params.servico}`, htmlCliente),
+    send(adminEmail, `Nova consulta virtual — ${params.cliente.nome}`, htmlAdmin),
+  ])
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = (await req.json()) as Payload
+
+    if (!body.nome || !body.telefone || !body.email || !body.servico || !body.data || !body.hora) {
+      return NextResponse.json({ error: 'Campos obrigatórios em falta' }, { status: 400 })
+    }
+
+    // Tenta criar evento Google Calendar com Meet
+    const cal = await createConsultaVirtualEvent({
+      clienteNome: body.nome,
+      clienteEmail: body.email,
+      servicoInteresse: body.servico,
+      data: body.data,
+      hora: body.hora,
+      duvida: body.duvida,
+    })
+
+    let meetLink: string
+    let googleEventId: string | undefined
+    let warning: string | undefined
+
+    if (cal.ok) {
+      meetLink = cal.meetLink
+      googleEventId = cal.eventId
+    } else {
+      meetLink = cal.fallbackMeetLink
+      warning = `Calendar não criou Meet automático (${cal.error}). Use link manual.`
+      console.warn('Consulta virtual fallback:', cal.error)
+    }
+
+    const id = await criarConsultaVirtual({
+      clienteNome: body.nome,
+      clienteTelefone: body.telefone,
+      clienteEmail: body.email,
+      servicoInteresse: body.servico,
+      data: body.data,
+      hora: body.hora,
+      duvida: body.duvida,
+      meetLink,
+      googleEventId,
+    })
+
+    try {
+      await enviarEmails({
+        cliente: { nome: body.nome, email: body.email },
+        servico: body.servico,
+        data: body.data,
+        hora: body.hora,
+        meetLink,
+      })
+    } catch (emailErr) {
+      console.error('Erro envio email consulta virtual:', emailErr)
+    }
+
+    return NextResponse.json({ ok: true, id, meetLink, warning })
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Erro desconhecido'
+    console.error('Erro criar consulta virtual:', msg)
+    return NextResponse.json({ error: msg }, { status: 500 })
+  }
+}
