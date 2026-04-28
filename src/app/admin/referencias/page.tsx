@@ -1,48 +1,58 @@
 'use client'
-import { useState } from 'react'
-import { Gift, Users, TrendingUp, Search, ChevronRight } from 'lucide-react'
+import { useState, useEffect, useCallback } from 'react'
+import { Gift, Search, ChevronRight, Copy } from 'lucide-react'
+import { format } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
+import { getReferenciasAgrupadas, type Referencia } from '@/lib/referencias'
 
-const mockReferencias = [
-  {
-    id: 'ref_1',
-    clienteNome: 'Ana Silva',
-    codigo: 'ANA2026',
-    totalEnviadas: 3,
-    totalConvertidas: 2,
-    descontosGerados: 2,
-    ultimaActividade: '28 Mar 2026',
-    referidas: [
-      { nome: 'Margarida Santos', estado: 'convertida', data: '20 Mar 2026', servico: 'Microblading' },
-      { nome: 'Joana Ferreira', estado: 'convertida', data: '25 Mar 2026', servico: 'Micropigmentação Labial' },
-      { nome: 'Rita Alves', estado: 'pendente', data: '28 Mar 2026', servico: 'Microblading' },
-    ],
-  },
-  {
-    id: 'ref_2',
-    clienteNome: 'Sofia Rodrigues',
-    codigo: 'SOF2026',
-    totalEnviadas: 1,
-    totalConvertidas: 1,
-    descontosGerados: 1,
-    ultimaActividade: '15 Mar 2026',
-    referidas: [
-      { nome: 'Beatriz Lima', estado: 'convertida', data: '15 Mar 2026', servico: 'Microshading' },
-    ],
-  },
-]
+interface Grupo {
+  refenteEmail: string
+  refenteNome: string
+  codigoReferencia: string
+  totalEnviadas: number
+  totalConvertidas: number
+  ultimaActividade?: { toDate: () => Date } | null
+  referencias: Referencia[]
+}
 
 export default function ReferenciasAdminPage() {
   const [busca, setBusca] = useState('')
   const [expandido, setExpandido] = useState<string | null>(null)
+  const [grupos, setGrupos] = useState<Grupo[]>([])
+  const [loading, setLoading] = useState(true)
+  const [origem, setOrigem] = useState('')
 
-  const filtrados = mockReferencias.filter(r =>
-    r.clienteNome.toLowerCase().includes(busca.toLowerCase()) ||
-    r.codigo.toLowerCase().includes(busca.toLowerCase())
+  useEffect(() => {
+    if (typeof window !== 'undefined') setOrigem(window.location.origin)
+  }, [])
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    try {
+      const dados = await getReferenciasAgrupadas()
+      setGrupos(dados as Grupo[])
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { load() }, [load])
+
+  const filtrados = grupos.filter((g) =>
+    g.refenteNome.toLowerCase().includes(busca.toLowerCase()) ||
+    g.codigoReferencia.toLowerCase().includes(busca.toLowerCase())
   )
 
-  const totalConversoes = mockReferencias.reduce((s, r) => s + r.totalConvertidas, 0)
-  const totalReferencias = mockReferencias.reduce((s, r) => s + r.totalEnviadas, 0)
+  const totalConversoes = grupos.reduce((s, g) => s + g.totalConvertidas, 0)
+  const totalReferencias = grupos.reduce((s, g) => s + g.totalEnviadas, 0)
   const taxaConversao = totalReferencias > 0 ? Math.round((totalConversoes / totalReferencias) * 100) : 0
+
+  const copiarLink = (codigo: string) => {
+    const url = `${origem}/agendar?ref=${codigo}`
+    navigator.clipboard.writeText(url).then(() => {
+      alert(`Link copiado:\n${url}`)
+    })
+  }
 
   return (
     <div className="min-h-screen bg-[#0F0F0F] text-white">
@@ -52,7 +62,6 @@ export default function ReferenciasAdminPage() {
       </div>
 
       <div className="px-4 md:px-8 pb-8 space-y-4">
-        {/* Stats */}
         <div className="grid grid-cols-3 gap-3">
           <div className="bg-[#1A1A1A] rounded-2xl p-4 border border-white/5 text-center">
             <p className="text-2xl font-bold text-rose-gold">{totalReferencias}</p>
@@ -68,19 +77,17 @@ export default function ReferenciasAdminPage() {
           </div>
         </div>
 
-        {/* Info */}
         <div className="bg-rose-gold/10 border border-rose-gold/20 rounded-2xl p-4">
           <div className="flex items-start gap-2">
             <Gift size={16} className="text-rose-gold flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-white/70 text-sm">
-                <span className="text-white font-medium">Programa activo:</span> Quem referir ganha <span className="text-rose-gold font-medium">15% de desconto</span> no próximo procedimento. A amiga nova ganha <span className="text-golden font-medium">10% na 1ª sessão</span>.
-              </p>
+            <div className="text-white/70 text-sm">
+              <span className="text-white font-medium">Como funciona:</span> cada cliente recebe um código único após
+              o primeiro agendamento. Pode partilhá-lo via link <code className="text-rose-gold">/agendar?ref=CODIGO</code>.
+              Ao registar referências, fica visível aqui.
             </div>
           </div>
         </div>
 
-        {/* Busca */}
         <div className="relative">
           <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30" />
           <input
@@ -92,55 +99,80 @@ export default function ReferenciasAdminPage() {
           />
         </div>
 
-        {/* Lista */}
-        <div className="space-y-3">
-          {filtrados.map(r => (
-            <div key={r.id} className="bg-[#1A1A1A] rounded-2xl border border-white/5 overflow-hidden">
-              <button
-                onClick={() => setExpandido(expandido === r.id ? null : r.id)}
-                className="w-full p-4 flex items-center gap-3 text-left hover:bg-white/[0.02] transition-colors"
-              >
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-rose-gold/30 to-golden/20 flex items-center justify-center flex-shrink-0">
-                  <span className="text-rose-gold font-semibold text-sm">{r.clienteNome.charAt(0)}</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-white font-medium text-sm">{r.clienteNome}</p>
-                  <p className="text-white/40 text-xs font-mono">{r.codigo}</p>
-                </div>
-                <div className="flex items-center gap-3 text-right">
-                  <div>
-                    <p className="text-emerald-400 font-semibold text-sm">{r.totalConvertidas}/{r.totalEnviadas}</p>
-                    <p className="text-white/30 text-xs">convertidas</p>
+        {loading ? (
+          <div className="bg-[#1A1A1A] rounded-2xl p-8 text-center border border-white/5">
+            <div className="w-5 h-5 border-2 border-rose-gold border-t-transparent rounded-full animate-spin mx-auto" />
+          </div>
+        ) : filtrados.length === 0 ? (
+          <div className="bg-[#1A1A1A] rounded-2xl p-8 text-center border border-white/5">
+            <Gift size={28} className="text-white/20 mx-auto mb-2" />
+            <p className="text-white/40 text-sm">
+              {grupos.length === 0
+                ? 'Sem referências ainda. Os códigos começam a ser usados quando partilhares o link com clientes.'
+                : 'Nenhum resultado.'}
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {filtrados.map((g) => (
+              <div key={g.refenteEmail} className="bg-[#1A1A1A] rounded-2xl border border-white/5 overflow-hidden">
+                <button
+                  onClick={() => setExpandido(expandido === g.refenteEmail ? null : g.refenteEmail)}
+                  className="w-full p-4 flex items-center gap-3 text-left hover:bg-white/[0.02] transition-colors"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-rose-gold/30 to-golden/20 flex items-center justify-center flex-shrink-0">
+                    <span className="text-rose-gold font-semibold text-sm">{g.refenteNome.charAt(0)}</span>
                   </div>
-                  <ChevronRight size={14} className={`text-white/20 transition-transform ${expandido === r.id ? 'rotate-90' : ''}`} />
-                </div>
-              </button>
-
-              {expandido === r.id && (
-                <div className="border-t border-white/5 p-4 space-y-3">
-                  <p className="text-white/40 text-xs uppercase tracking-widest">Clientes Referidas</p>
-                  {r.referidas.map((ref, i) => (
-                    <div key={i} className="flex items-center justify-between bg-white/[0.02] rounded-xl px-3 py-2.5">
-                      <div>
-                        <p className="text-white/70 text-sm">{ref.nome}</p>
-                        <p className="text-white/30 text-xs">{ref.servico} · {ref.data}</p>
-                      </div>
-                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                        ref.estado === 'convertida'
-                          ? 'bg-emerald-400/10 text-emerald-400'
-                          : 'bg-amber-400/10 text-amber-400'
-                      }`}>
-                        {ref.estado === 'convertida' ? 'Convertida' : 'Pendente'}
-                      </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white font-medium text-sm">{g.refenteNome}</p>
+                    <p className="text-white/40 text-xs font-mono">{g.codigoReferencia}</p>
+                  </div>
+                  <div className="flex items-center gap-3 text-right">
+                    <div>
+                      <p className="text-emerald-400 font-semibold text-sm">{g.totalConvertidas}/{g.totalEnviadas}</p>
+                      <p className="text-white/30 text-xs">convertidas</p>
                     </div>
-                  ))}
+                    <ChevronRight size={14} className={`text-white/20 transition-transform ${expandido === g.refenteEmail ? 'rotate-90' : ''}`} />
+                  </div>
+                </button>
 
-                  <p className="text-white/30 text-xs">Última actividade: {r.ultimaActividade}</p>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
+                {expandido === g.refenteEmail && (
+                  <div className="border-t border-white/5 p-4 space-y-3">
+                    <button onClick={() => copiarLink(g.codigoReferencia)}
+                      className="w-full flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 text-white/70 hover:text-white px-3 py-2.5 rounded-xl text-sm transition-colors">
+                      <Copy size={13} />
+                      Copiar Link de Partilha
+                    </button>
+                    <p className="text-white/40 text-xs uppercase tracking-widest">Clientes Referidas</p>
+                    {g.referencias.map((r) => {
+                      const dataFmt = (() => {
+                        try {
+                          if (!r.criadoEm || typeof (r.criadoEm as { toDate?: () => Date }).toDate !== 'function') return '—'
+                          return format((r.criadoEm as unknown as { toDate: () => Date }).toDate(), "d MMM yyyy", { locale: ptBR })
+                        } catch { return '—' }
+                      })()
+                      return (
+                        <div key={r.id} className="flex items-center justify-between bg-white/[0.02] rounded-xl px-3 py-2.5">
+                          <div className="min-w-0">
+                            <p className="text-white/70 text-sm truncate">{r.novoNome}</p>
+                            <p className="text-white/30 text-xs truncate">{r.servicoNome} · {dataFmt}</p>
+                          </div>
+                          <span className={`text-xs font-medium px-2 py-0.5 rounded-full flex-shrink-0 ml-2 ${
+                            r.estado === 'convertida' ? 'bg-emerald-400/10 text-emerald-400'
+                            : r.estado === 'cancelada' ? 'bg-red-400/10 text-red-400'
+                            : 'bg-amber-400/10 text-amber-400'
+                          }`}>
+                            {r.estado === 'convertida' ? 'Convertida' : r.estado === 'cancelada' ? 'Cancelada' : 'Pendente'}
+                          </span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )

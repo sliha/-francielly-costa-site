@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronLeft, ChevronRight, CreditCard, Check } from 'lucide-react'
 import { SERVICES } from '@/data/services'
@@ -44,7 +44,14 @@ export default function BookingFlow({ servicoPreSelecionado, onClose }: Props) {
   const [telefone, setTelefone] = useState('')
   const [email, setEmail] = useState('')
   const [notas, setNotas] = useState('')
+  const [codigoReferencia, setCodigoReferencia] = useState('')
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const ref = new URLSearchParams(window.location.search).get('ref')
+    if (ref) setCodigoReferencia(ref.toUpperCase())
+  }, [])
   const [agendamentoId, setAgendamentoId] = useState('')
   const [erro, setErro] = useState('')
 
@@ -91,9 +98,14 @@ export default function BookingFlow({ servicoPreSelecionado, onClose }: Props) {
           horaInicio: hora,
           horaFim,
           notas,
+          codigoReferencia: codigoReferencia.trim() || undefined,
         }),
       })
       const json = await res.json()
+      if (json.referenciaErro) {
+        // Não bloqueia — apenas avisa
+        console.warn('Aviso referência:', json.referenciaErro)
+      }
       if (json.agendamentoId) {
         setAgendamentoId(json.agendamentoId)
         setStep('pagamento')
@@ -395,6 +407,13 @@ export default function BookingFlow({ servicoPreSelecionado, onClose }: Props) {
                 onChange={(e) => setNotas(e.target.value)}
                 rows={3}
                 className="w-full border-2 border-gray-100 rounded-xl px-4 py-3 focus:outline-none focus:border-rose-gold text-gray-800 placeholder:text-gray-400 transition-colors resize-none"
+              />
+              <input
+                type="text"
+                placeholder="Código de referência (opcional)"
+                value={codigoReferencia}
+                onChange={(e) => setCodigoReferencia(e.target.value.toUpperCase())}
+                className="w-full border-2 border-gray-100 rounded-xl px-4 py-3 focus:outline-none focus:border-rose-gold text-gray-800 placeholder:text-gray-400 transition-colors uppercase font-mono"
               />
               <button
                 onClick={handleConfirmar}

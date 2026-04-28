@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { criarAgendamento, upsertCliente } from '@/lib/booking'
 import { sendBookingConfirmation } from '@/lib/email'
+import { registrarReferencia, getOuCriarCodigoCliente } from '@/lib/referencias'
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,6 +16,7 @@ export async function POST(req: NextRequest) {
       horaInicio,
       horaFim,
       notas,
+      codigoReferencia,
     } = body
 
     // Validate required fields
@@ -76,7 +78,25 @@ export async function POST(req: NextRequest) {
       horaInicio,
     }).catch((err) => console.error('Erro ao enviar email de confirmação:', err))
 
-    return NextResponse.json({ success: true, agendamentoId: id })
+    // Gerar código de referência para este cliente — fire and forget
+    getOuCriarCodigoCliente(clienteEmail, clienteNome).catch((err) =>
+      console.error('Erro ao gerar código de referência:', err)
+    )
+
+    // Registrar referência se foi usado um código
+    let referenciaErro: string | undefined
+    if (codigoReferencia && typeof codigoReferencia === 'string' && codigoReferencia.trim()) {
+      const result = await registrarReferencia({
+        codigoUsado: codigoReferencia.trim().toUpperCase(),
+        novoNome: clienteNome,
+        novoEmail: clienteEmail,
+        agendamentoId: id,
+        servicoNome: servicoNome || '',
+      })
+      if (!result.ok) referenciaErro = result.error
+    }
+
+    return NextResponse.json({ success: true, agendamentoId: id, referenciaErro })
   } catch (err) {
     console.error('Erro ao criar agendamento:', err)
     return NextResponse.json(
