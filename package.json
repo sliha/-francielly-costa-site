@@ -13,6 +13,7 @@
     "@stripe/stripe-js": "^4.1.0",
     "date-fns": "^3.6.0",
     "firebase": "^10.12.4",
+    "firebase-admin": "^13.8.0",
     "framer-motion": "^11.3.8",
     "googleapis": "^171.4.0",
     "lucide-react": "^0.400.0",
