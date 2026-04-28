@@ -87,6 +87,37 @@ export async function createCalendarEvent(agendamento: AgendamentoCalendar): Pro
   }
 }
 
+export async function createTestEvent(): Promise<{ ok: true; eventId: string; htmlLink?: string } | { ok: false; error: string }> {
+  const calendar = getCalendarClient()
+  const calendarId = process.env.GOOGLE_CALENDAR_ID
+  if (!calendar) return { ok: false, error: 'GOOGLE_SERVICE_ACCOUNT_KEY não configurada ou inválida' }
+  if (!calendarId) return { ok: false, error: 'GOOGLE_CALENDAR_ID não configurado' }
+
+  const tomorrow = new Date()
+  tomorrow.setDate(tomorrow.getDate() + 1)
+  const yyyy = tomorrow.getFullYear()
+  const mm = String(tomorrow.getMonth() + 1).padStart(2, '0')
+  const dd = String(tomorrow.getDate()).padStart(2, '0')
+  const dateStr = `${yyyy}-${mm}-${dd}`
+
+  try {
+    const res = await calendar.events.insert({
+      calendarId,
+      requestBody: {
+        summary: 'TESTE — Apagar este evento',
+        description: 'Evento de teste da integração do site',
+        start: { dateTime: `${dateStr}T10:00:00`, timeZone: TIMEZONE },
+        end: { dateTime: `${dateStr}T10:30:00`, timeZone: TIMEZONE },
+      },
+    })
+    if (!res.data.id) return { ok: false, error: 'Resposta sem eventId' }
+    return { ok: true, eventId: res.data.id, htmlLink: res.data.htmlLink ?? undefined }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    return { ok: false, error: msg }
+  }
+}
+
 export async function deleteCalendarEvent(eventId: string): Promise<boolean> {
   const calendar = getCalendarClient()
   const calendarId = process.env.GOOGLE_CALENDAR_ID

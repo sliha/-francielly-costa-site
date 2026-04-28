@@ -5,9 +5,10 @@ import {
   Bell, BellOff, CheckCircle2, Save, Facebook, User,
   ImagePlus, Trash2, RefreshCw,
 } from 'lucide-react'
-import { db, storage } from '@/lib/firebase'
+import { db, storage, auth } from '@/lib/firebase'
 import { doc, getDoc, setDoc } from 'firebase/firestore'
 import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage'
+import { CalendarCheck } from 'lucide-react'
 
 const DEFAULT_CONFIG = {
   morada: 'Av. Dr. António Palha 53, 4715-091 Braga, Portugal',
@@ -56,6 +57,37 @@ export default function DefinicoesPage() {
   const [loadingPhoto, setLoadingPhoto] = useState(false)
   const [photoProgress, setPhotoProgress] = useState(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const [calTesting, setCalTesting] = useState(false)
+  const [calTestResult, setCalTestResult] = useState<{ ok: boolean; msg: string; link?: string } | null>(null)
+
+  const handleTestarCalendario = async () => {
+    setCalTesting(true)
+    setCalTestResult(null)
+    try {
+      const user = auth?.currentUser
+      if (!user) {
+        setCalTestResult({ ok: false, msg: 'Não autenticado.' })
+        return
+      }
+      const token = await user.getIdToken()
+      const res = await fetch('/api/admin/calendar/test', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const data = await res.json()
+      if (res.ok && data.ok) {
+        setCalTestResult({ ok: true, msg: `Evento criado (id: ${data.eventId})`, link: data.htmlLink })
+      } else {
+        setCalTestResult({ ok: false, msg: data.error || `Falhou (HTTP ${res.status})` })
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Erro desconhecido'
+      setCalTestResult({ ok: false, msg })
+    } finally {
+      setCalTesting(false)
+    }
+  }
 
   const [homepageAbout, setHomepageAbout] = useState<HomepageAbout>(DEFAULT_HOMEPAGE_ABOUT)
   const [savingHomepage, setSavingHomepage] = useState(false)
@@ -369,6 +401,47 @@ export default function DefinicoesPage() {
               placeholder="50" min="0" step="5" className="field-input" />
           </SettingField>
           <p className="text-white/30 text-xs px-1">Valor cobrado antecipadamente para confirmar a marcação</p>
+        </Section>
+
+        {/* Google Calendar */}
+        <Section title="Integração Google Calendar">
+          <p className="text-white/30 text-xs -mt-1 mb-1">
+            Cria um evento de teste amanhã às 10:00 no calendário Google configurado.
+          </p>
+          <button
+            onClick={handleTestarCalendario}
+            disabled={calTesting}
+            className="w-full flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white py-2.5 rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
+          >
+            {calTesting ? (
+              <div className="w-4 h-4 border-2 border-white/60 border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <CalendarCheck size={15} className="text-rose-gold" />
+            )}
+            {calTesting ? 'A testar...' : 'Testar Calendário Google'}
+          </button>
+          {calTestResult && (
+            <div
+              className={`text-xs rounded-xl p-2.5 border ${
+                calTestResult.ok
+                  ? 'bg-emerald-400/10 text-emerald-400 border-emerald-400/20'
+                  : 'bg-red-400/10 text-red-400 border-red-400/20'
+              }`}
+            >
+              <p className="font-medium">{calTestResult.ok ? 'Sucesso' : 'Erro'}</p>
+              <p className="opacity-80 break-words">{calTestResult.msg}</p>
+              {calTestResult.ok && calTestResult.link && (
+                <a
+                  href={calTestResult.link}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline text-emerald-300 hover:text-emerald-200 mt-1 inline-block"
+                >
+                  Abrir no Google Calendar
+                </a>
+              )}
+            </div>
+          )}
         </Section>
 
         {/* Notifications */}
