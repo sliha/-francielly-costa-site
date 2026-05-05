@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion'
 import { useInView } from 'react-intersection-observer'
 import { MapPin, Phone, Mail, Clock, MessageCircle, Navigation } from 'lucide-react'
+import { trackContactWhatsapp } from '@/lib/tracking'
 
 const contactCards = [
   {
@@ -167,6 +168,7 @@ export default function LocationSection() {
               href="https://wa.link/kwctpf"
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => trackContactWhatsapp({ source: 'location_section' })}
               initial={{ opacity: 0, y: 15 }}
               animate={inView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.5, delay: 0.7 }}

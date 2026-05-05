@@ -15,6 +15,7 @@ import {
   MessageSquare,
 } from 'lucide-react'
 import { services } from '@/data/services'
+import { trackLead, trackContactWhatsapp } from '@/lib/tracking'
 
 interface FormData {
   name: string
@@ -60,6 +61,7 @@ export default function ContactoPage() {
         throw new Error(data.error || 'Erro no servidor')
       }
       setSubmitted(true)
+      trackLead({ source: 'contact_form' })
       setForm(initialForm)
     } catch (err) {
       setSubmitError(
@@ -364,6 +366,7 @@ export default function ContactoPage() {
                 href="https://wa.me/351917132116"
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() => trackContactWhatsapp({ source: 'contacto_page' })}
                 className="flex items-center justify-center gap-3 w-full bg-[#25D366] hover:bg-[#1da851] text-white font-semibold py-4 rounded-2xl transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg font-inter"
               >
                 <MessageCircle className="w-5 h-5" />

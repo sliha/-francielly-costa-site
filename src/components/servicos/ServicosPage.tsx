@@ -12,6 +12,7 @@ import {
   CheckCircle,
 } from 'lucide-react'
 import { services } from '@/data/services'
+import { trackSchedule } from '@/lib/tracking'
 import { useServicosPrecos } from '@/lib/useServicosPrecos'
 import { useEffect, useState } from 'react'
 import { db } from '@/lib/firebase'
@@ -198,6 +199,7 @@ export default function ServicosPage() {
                     </Link>
                     <Link
                       href="/agendar"
+                      onClick={() => trackSchedule({ service: service.slug })}
                       className="btn-outline text-sm px-6 py-2.5"
                     >
                       Agendar
@@ -222,6 +224,7 @@ export default function ServicosPage() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
               href="/agendar"
+              onClick={() => trackSchedule({ service: 'servicos_cta' })}
               className="inline-flex items-center gap-2 px-8 py-4 bg-white text-rose-gold font-semibold rounded-full hover:bg-cream transition-all duration-300 hover:-translate-y-0.5 shadow-lg font-inter"
             >
               Agendar Agora

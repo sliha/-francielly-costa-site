@@ -13,6 +13,7 @@ import {
   CheckCircle,
   ArrowRight,
 } from 'lucide-react'
+import { trackSchedule } from '@/lib/tracking'
 import { db } from '@/lib/firebase'
 import { doc, getDoc } from 'firebase/firestore'
 
@@ -131,7 +132,7 @@ export default function SobrePage() {
                 avançado nesta arte.
               </p>
               <div className="flex flex-wrap gap-4">
-                <Link href="/agendar" className="btn-primary">
+                <Link href="/agendar" onClick={() => trackSchedule({ service: 'sobre_hero' })} className="btn-primary">
                   Agendar Consulta
                   <ArrowRight className="w-4 h-4" />
                 </Link>
@@ -371,6 +372,7 @@ export default function SobrePage() {
           <div className="text-center mt-12">
             <Link
               href="/agendar"
+              onClick={() => trackSchedule({ service: 'sobre_cta' })}
               className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-rose text-white font-semibold rounded-full shadow-rose-lg hover:-translate-y-1 transition-all duration-300 font-inter"
             >
               Agendar Consulta

@@ -13,6 +13,7 @@ import {
   AlertCircle,
   ArrowLeft,
 } from 'lucide-react'
+import { trackSchedule } from '@/lib/tracking'
 import type { Service } from '@/data/services'
 import SimuladorIA from '@/components/servicos/SimuladorIA'
 import ServicoMediaGaleria from '@/components/servicos/ServicoMediaGaleria'
@@ -83,7 +84,11 @@ export default function ServiceDetailPage({ service }: { service: Service }) {
               </div>
 
               <div className="flex flex-wrap gap-4 mb-6">
-                <Link href="/agendar" className="btn-primary">
+                <Link
+                  href="/agendar"
+                  onClick={() => trackSchedule({ service: service.slug })}
+                  className="btn-primary"
+                >
                   Agendar Este Serviço
                   <ArrowRight className="w-4 h-4" />
                 </Link>

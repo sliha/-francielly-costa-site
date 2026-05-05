@@ -2,11 +2,12 @@
 import { useEffect } from 'react'
 import Link from 'next/link'
 import { CheckCircle } from 'lucide-react'
+import { trackPurchase, trackContactWhatsapp } from '@/lib/tracking'
 
 export default function AgendamentoConfirmado() {
   useEffect(() => {
-    // Scroll to top
     window.scrollTo(0, 0)
+    trackPurchase({ value: 30, currency: 'EUR' })
   }, [])
 
   return (
@@ -33,6 +34,7 @@ export default function AgendamentoConfirmado() {
               href="https://wa.link/kwctpf"
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => trackContactWhatsapp({ source: 'agendamento_confirmado' })}
               className="btn-outline"
             >
               WhatsApp

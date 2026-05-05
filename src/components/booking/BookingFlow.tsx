@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronLeft, ChevronRight, CreditCard, Check } from 'lucide-react'
 import { SERVICES } from '@/data/services'
+import { trackSchedule } from '@/lib/tracking'
 import { format, addDays, isWeekend, startOfToday } from 'date-fns'
 import { pt } from 'date-fns/locale'
 
@@ -121,6 +122,7 @@ export default function BookingFlow({ servicoPreSelecionado, onClose }: Props) {
   const handlePagamento = async () => {
     setErro('')
     setLoading(true)
+    trackSchedule({ service: servico?.slug })
     try {
       const res = await fetch('/api/pagamento/checkout', {
         method: 'POST',

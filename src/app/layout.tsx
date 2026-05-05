@@ -1,8 +1,10 @@
 import type { Metadata, Viewport } from 'next'
 import { Playfair_Display, Inter } from 'next/font/google'
+import { Suspense } from 'react'
 import './globals.css'
 import PublicShell from '@/components/layout/PublicShell'
 import JsonLd, { localBusinessSchema, SITE_URL } from '@/components/JsonLd'
+import Analytics from '@/components/Analytics'
 
 const playfair = Playfair_Display({
   subsets: ['latin'],
@@ -114,6 +116,9 @@ export default function RootLayout({
       </head>
       <body className="bg-cream font-inter text-text-primary antialiased">
         <JsonLd id="ld-localbusiness" data={localBusinessSchema} />
+        <Suspense fallback={null}>
+          <Analytics />
+        </Suspense>
         <PublicShell>{children}</PublicShell>
       </body>
     </html>

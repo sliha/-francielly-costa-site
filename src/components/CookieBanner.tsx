@@ -21,6 +21,7 @@ export default function CookieBanner() {
   const responder = (choice: 'accepted' | 'rejected') => {
     try {
       localStorage.setItem(STORAGE_KEY, choice)
+      window.dispatchEvent(new CustomEvent('cookie_consent_changed', { detail: choice }))
     } catch {}
     setVisible(false)
   }

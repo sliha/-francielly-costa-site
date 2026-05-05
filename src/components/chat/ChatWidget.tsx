@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { MessageCircle, X, Send, Sparkles } from 'lucide-react'
+import { trackChatInitiated } from '@/lib/tracking'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -80,9 +81,11 @@ export default function ChatWidget() {
       timestamp: new Date(),
     }
 
+    const isFirstUserMessage = !messages.some((m) => m.role === 'user')
     setMessages((prev) => [...prev, userMessage])
     setInput('')
     setIsLoading(true)
+    if (isFirstUserMessage) trackChatInitiated({ source: 'sofia' })
 
     try {
       const response = await fetch('/api/chat', {

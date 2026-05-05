@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Menu, X, Sparkles } from 'lucide-react'
+import { trackSchedule } from '@/lib/tracking'
 
 const navLinks = [
   { href: '/', label: 'Início' },
@@ -95,6 +96,7 @@ export default function Navbar() {
             <div className="hidden lg:flex items-center">
               <Link
                 href="/agendar"
+                onClick={() => trackSchedule({ service: 'navbar' })}
                 className="btn-primary text-sm px-6 py-2.5"
               >
                 Agendar
@@ -181,7 +183,10 @@ export default function Navbar() {
               <div className="p-6 border-t border-cream-dark">
                 <Link
                   href="/agendar"
-                  onClick={() => setIsMobileOpen(false)}
+                  onClick={() => {
+                    trackSchedule({ service: 'navbar_mobile' })
+                    setIsMobileOpen(false)
+                  }}
                   className="btn-primary w-full text-center"
                 >
                   Agendar Consulta
