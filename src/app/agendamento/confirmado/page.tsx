@@ -2,7 +2,7 @@
 import { useEffect } from 'react'
 import Link from 'next/link'
 import { CheckCircle } from 'lucide-react'
-import { trackPurchase, trackContactWhatsapp } from '@/lib/tracking'
+import { trackPurchase, trackContactWhatsapp } from '@/lib/analytics'
 
 export default function AgendamentoConfirmado() {
   useEffect(() => {

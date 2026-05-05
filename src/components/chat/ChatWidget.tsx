@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { MessageCircle, X, Send, Sparkles } from 'lucide-react'
-import { trackChatInitiated } from '@/lib/tracking'
+import { trackChatInitiated } from '@/lib/analytics'
 
 interface Message {
   role: 'user' | 'assistant'

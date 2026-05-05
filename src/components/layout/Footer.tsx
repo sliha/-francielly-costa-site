@@ -1,5 +1,8 @@
+'use client'
+
 import Link from 'next/link'
 import { Sparkles, MapPin, Phone, Mail, Clock, Facebook, Instagram } from 'lucide-react'
+import { trackContactPhone } from '@/lib/analytics'
 
 const navLinks = [
   { href: '/', label: 'Início' },
@@ -129,12 +132,14 @@ export default function Footer() {
                 <div className="flex flex-col gap-0.5">
                   <a
                     href="tel:+351913112232"
+                    onClick={() => trackContactPhone({ source: 'footer' })}
                     className="text-white/60 hover:text-white text-sm font-inter transition-colors duration-200"
                   >
                     +351 913 112 232
                   </a>
                   <a
                     href="tel:+351917132116"
+                    onClick={() => trackContactPhone({ source: 'footer_whatsapp' })}
                     className="text-white/60 hover:text-white text-sm font-inter transition-colors duration-200"
                   >
                     +351 917 132 116 (WhatsApp)

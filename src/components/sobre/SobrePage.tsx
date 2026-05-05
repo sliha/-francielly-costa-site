@@ -13,7 +13,7 @@ import {
   CheckCircle,
   ArrowRight,
 } from 'lucide-react'
-import { trackSchedule } from '@/lib/tracking'
+import { trackSchedule } from '@/lib/analytics'
 import { db } from '@/lib/firebase'
 import { doc, getDoc } from 'firebase/firestore'
 

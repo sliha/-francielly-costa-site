@@ -3,7 +3,7 @@
 import { motion } from 'framer-motion'
 import { useInView } from 'react-intersection-observer'
 import { MapPin, Phone, Mail, Clock, MessageCircle, Navigation } from 'lucide-react'
-import { trackContactWhatsapp } from '@/lib/tracking'
+import { trackContactWhatsapp } from '@/lib/analytics'
 
 const contactCards = [
   {

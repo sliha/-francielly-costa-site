@@ -12,7 +12,7 @@ import {
   CheckCircle,
 } from 'lucide-react'
 import { services } from '@/data/services'
-import { trackSchedule } from '@/lib/tracking'
+import { trackSchedule } from '@/lib/analytics'
 import { useServicosPrecos } from '@/lib/useServicosPrecos'
 import { useEffect, useState } from 'react'
 import { db } from '@/lib/firebase'

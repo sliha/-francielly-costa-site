@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Menu, X, Sparkles } from 'lucide-react'
-import { trackSchedule } from '@/lib/tracking'
+import { trackSchedule } from '@/lib/analytics'
 
 const navLinks = [
   { href: '/', label: 'Início' },

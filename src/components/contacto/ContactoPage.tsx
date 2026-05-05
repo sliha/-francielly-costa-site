@@ -15,7 +15,7 @@ import {
   MessageSquare,
 } from 'lucide-react'
 import { services } from '@/data/services'
-import { trackLead, trackContactWhatsapp } from '@/lib/tracking'
+import { trackLead, trackContactWhatsapp } from '@/lib/analytics'
 
 interface FormData {
   name: string

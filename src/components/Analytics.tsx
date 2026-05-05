@@ -7,16 +7,6 @@ import { usePathname, useSearchParams } from 'next/navigation'
 const GA_ID = process.env.NEXT_PUBLIC_GA_ID || 'G-GM7S2XXBZS'
 const META_PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID || '1370527093885024'
 const STORAGE_KEY = 'cookie_consent'
-const CONSENT_EVENT = 'cookie_consent_changed'
-
-declare global {
-  interface Window {
-    fbq?: (...args: unknown[]) => void
-    _fbq?: unknown
-    gtag?: (...args: unknown[]) => void
-    dataLayer?: unknown[]
-  }
-}
 
 function readConsent(): boolean {
   if (typeof window === 'undefined') return false
@@ -34,16 +24,14 @@ export default function Analytics() {
 
   useEffect(() => {
     setHasConsent(readConsent())
-
     const onConsent = () => setHasConsent(readConsent())
     const onStorage = (e: StorageEvent) => {
       if (e.key === STORAGE_KEY) setHasConsent(readConsent())
     }
-
-    window.addEventListener(CONSENT_EVENT, onConsent)
+    window.addEventListener('cookie_consent_changed', onConsent)
     window.addEventListener('storage', onStorage)
     return () => {
-      window.removeEventListener(CONSENT_EVENT, onConsent)
+      window.removeEventListener('cookie_consent_changed', onConsent)
       window.removeEventListener('storage', onStorage)
     }
   }, [])
@@ -51,11 +39,8 @@ export default function Analytics() {
   useEffect(() => {
     if (!hasConsent) return
     const url = pathname + (searchParams?.toString() ? `?${searchParams.toString()}` : '')
-
-    if (typeof window.fbq === 'function') {
-      window.fbq('track', 'PageView')
-    }
-    if (typeof window.gtag === 'function' && GA_ID) {
+    if (typeof window.fbq === 'function') window.fbq('track', 'PageView')
+    if (typeof window.gtag === 'function') {
       window.gtag('event', 'page_view', {
         page_path: url,
         page_location: window.location.href,

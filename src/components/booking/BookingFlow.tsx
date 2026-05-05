@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronLeft, ChevronRight, CreditCard, Check } from 'lucide-react'
 import { SERVICES } from '@/data/services'
-import { trackSchedule } from '@/lib/tracking'
+import { trackSchedule } from '@/lib/analytics'
 import { format, addDays, isWeekend, startOfToday } from 'date-fns'
 import { pt } from 'date-fns/locale'
 

@@ -10,6 +10,7 @@ import {
 import Link from 'next/link'
 import ServicoMediaGaleria from '@/components/servicos/ServicoMediaGaleria'
 import { useServicosPrecos } from '@/lib/useServicosPrecos'
+import { trackWaitlistFiberbrows } from '@/lib/analytics'
 
 // ─── Countdown ───────────────────────────────────────────────────────────────
 const TARGET_DATE = new Date('2026-05-01T00:00:00')
@@ -52,6 +53,7 @@ function WaitlistForm() {
       })
       if (!res.ok) throw new Error()
       setStatus('success')
+      trackWaitlistFiberbrows()
       setForm({ nome: '', email: '', telefone: '' })
     } catch {
       setStatus('error')

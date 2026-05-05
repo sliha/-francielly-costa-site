@@ -24,6 +24,9 @@ export default function CookieBanner() {
       window.dispatchEvent(new CustomEvent('cookie_consent_changed', { detail: choice }))
     } catch {}
     setVisible(false)
+    if (choice === 'accepted') {
+      setTimeout(() => window.location.reload(), 150)
+    }
   }
 
   return (
