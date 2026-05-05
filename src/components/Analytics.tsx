@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import Script from 'next/script'
 import { usePathname, useSearchParams } from 'next/navigation'
 
-const GA_ID = process.env.NEXT_PUBLIC_GA_ID
+const GA_ID = process.env.NEXT_PUBLIC_GA_ID || 'G-GM7S2XXBZS'
 const META_PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID
 const STORAGE_KEY = 'cookie_consent'
 const CONSENT_EVENT = 'cookie_consent_changed'
