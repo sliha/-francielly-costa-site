@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Playfair_Display, Inter } from 'next/font/google'
 import './globals.css'
 import PublicShell from '@/components/layout/PublicShell'
+import JsonLd, { localBusinessSchema, SITE_URL } from '@/components/JsonLd'
 
 const playfair = Playfair_Display({
   subsets: ['latin'],
@@ -18,24 +19,26 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: {
-    default: 'Francielly Costa | Dermopigmentação Avançada em Braga',
-    template: '%s | Francielly Costa',
+    default: 'Francielly Costa — Dermopigmentação Avançada em Braga | Microblading, Micropigmentação Labial',
+    template: '%s | Francielly Costa Braga',
   },
   description:
-    'Especialista em Dermopigmentação em Braga, Portugal. Microblading, Microshading, Eyeliner e Micropigmentação Labial. Resultados naturais e duradouros.',
+    'Especialista com +8 anos de experiência e +2300 clientes. Microblading, micropigmentação labial, eyeliner, tricopigmentação e FiberBROWS em Braga. Agende online.',
   keywords: [
-    'dermopigmentação',
-    'microblading',
-    'microshading',
-    'eyeliner permanente',
-    'micropigmentação labial',
-    'Braga',
-    'Portugal',
-    'sobrancelhas',
-    'PMU',
+    'micropigmentação braga',
+    'microblading braga',
+    'dermopigmentação braga',
+    'micropigmentação labial braga',
+    'sobrancelhas perfeitas braga',
+    'micropigmentação porto',
+    'eyeliner permanente braga',
+    'tricopigmentação braga',
+    'fiberbrows portugal',
+    'francielly costa',
   ],
-  authors: [{ name: 'Francielly Costa' }],
+  authors: [{ name: 'Francielly Costa', url: SITE_URL }],
   creator: 'Francielly Costa',
   publisher: 'Francielly Costa',
   manifest: '/manifest.json',
@@ -44,24 +47,35 @@ export const metadata: Metadata = {
     address: false,
     telephone: false,
   },
-  metadataBase: new URL('https://franciellycosta.com'),
   alternates: {
     canonical: '/',
+    languages: {
+      'pt-PT': SITE_URL,
+    },
   },
   openGraph: {
     type: 'website',
     locale: 'pt_PT',
-    url: 'https://franciellycosta.com',
-    siteName: 'Francielly Costa',
-    title: 'Francielly Costa | Dermopigmentação Avançada em Braga',
+    url: SITE_URL,
+    siteName: 'Francielly Costa — Dermopigmentação Avançada',
+    title: 'Francielly Costa — Dermopigmentação Avançada em Braga',
     description:
-      'Especialista em Dermopigmentação em Braga, Portugal. Microblading, Microshading, Eyeliner e Micropigmentação Labial.',
+      'Especialista com +8 anos de experiência e +2300 clientes. Microblading, micropigmentação labial, eyeliner, tricopigmentação e FiberBROWS em Braga.',
+    images: [
+      {
+        url: '/og-image.jpg',
+        width: 1200,
+        height: 630,
+        alt: 'Francielly Costa — Dermopigmentação Avançada em Braga',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Francielly Costa | Dermopigmentação Avançada em Braga',
+    title: 'Francielly Costa — Dermopigmentação Avançada em Braga',
     description:
-      'Especialista em Dermopigmentação em Braga, Portugal.',
+      'Especialista com +8 anos de experiência e +2300 clientes em Braga, Portugal.',
+    images: ['/og-image.jpg'],
   },
   robots: {
     index: true,
@@ -74,13 +88,17 @@ export const metadata: Metadata = {
       'max-snippet': -1,
     },
   },
+  verification: {
+    google: 'PLACEHOLDER_VERIFICATION_CODE',
+  },
+  category: 'beauty',
 }
 
 export const viewport: Viewport = {
   themeColor: '#B76E79',
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
+  maximumScale: 5,
 }
 
 export default function RootLayout({
@@ -89,11 +107,13 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="pt" className={`${playfair.variable} ${inter.variable}`}>
+    <html lang="pt-PT" className={`${playfair.variable} ${inter.variable}`}>
       <head>
+        <link rel="canonical" href={SITE_URL} />
         <script dangerouslySetInnerHTML={{ __html: `window.addEventListener('error',function(e){if(e.message&&(e.message.includes('ChunkLoadError')||e.message.includes('Loading chunk'))){window.location.reload();}});` }} />
       </head>
       <body className="bg-cream font-inter text-text-primary antialiased">
+        <JsonLd id="ld-localbusiness" data={localBusinessSchema} />
         <PublicShell>{children}</PublicShell>
       </body>
     </html>
