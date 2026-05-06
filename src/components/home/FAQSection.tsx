@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useInView } from 'react-intersection-observer'
 import { ChevronDown, HelpCircle } from 'lucide-react'
+import { trackContactWhatsapp } from '@/lib/analytics'
 
 const faqs = [
   {
@@ -154,6 +155,7 @@ export default function FAQSection() {
             href="https://wa.link/kwctpf"
             target="_blank"
             rel="noopener noreferrer"
+            onClick={() => trackContactWhatsapp({ source: 'faq' })}
             className="btn-primary inline-flex"
           >
             Falar com Sofia (AI)

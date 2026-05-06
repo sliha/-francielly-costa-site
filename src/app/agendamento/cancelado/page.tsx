@@ -1,6 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { XCircle } from 'lucide-react'
+import { trackContactWhatsapp } from '@/lib/analytics'
 
 export default function AgendamentoCancelado() {
   return (
@@ -24,6 +25,7 @@ export default function AgendamentoCancelado() {
               href="https://wa.link/kwctpf"
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => trackContactWhatsapp({ source: 'agendamento_cancelado' })}
               className="btn-outline"
             >
               WhatsApp

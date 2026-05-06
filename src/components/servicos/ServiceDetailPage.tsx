@@ -13,7 +13,7 @@ import {
   AlertCircle,
   ArrowLeft,
 } from 'lucide-react'
-import { trackSchedule } from '@/lib/analytics'
+import { trackSchedule, trackContactWhatsapp } from '@/lib/analytics'
 import type { Service } from '@/data/services'
 import SimuladorIA from '@/components/servicos/SimuladorIA'
 import ServicoMediaGaleria from '@/components/servicos/ServicoMediaGaleria'
@@ -243,6 +243,7 @@ export default function ServiceDetailPage({ service }: { service: Service }) {
               href="https://wa.link/kwctpf"
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => trackContactWhatsapp({ source: 'service_detail' })}
               className="btn-outline"
             >
               Perguntar pelo WhatsApp

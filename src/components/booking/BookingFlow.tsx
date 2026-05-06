@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronLeft, ChevronRight, CreditCard, Check } from 'lucide-react'
 import { SERVICES } from '@/data/services'
-import { trackSchedule } from '@/lib/analytics'
+import { trackSchedule, trackContactWhatsapp } from '@/lib/analytics'
 import { format, addDays, isWeekend, startOfToday } from 'date-fns'
 import { pt } from 'date-fns/locale'
 
@@ -491,6 +491,7 @@ export default function BookingFlow({ servicoPreSelecionado, onClose }: Props) {
               href="https://wa.link/kwctpf"
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => trackContactWhatsapp({ source: 'booking_flow' })}
               className="text-sm text-gray-400 hover:text-rose-gold transition-colors underline"
             >
               Prefere pagar via WhatsApp?

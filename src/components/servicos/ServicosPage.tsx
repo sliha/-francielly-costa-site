@@ -12,7 +12,7 @@ import {
   CheckCircle,
 } from 'lucide-react'
 import { services } from '@/data/services'
-import { trackSchedule } from '@/lib/analytics'
+import { trackSchedule, trackContactWhatsapp } from '@/lib/analytics'
 import { useServicosPrecos } from '@/lib/useServicosPrecos'
 import { useEffect, useState } from 'react'
 import { db } from '@/lib/firebase'
@@ -234,6 +234,7 @@ export default function ServicosPage() {
               href="https://wa.link/kwctpf"
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => trackContactWhatsapp({ source: 'servicos_cta' })}
               className="inline-flex items-center gap-2 px-8 py-4 border-2 border-white/50 text-white font-semibold rounded-full hover:border-white hover:bg-white/10 transition-all duration-300 font-inter"
             >
               WhatsApp

@@ -35,6 +35,13 @@ export function trackPurchase(params: { value: number; currency?: string; transa
 export function trackContactWhatsapp(params?: { source?: string }) {
   fbq('Contact', params)
   gtag('contact_whatsapp', { source: params?.source ?? 'unknown' })
+  if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
+    window.gtag('event', 'conversion', {
+      send_to: 'AW-18049747314/n0zqCIe-iZIcEPKS5Z5D',
+      value: 50.0,
+      currency: 'EUR',
+    })
+  }
 }
 
 export function trackContactPhone(params?: { source?: string }) {

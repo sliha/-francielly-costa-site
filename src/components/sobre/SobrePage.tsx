@@ -13,7 +13,7 @@ import {
   CheckCircle,
   ArrowRight,
 } from 'lucide-react'
-import { trackSchedule } from '@/lib/analytics'
+import { trackSchedule, trackContactWhatsapp } from '@/lib/analytics'
 import { db } from '@/lib/firebase'
 import { doc, getDoc } from 'firebase/firestore'
 
@@ -140,6 +140,7 @@ export default function SobrePage() {
                   href="https://wa.link/kwctpf"
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={() => trackContactWhatsapp({ source: 'sobre_hero' })}
                   className="btn-outline border-white/30 text-white hover:border-rose-gold hover:text-rose-gold"
                 >
                   WhatsApp
