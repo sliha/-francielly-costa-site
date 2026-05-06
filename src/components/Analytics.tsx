@@ -6,6 +6,7 @@ import { usePathname, useSearchParams } from 'next/navigation'
 
 const GA_ID = process.env.NEXT_PUBLIC_GA_ID || 'G-GM7S2XXBZS'
 const META_PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID || '1370527093885024'
+const GOOGLE_ADS_ID = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID || 'AW-18049747314'
 const STORAGE_KEY = 'cookie_consent'
 
 function readConsent(): boolean {
@@ -70,6 +71,7 @@ export default function Analytics() {
                 window.gtag = gtag;
                 gtag('js', new Date());
                 gtag('config', '${GA_ID}', { anonymize_ip: true, send_page_view: true });
+                gtag('config', '${GOOGLE_ADS_ID}');
               `,
             }}
           />
