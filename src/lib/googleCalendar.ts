@@ -77,11 +77,6 @@ function prefixoEstado(estado?: EstadoAgendamento): string {
   return map[estado] || ''
 }
 
-function isEmailValido(email?: string): boolean {
-  if (!email) return false
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
-}
-
 function montarRequestBody(agendamento: AgendamentoCalendar): calendar_v3.Schema$Event {
   const horaFim = agendamento.horaFim || calcularHoraFim(agendamento.horaInicio)
   const caucao = agendamento.caucaoValor ?? 30
@@ -114,9 +109,9 @@ function montarRequestBody(agendamento: AgendamentoCalendar): calendar_v3.Schema
     },
   }
 
-  if (isEmailValido(agendamento.clienteEmail)) {
-    body.attendees = [{ email: agendamento.clienteEmail, displayName: agendamento.clienteNome }]
-  }
+  // Nota: NÃO adicionamos attendees. Service accounts em contas Gmail (sem Domain-Wide
+  // Delegation / Workspace) não podem convidar attendees — falharia com erro 403.
+  // O cliente recebe email via Resend, não perde nada operacional.
 
   return body
 }
@@ -399,7 +394,7 @@ export async function createConsultaVirtualEvent(params: {
         description: `Cliente: ${params.clienteNome}\nEmail: ${params.clienteEmail}\nServiço: ${params.servicoInteresse}\nDúvida: ${params.duvida || '—'}`,
         start: { dateTime: `${params.data}T${params.hora}:00`, timeZone: TIMEZONE },
         end: { dateTime: `${params.data}T${horaFim}:00`, timeZone: TIMEZONE },
-        attendees: [{ email: params.clienteEmail, displayName: params.clienteNome }],
+        // attendees omitido — service account sem Workspace não pode convidar
         conferenceData: {
           createRequest: {
             requestId: `cv-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
