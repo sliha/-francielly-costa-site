@@ -2,7 +2,7 @@ import { MetadataRoute } from 'next'
 import { services } from '@/data/services'
 import { blogArticles } from '@/components/blog/blogContent'
 
-const BASE_URL = 'https://www.franciellycosta.pt'
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://franciellycosta.pt'
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date()

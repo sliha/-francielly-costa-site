@@ -4,7 +4,7 @@ import { Clock, Bell, X, RefreshCw, CheckCircle2, Link2, Mail } from 'lucide-rea
 import { db } from '@/lib/firebase'
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, orderBy, query, serverTimestamp } from 'firebase/firestore'
 
-const BASE_URL = 'https://www.franciellycosta.pt'
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://franciellycosta.pt'
 
 const servicosDisponiveis = [
   { nome: 'Microblading', slug: 'microblading' },

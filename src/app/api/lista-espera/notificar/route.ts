@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/firebase'
 import { doc, updateDoc } from 'firebase/firestore'
 
-const BASE_URL = 'https://www.franciellycosta.pt'
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://franciellycosta.pt'
 
 async function enviarEmailEspera(payload: {
   clienteEmail: string

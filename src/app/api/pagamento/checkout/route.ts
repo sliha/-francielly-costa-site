@@ -87,8 +87,8 @@ export async function POST(req: NextRequest) {
         },
       ],
       mode: 'payment',
-      success_url: `https://www.franciellycosta.pt/agendamento/confirmado?session_id={CHECKOUT_SESSION_ID}&id=${agendamentoId}`,
-      cancel_url: `https://www.franciellycosta.pt/agendamento/cancelado`,
+      success_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://franciellycosta.pt'}/agendamento/confirmado?session_id={CHECKOUT_SESSION_ID}&id=${agendamentoId}`,
+      cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://franciellycosta.pt'}/agendamento/cancelado`,
       metadata: { agendamentoId },
       locale: 'pt',
     })

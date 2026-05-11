@@ -7,7 +7,7 @@ const SCOPES = ['https://www.googleapis.com/auth/calendar']
 const SYNC_DOC = 'googleCalendarSync'
 const SETTINGS_COL = 'settings'
 const WEBHOOK_PATH = '/api/google-calendar/webhook'
-const SITE_BASE_URL = 'https://www.franciellycosta.pt'
+const WEBHOOK_BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://franciellycosta.pt'
 const CHANNEL_TTL_MS = 7 * 24 * 60 * 60 * 1000 // 7 dias (max Google)
 const ECHO_TOLERANCE_MS = 5_000
 
@@ -169,7 +169,7 @@ export async function registerWatchChannel(): Promise<{
       requestBody: {
         id: channelId,
         type: 'web_hook',
-        address: `${SITE_BASE_URL}${WEBHOOK_PATH}`,
+        address: `${WEBHOOK_BASE_URL}${WEBHOOK_PATH}`,
         token,
         expiration: String(expiration),
       },

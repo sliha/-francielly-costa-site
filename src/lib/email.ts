@@ -45,7 +45,7 @@ export async function sendBookingConfirmation(booking: BookingData): Promise<voi
   if (!resendKey) return
 
   const adminEmail = process.env.ADMIN_EMAIL || 'geral@franciellycosta.com'
-  const siteUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://franciellycosta.com'
+  const siteUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://franciellycosta.pt'
   const dataFormatada = formatarData(booking.data)
 
   // Email to client

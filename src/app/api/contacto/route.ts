@@ -6,7 +6,7 @@ async function enviarEmailContacto(nome: string, email: string, telefone: string
   const resendKey = process.env.RESEND_API_KEY
   if (!resendKey) return
   const adminEmail = process.env.ADMIN_EMAIL || 'geral@franciellycosta.com'
-  const siteUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://franciellycosta.com'
+  const siteUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://franciellycosta.pt'
 
   // Confirmation to client
   await fetch('https://api.resend.com/emails', {

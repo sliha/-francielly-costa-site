@@ -68,8 +68,8 @@ const nextConfig = {
     return [
       {
         source: '/:path*',
-        has: [{ type: 'host', value: 'franciellycosta.pt' }],
-        destination: 'https://www.franciellycosta.pt/:path*',
+        has: [{ type: 'host', value: 'www.franciellycosta.pt' }],
+        destination: 'https://franciellycosta.pt/:path*',
         permanent: true,
       },
     ]

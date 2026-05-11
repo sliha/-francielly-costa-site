@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
       consentimentoId = novo.id
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://franciellycosta.com'
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://franciellycosta.pt'
     const link = `${baseUrl}/consentimento/${token}`
 
     try {

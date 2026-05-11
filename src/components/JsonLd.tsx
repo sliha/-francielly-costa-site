@@ -16,7 +16,7 @@ export default function JsonLd({ id, data }: JsonLdProps) {
   )
 }
 
-export const SITE_URL = 'https://www.franciellycosta.pt'
+export const SITE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://franciellycosta.pt'
 
 export const localBusinessSchema = {
   '@context': 'https://schema.org',
