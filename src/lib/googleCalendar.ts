@@ -316,6 +316,58 @@ export async function upsertCalendarEventWithMetadata(
   return createCalendarEvent(agendamento)
 }
 
+/**
+ * Versão verbose do upsert: devolve detalhe do erro em vez de só null.
+ * Usada por endpoints administrativos (ex.: resync-all) para diagnóstico.
+ */
+export async function upsertCalendarEventVerbose(
+  agendamento: AgendamentoCalendar & { googleEventId?: string }
+): Promise<{ ok: true; eventId: string; mode: 'create' | 'update' } | { ok: false; error: string }> {
+  const result = getCalendarClient()
+  const calendarId = process.env.GOOGLE_CALENDAR_ID
+  if ('error' in result) return { ok: false, error: result.error }
+  if (!calendarId) return { ok: false, error: 'GOOGLE_CALENDAR_ID não configurado' }
+  const client = result.client
+
+  if (agendamento.googleEventId) {
+    // Update path — tenta patch direto
+    try {
+      const body = montarRequestBody({ ...agendamento, estado: agendamento.estado || 'confirmado' })
+      await client.events.patch({
+        calendarId,
+        eventId: agendamento.googleEventId,
+        requestBody: body,
+        sendUpdates: 'externalOnly',
+      })
+      return { ok: true, eventId: agendamento.googleEventId, mode: 'update' }
+    } catch (err) {
+      const status = (err as { code?: number; status?: number })?.code ?? (err as { status?: number })?.status
+      if (status === 404 || status === 410) {
+        // Evento já não existe → criar novo abaixo
+      } else {
+        const msg = err instanceof Error ? err.message : String(err)
+        return { ok: false, error: `patch ${agendamento.googleEventId}: ${msg}` }
+      }
+    }
+  }
+
+  // Create path
+  try {
+    const body = montarRequestBody({ ...agendamento, estado: agendamento.estado || 'confirmado' })
+    const res = await client.events.insert({
+      calendarId,
+      requestBody: body,
+      sendUpdates: 'externalOnly',
+      conferenceDataVersion: 0,
+    })
+    if (!res.data.id) return { ok: false, error: 'insert: resposta sem eventId' }
+    return { ok: true, eventId: res.data.id, mode: 'create' }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    return { ok: false, error: `insert: ${msg}` }
+  }
+}
+
 export async function createConsultaVirtualEvent(params: {
   clienteNome: string
   clienteEmail: string

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { verifyAdminRequest, getAdminDb, getAdminInitError } from '@/lib/firebaseAdmin'
-import { upsertCalendarEventWithMetadata, createBlockEvent } from '@/lib/googleCalendar'
+import { upsertCalendarEventVerbose, createBlockEvent } from '@/lib/googleCalendar'
 import { Timestamp } from 'firebase-admin/firestore'
 
 export const runtime = 'nodejs'
@@ -50,7 +50,7 @@ export async function POST(req: Request) {
       const id = docSnap.id
       const tinhaEvento = !!a.googleEventId
       try {
-        const newId = await upsertCalendarEventWithMetadata({
+        const result = await upsertCalendarEventVerbose({
           clienteNome: a.clienteNome || '',
           clienteEmail: a.clienteEmail || '',
           clienteTelefone: a.clienteTelefone || '',
@@ -62,14 +62,14 @@ export async function POST(req: Request) {
           estado: a.estado,
           googleEventId: a.googleEventId,
         })
-        if (!newId) {
+        if (!result.ok) {
           falhas++
-          erros.push({ id, tipo: 'agendamento', motivo: 'upsert devolveu null' })
+          erros.push({ id, tipo: 'agendamento', motivo: result.error })
         } else {
           const update: Record<string, unknown> = { lastGoogleSyncAt: Timestamp.now() }
-          if (!tinhaEvento) update.googleEventId = newId
+          if (result.mode === 'create') update.googleEventId = result.eventId
           await db.collection('agendamentos').doc(id).update(update)
-          if (tinhaEvento) atualizados++
+          if (tinhaEvento && result.mode === 'update') atualizados++
           else criadosNovos++
         }
       } catch (err) {
