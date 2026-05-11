@@ -88,6 +88,7 @@ export default function DefinicoesPage() {
     ok: boolean
     msg: string
     detalhe?: string
+    erros?: Array<{ id: string; tipo: string; motivo: string }>
   } | null>(null)
 
   type SyncChannelState = {
@@ -241,7 +242,7 @@ export default function DefinicoesPage() {
         return
       }
       const detalhe = `Agendamentos: ${data.totalAgendamentos} (criados ${data.criadosNovos}, atualizados ${data.atualizados}, falhas ${data.falhas}) · Bloqueios: ${data.totalBloqueios}${data.erros?.length ? ` · Erros: ${data.erros.length}` : ''}`
-      setResyncResult({ ok: true, msg: 'Re-sincronização concluída', detalhe })
+      setResyncResult({ ok: true, msg: 'Re-sincronização concluída', detalhe, erros: data.erros })
     } catch (err) {
       setResyncResult({ ok: false, msg: err instanceof Error ? err.message : 'Erro' })
     } finally {
@@ -726,6 +727,18 @@ export default function DefinicoesPage() {
               <p className="opacity-80 break-words">{resyncResult.msg}</p>
               {resyncResult.detalhe && (
                 <p className="opacity-70 break-words mt-1">{resyncResult.detalhe}</p>
+              )}
+              {resyncResult.erros && resyncResult.erros.length > 0 && (
+                <details className="mt-2 cursor-pointer">
+                  <summary className="opacity-80 select-none">Ver erros ({resyncResult.erros.length})</summary>
+                  <ul className="mt-1.5 space-y-1 opacity-70 break-words pl-2">
+                    {resyncResult.erros.map((e, i) => (
+                      <li key={i} className="text-[11px]">
+                        <span className="font-mono">[{e.tipo}]</span> <span className="font-mono">{e.id}</span>: {e.motivo}
+                      </li>
+                    ))}
+                  </ul>
+                </details>
               )}
             </div>
           )}
