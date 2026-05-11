@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { renewWatchChannel } from '@/lib/googleCalendarSync'
 import { getAdminDb } from '@/lib/firebaseAdmin'
+import { logSync } from '@/lib/syncLog'
 import crypto from 'node:crypto'
 
 export const runtime = 'nodejs'
@@ -38,11 +39,27 @@ export async function POST(req: NextRequest) {
   const now = Date.now()
   const hoursLeft = (Number(state.channelExpiration) - now) / MS_HORA
   if (hoursLeft > HORAS_LIMITE) {
+    await logSync({
+      operation: 'auto_renew',
+      status: 'skip',
+      durationMs: 0,
+      metadata: { reason: 'enough time left', hoursLeft: Math.round(hoursLeft) },
+    })
     return NextResponse.json({ ok: true, renewed: false, hoursLeft: Math.round(hoursLeft) })
   }
 
+  const start = Date.now()
   const r = await renewWatchChannel()
-  if (!r.ok) return NextResponse.json({ ok: false, error: r.error }, { status: 500 })
+  if (!r.ok) {
+    await logSync({
+      operation: 'auto_renew',
+      status: 'error',
+      durationMs: Date.now() - start,
+      errorMessage: r.error,
+    })
+    return NextResponse.json({ ok: false, error: r.error }, { status: 500 })
+  }
+  await logSync({ operation: 'auto_renew', status: 'ok', durationMs: Date.now() - start })
   return NextResponse.json({ ok: true, renewed: true })
 }
 

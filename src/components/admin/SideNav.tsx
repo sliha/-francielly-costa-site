@@ -22,10 +22,12 @@ import {
   Scissors,
   MessageSquare,
   Award,
+  Activity,
 } from 'lucide-react'
 import { signOut } from 'firebase/auth'
-import { auth } from '@/lib/firebase'
+import { auth, db } from '@/lib/firebase'
 import { useEffect, useState } from 'react'
+import { collection, onSnapshot, query, where } from 'firebase/firestore'
 
 const navItems = [
   { href: '/admin', icon: LayoutDashboard, label: 'Dashboard', exact: true },
@@ -43,6 +45,7 @@ const navItems = [
   { href: '/admin/galeria', icon: Image, label: 'Galeria', exact: false },
   { href: '/admin/certificacoes', icon: Award, label: 'Certificações', exact: false },
   { href: '/admin/blog', icon: BookOpen, label: 'Blog', exact: false },
+  { href: '/admin/diagnostico', icon: Activity, label: 'Diagnóstico', exact: false },
   { href: '/admin/definicoes', icon: Settings, label: 'Definições', exact: false },
 ]
 
@@ -50,6 +53,7 @@ export default function AdminSideNav() {
   const pathname = usePathname()
   const router = useRouter()
   const [darkMode, setDarkMode] = useState(true)
+  const [alertasCount, setAlertasCount] = useState(0)
 
   useEffect(() => {
     const read = () => {
@@ -60,6 +64,17 @@ export default function AdminSideNav() {
     const onCustom = () => read()
     window.addEventListener('admin-theme-change', onCustom)
     return () => window.removeEventListener('admin-theme-change', onCustom)
+  }, [])
+
+  useEffect(() => {
+    if (!db) return
+    const q = query(collection(db, 'alertas'), where('resolvido', '==', false))
+    const unsub = onSnapshot(
+      q,
+      (snap) => setAlertasCount(snap.size),
+      () => setAlertasCount(0),
+    )
+    return () => unsub()
   }, [])
 
   const toggleDarkMode = () => {
@@ -111,18 +126,24 @@ export default function AdminSideNav() {
             ? pathname === href
             : pathname === href || pathname.startsWith(href + '/')
 
+          const showAlertBadge = href === '/admin/diagnostico' && alertasCount > 0
           return (
             <Link
               key={href}
               href={href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl mb-1 transition-colors text-sm ${
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl mb-1 transition-colors text-sm relative ${
                 isActive
                   ? 'bg-rose-gold/10 text-rose-gold font-medium'
                   : 'text-white/50 hover:text-white/80 hover:bg-white/5'
               }`}
             >
               <Icon size={18} strokeWidth={isActive ? 2 : 1.5} />
-              {label}
+              <span className="flex-1">{label}</span>
+              {showAlertBadge && (
+                <span className="ml-auto bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
+                  {alertasCount > 9 ? '9+' : alertasCount}
+                </span>
+              )}
             </Link>
           )
         })}

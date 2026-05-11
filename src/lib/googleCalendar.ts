@@ -1,4 +1,5 @@
 import { google, calendar_v3 } from 'googleapis'
+import { withRetry } from '@/lib/retry'
 
 const SCOPES = ['https://www.googleapis.com/auth/calendar']
 const TIMEZONE = 'Europe/Lisbon'
@@ -135,12 +136,16 @@ export async function createCalendarEvent(agendamento: AgendamentoCalendar): Pro
   const body = montarRequestBody({ ...agendamento, estado: agendamento.estado || 'confirmado' })
 
   try {
-    const res = await result.client.events.insert({
-      calendarId,
-      requestBody: body,
-      sendUpdates: 'externalOnly',
-      conferenceDataVersion: 0,
-    })
+    const res = await withRetry(
+      () =>
+        result.client.events.insert({
+          calendarId,
+          requestBody: body,
+          sendUpdates: 'externalOnly',
+          conferenceDataVersion: 0,
+        }),
+      { label: 'createCalendarEvent.insert' },
+    )
     return res.data.id ?? null
   } catch (err) {
     console.error('Erro ao criar evento no Google Calendar:', err)
@@ -170,7 +175,10 @@ export async function updateCalendarEvent(
   // Buscar evento atual para fazer merge com updates parciais
   let atual: calendar_v3.Schema$Event
   try {
-    const get = await result.client.events.get({ calendarId, eventId })
+    const get = await withRetry(
+      () => result.client.events.get({ calendarId, eventId }),
+      { label: 'updateCalendarEvent.get' },
+    )
     atual = get.data
   } catch (err) {
     const status = (err as { code?: number; status?: number })?.code ?? (err as { status?: number })?.status
@@ -221,12 +229,16 @@ export async function updateCalendarEvent(
   const body = montarRequestBody(merged)
 
   try {
-    await result.client.events.patch({
-      calendarId,
-      eventId,
-      requestBody: body,
-      sendUpdates: 'externalOnly',
-    })
+    await withRetry(
+      () =>
+        result.client.events.patch({
+          calendarId,
+          eventId,
+          requestBody: body,
+          sendUpdates: 'externalOnly',
+        }),
+      { label: 'updateCalendarEvent.patch' },
+    )
     return true
   } catch (err) {
     const status = (err as { code?: number; status?: number })?.code ?? (err as { status?: number })?.status
@@ -290,7 +302,10 @@ export async function createBlockEvent(params: {
   }
 
   try {
-    const res = await result.client.events.insert({ calendarId, requestBody: body })
+    const res = await withRetry(
+      () => result.client.events.insert({ calendarId, requestBody: body }),
+      { label: 'createBlockEvent.insert' },
+    )
     return res.data.id ?? null
   } catch (err) {
     console.error('Erro ao criar evento de bloqueio:', err)
@@ -328,12 +343,16 @@ export async function upsertCalendarEventVerbose(
     // Update path — tenta patch direto
     try {
       const body = montarRequestBody({ ...agendamento, estado: agendamento.estado || 'confirmado' })
-      await client.events.patch({
-        calendarId,
-        eventId: agendamento.googleEventId,
-        requestBody: body,
-        sendUpdates: 'externalOnly',
-      })
+      await withRetry(
+        () =>
+          client.events.patch({
+            calendarId,
+            eventId: agendamento.googleEventId!,
+            requestBody: body,
+            sendUpdates: 'externalOnly',
+          }),
+        { label: 'upsertVerbose.patch' },
+      )
       return { ok: true, eventId: agendamento.googleEventId, mode: 'update' }
     } catch (err) {
       const status = (err as { code?: number; status?: number })?.code ?? (err as { status?: number })?.status
@@ -349,12 +368,16 @@ export async function upsertCalendarEventVerbose(
   // Create path
   try {
     const body = montarRequestBody({ ...agendamento, estado: agendamento.estado || 'confirmado' })
-    const res = await client.events.insert({
-      calendarId,
-      requestBody: body,
-      sendUpdates: 'externalOnly',
-      conferenceDataVersion: 0,
-    })
+    const res = await withRetry(
+      () =>
+        client.events.insert({
+          calendarId,
+          requestBody: body,
+          sendUpdates: 'externalOnly',
+          conferenceDataVersion: 0,
+        }),
+      { label: 'upsertVerbose.insert' },
+    )
     if (!res.data.id) return { ok: false, error: 'insert: resposta sem eventId' }
     return { ok: true, eventId: res.data.id, mode: 'create' }
   } catch (err) {
@@ -499,16 +522,20 @@ export async function diagnosticarCalendar(): Promise<DiagnosticoCalendar> {
 
   let testEventId: string | undefined
   try {
-    const res = await cli.client.events.insert({
-      calendarId,
-      requestBody: {
-        summary: 'DIAGNÓSTICO FC — Apagar este evento',
-        description: 'Evento de diagnóstico gerado automaticamente — pode ser ignorado.',
-        start: { dateTime: `${dateStr}T03:00:00`, timeZone: TIMEZONE },
-        end: { dateTime: `${dateStr}T03:15:00`, timeZone: TIMEZONE },
-        extendedProperties: { private: { fcType: 'diagnostic' } },
-      },
-    })
+    const res = await withRetry(
+      () =>
+        cli.client.events.insert({
+          calendarId,
+          requestBody: {
+            summary: 'DIAGNÓSTICO FC — Apagar este evento',
+            description: 'Evento de diagnóstico gerado automaticamente — pode ser ignorado.',
+            start: { dateTime: `${dateStr}T03:00:00`, timeZone: TIMEZONE },
+            end: { dateTime: `${dateStr}T03:15:00`, timeZone: TIMEZONE },
+            extendedProperties: { private: { fcType: 'diagnostic' } },
+          },
+        }),
+      { label: 'diagnosticarCalendar.insert' },
+    )
     testEventId = res.data.id ?? undefined
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
@@ -573,7 +600,10 @@ export async function deleteCalendarEvent(eventId: string): Promise<boolean> {
   const calendar = result.client
 
   try {
-    await calendar.events.delete({ calendarId, eventId })
+    await withRetry(
+      () => calendar.events.delete({ calendarId, eventId }),
+      { label: 'deleteCalendarEvent' },
+    )
     return true
   } catch (err) {
     const status = (err as { code?: number; status?: number })?.code ?? (err as { status?: number })?.status

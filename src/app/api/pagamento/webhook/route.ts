@@ -4,6 +4,8 @@ import { atualizarEstadoAgendamento, getAgendamentoPorId } from '@/lib/booking'
 import { createCalendarEvent } from '@/lib/googleCalendar'
 import { marcarReferenciaConvertida } from '@/lib/referencias'
 import { serverTimestamp, type Timestamp } from 'firebase/firestore'
+import { getProcessed, markProcessed, makeKey } from '@/lib/idempotency'
+import { logSync } from '@/lib/syncLog'
 
 export const runtime = 'nodejs'
 
@@ -40,6 +42,22 @@ export async function POST(req: NextRequest) {
   }
 
   console.log('Stripe webhook event:', event.type)
+
+  // Idempotência: se já processámos este event.id com sucesso, ignorar.
+  const idKey = makeKey('stripe', event.id)
+  const prior = await getProcessed(idKey)
+  if (prior?.result === 'ok') {
+    console.log(`Webhook Stripe ${event.id} já processado anteriormente — skip`)
+    await logSync({
+      operation: 'webhook_stripe',
+      status: 'skip',
+      durationMs: 0,
+      metadata: { eventId: event.id, eventType: event.type, reason: 'duplicate' },
+    })
+    return NextResponse.json({ received: true, duplicate: true }, { status: 200 })
+  }
+
+  const startedAt = Date.now()
 
   try {
     switch (event.type) {
@@ -101,8 +119,24 @@ export async function POST(req: NextRequest) {
       default:
         console.log(`Stripe event não tratado: ${event.type}`)
     }
+    await markProcessed(idKey, 'stripe', 'ok')
+    await logSync({
+      operation: 'webhook_stripe',
+      status: 'ok',
+      durationMs: Date.now() - startedAt,
+      metadata: { eventId: event.id, eventType: event.type },
+    })
   } catch (err) {
     console.error('Erro ao processar evento Stripe:', err)
+    const errorMessage = err instanceof Error ? err.message : String(err)
+    await markProcessed(idKey, 'stripe', 'error', errorMessage)
+    await logSync({
+      operation: 'webhook_stripe',
+      status: 'error',
+      durationMs: Date.now() - startedAt,
+      errorMessage,
+      metadata: { eventId: event.id, eventType: event.type },
+    })
     return NextResponse.json({ error: 'Erro interno ao processar webhook' }, { status: 500 })
   }
 

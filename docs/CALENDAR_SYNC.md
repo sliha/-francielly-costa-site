@@ -244,3 +244,165 @@ Sem este passo, o registo do canal falha com `Push URL not authorized`.
   lastGoogleSyncAt: Timestamp          // antiloop
 }
 ```
+
+---
+
+## Fase 3 — Robustez, idempotência e observabilidade
+
+### Idempotência
+
+Cada webhook (Stripe e Google) grava um doc em `processedEvents/{key}` ao processar:
+
+```ts
+{
+  source: 'stripe' | 'google-calendar',
+  processedAt: Timestamp,
+  result: 'ok' | 'error',
+  errorMessage?: string,
+  ttlExpiresAt: Timestamp  // 30 dias
+}
+```
+
+**Stripe key**: `stripe-{event.id}`.
+**Google key**: `google-calendar-{event.id}-{event.updated}`.
+
+Reentregas com `result: 'ok'` retornam 200 imediatamente sem reprocessar. Reentregas com `result: 'error'` são reprocessadas. **Onde olhar quando há suspeita de duplicação:** coleção `processedEvents` → procurar key correspondente.
+
+### Retry com backoff exponencial
+
+`src/lib/retry.ts` envolve todas as chamadas Google API. Padrão:
+
+- `maxAttempts: 3`
+- `initialDelayMs: 500` (cresce para 500ms → 1000ms → 2000ms + jitter)
+- Retentar em: `ECONNRESET`, `ETIMEDOUT`, `ENOTFOUND`, HTTP 429, HTTP 5xx, `rateLimitExceeded`, `userRateLimitExceeded`, `backendError`, `quotaExceeded`.
+
+Cada tentativa é logada com `console.warn` no formato `[label] tentativa N/3 falhou (erro). A retentar em Xms.` — visível no Firebase App Hosting logs.
+
+### Observabilidade — coleção `syncLog`
+
+Cada operação relevante grava entry em `syncLog`. Acesso UI em `/admin/diagnostico`:
+
+```ts
+{
+  timestamp: Timestamp,
+  operation: 'webhook_stripe' | 'webhook_google' | 'create_event' | 'update_event' |
+             'delete_event' | 'block_event' | 'full_resync' | 'full_reconcile' |
+             'auto_renew' | 'register_watch' | 'stop_watch',
+  status: 'ok' | 'error' | 'retry' | 'skip',
+  durationMs: number,
+  agendamentoId?: string,
+  googleEventId?: string,
+  errorMessage?: string,
+  metadata?: Record<string, unknown>,
+  ttlExpiresAt: Timestamp  // 90 dias
+}
+```
+
+**Como interpretar**:
+- `status: skip` para webhook = era reentrega duplicada (idempotência funcionou).
+- `status: error` com `errorMessage` = causa raiz visível.
+- `durationMs > 5000` em webhooks = sinal de problema (Google API lenta ou retentativas).
+
+### Alertas
+
+A coleção `alertas` grava docs quando algo importante quebra:
+
+```ts
+{
+  tipo: 'sync_drift' | 'channel_expired' | 'multiple_failures',
+  severidade: 'critico' | 'aviso',
+  mensagem: string,
+  criadoEm: Timestamp,
+  resolvido: boolean,
+  metadata?: Record<string, unknown>
+}
+```
+
+**Quando disparam:**
+- `multiple_failures` — 3 falhas consecutivas no `processCalendarChanges`. Email automático para `ADMIN_EMAILS`.
+
+**Anti-flood:** não cria 2 alertas iguais em menos de 1h.
+
+**Como resolver:** abrir `/admin/diagnostico`, ver o motivo no `syncLog`, corrigir a causa, depois marcar `alertas/{id}.resolvido: true` no Firestore Console (ou via UI futura).
+
+O `AdminSideNav` mostra **badge vermelho** em "Diagnóstico" enquanto houver alertas não resolvidos (real-time via `onSnapshot`).
+
+### Reconciliação completa
+
+Endpoint `POST /api/admin/calendar/full-reconcile` (admin OU cron secret):
+
+**Algoritmo:**
+1. Lista eventos futuros (90 dias) no Google.
+2. Lista agendamentos ativos futuros no Firestore.
+3. Compara cada agendamento com o evento Google correspondente — decide vencedor por `updated` timestamp.
+4. Agendamentos sem evento Google → cria.
+5. Eventos Google sem agendamento mas com `fcAgendamentoId` órfão → apaga do Google.
+6. Eventos Google sem `fcType` → upsert em `diasBloqueados` como `origem: google-externo`.
+7. Bloqueios externos cujos eventos Google já não existem → apaga.
+
+Devolve `{ counters, erros, durationMs }`.
+
+**Quando correr:**
+- Manual via `/admin/diagnostico` → "Executar Full Reconcile".
+- Cron diário (recomendado) — adicionar segundo cron-job.org chamando este endpoint com `X-Cron-Secret`.
+
+### Health check
+
+`GET /api/health/calendar-sync` (público, sem auth):
+
+```json
+{
+  "status": "ok" | "degraded" | "down",
+  "lastSyncAt": "2026-05-11T10:32:00Z",
+  "minutesSinceLastSync": 4,
+  "channelActive": true,
+  "channelExpiresInDays": 5,
+  "checks": {
+    "firestore": "ok",
+    "calendarApiReachable": "skipped",
+    "syncTokenPresent": "ok"
+  }
+}
+```
+
+- **ok** → HTTP 200
+- **degraded** → HTTP 200 (alerta soft: `minutesSinceLastSync > 60` ou `channelExpiresInDays < 2`)
+- **down** → HTTP 503 (Firestore inacessível ou sem canal)
+
+**Configurar UptimeRobot:**
+- Tipo: HTTP(s)
+- URL: `https://franciellycosta.pt/api/health/calendar-sync`
+- Intervalo: 5 min
+- Alerta por email quando status code ≠ 2xx.
+
+### Troubleshooting (expandido)
+
+| Sintoma | Investigação |
+|---|---|
+| Cliente pagou mas evento não apareceu no Google | 1) `processedEvents/stripe-{event.id}` existe? 2) `syncLog` filtra `operation=webhook_stripe`. 3) Stripe Dashboard → webhook entregue? 4) Se `result=error` em processedEvents → mensagem está lá. |
+| Bloqueio externo que não criaste | `/admin/agenda` → lista. Origem do evento está no Google (não no site). Apagar no Google e o site reflete em ~30s. Ou usar Full Reconcile. |
+| Canal expirou | `/admin/definicoes` → "Renovar Canal" (faz stop + register). Se cron auto-renew não estava ativo, configurar. |
+| Eventos antigos como bloqueio externo | Limitar janela em `full-reconcile` (atualmente 90 dias). Editar `listFutureEvents(client, calendarId, 90)`. |
+| Vejo `status: retry` no syncLog | Foi uma falha transitória que retentou e (potencialmente) recuperou. Se o próximo evento na mesma operation é `ok`, está tudo bem. |
+| Badge vermelho no sidebar não desaparece | Marca `alertas/{id}.resolvido: true` no Firestore Console depois de resolver a causa raiz. |
+
+### TTL: configurar no Firebase Console
+
+Coleções com `ttlExpiresAt` (apagam automaticamente):
+- `processedEvents` → 30 dias
+- `syncLog` → 90 dias
+
+**Como ativar TTL policy (uma vez):**
+1. https://console.cloud.google.com/firestore/databases/-default-/ttl?project=francielly-7b35c
+2. Add policy → Collection group: `processedEvents` → Field: `ttlExpiresAt` → Create.
+3. Repete para `syncLog`.
+
+Sem TTL configurado, as coleções crescem indefinidamente. Crítico para custo a longo prazo.
+
+### Cron adicional para reconciliação diária
+
+Em `cron-job.org`, cria segundo cronjob:
+- URL: `https://franciellycosta.pt/api/admin/calendar/full-reconcile`
+- Method: POST
+- Schedule: diário 04:00 UTC (1h depois do auto-renew)
+- Header: `X-Cron-Secret: <valor do CRON_SECRET>`

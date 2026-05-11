@@ -97,5 +97,26 @@ service cloud.firestore {
         isValidEmail(request.resource.data.email);
       allow read, update, delete: if isAuthenticated();
     }
+
+    // ── Sync infraestrutura: só servidor escreve, admin/autenticado lê ───────
+    // (escrita feita via Admin SDK que bypassa rules)
+    match /processedEvents/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+    }
+
+    match /syncLog/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+    }
+
+    match /alertas/{docId} {
+      // Cliente admin pode ler (badge real-time) e marcar como resolvido
+      allow read: if isAuthenticated();
+      allow update: if isAuthenticated() &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['resolvido', 'resolvidoEm']);
+      allow create, delete: if false;
+    }
   }
 }

@@ -2,6 +2,10 @@ import { google, calendar_v3 } from 'googleapis'
 import crypto from 'node:crypto'
 import { Timestamp, FieldValue, type Firestore } from 'firebase-admin/firestore'
 import { getAdminDb, getAdminInitError } from '@/lib/firebaseAdmin'
+import { getProcessed, markProcessed, makeKey } from '@/lib/idempotency'
+import { withRetry } from '@/lib/retry'
+import { logSync } from '@/lib/syncLog'
+import { emitirAlerta, notificarAdminsPorEmail } from '@/lib/alertas'
 
 const SCOPES = ['https://www.googleapis.com/auth/calendar']
 const SYNC_DOC = 'googleCalendarSync'
@@ -20,6 +24,7 @@ export interface GoogleCalendarSyncState {
   lastSyncAt?: Timestamp
   lastSyncStatus?: 'ok' | 'error' | 'full-resync-needed'
   lastError?: string
+  metadata?: Record<string, unknown>
 }
 
 function getCalendarClient():
@@ -100,13 +105,17 @@ async function fullSync(
   let processed = 0
   do {
     try {
-      const res = await client.events.list({
-        calendarId,
-        singleEvents: true,
-        showDeleted: true,
-        pageToken,
-        maxResults: 250,
-      })
+      const res = await withRetry(
+        () =>
+          client.events.list({
+            calendarId,
+            singleEvents: true,
+            showDeleted: true,
+            pageToken,
+            maxResults: 250,
+          }),
+        { label: 'fullSync.events.list' },
+      )
       const items = res.data.items || []
       for (const event of items) {
         try {
@@ -164,16 +173,20 @@ export async function registerWatchChannel(): Promise<{
 
   let response: calendar_v3.Schema$Channel
   try {
-    const res = await cli.client.events.watch({
-      calendarId: cli.calendarId,
-      requestBody: {
-        id: channelId,
-        type: 'web_hook',
-        address: `${WEBHOOK_BASE_URL}${WEBHOOK_PATH}`,
-        token,
-        expiration: String(expiration),
-      },
-    })
+    const res = await withRetry(
+      () =>
+        cli.client.events.watch({
+          calendarId: cli.calendarId,
+          requestBody: {
+            id: channelId,
+            type: 'web_hook',
+            address: `${WEBHOOK_BASE_URL}${WEBHOOK_PATH}`,
+            token,
+            expiration: String(expiration),
+          },
+        }),
+      { label: 'registerWatchChannel.watch' },
+    )
     response = res.data
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) }
@@ -202,6 +215,13 @@ export async function registerWatchChannel(): Promise<{
     console.error('Full sync inicial falhou:', err)
   }
 
+  await logSync({
+    operation: 'register_watch',
+    status: 'ok',
+    durationMs: 0,
+    metadata: { channelId, channelResourceId, channelExpiration },
+  })
+
   return { ok: true, channelId, expiration: channelExpiration }
 }
 
@@ -218,15 +238,20 @@ export async function stopWatchChannel(): Promise<{ ok: boolean; error?: string 
   }
 
   try {
-    await cli.client.channels.stop({
-      requestBody: { id: state.channelId, resourceId: state.channelResourceId },
-    })
+    await withRetry(
+      () =>
+        cli.client.channels.stop({
+          requestBody: { id: state.channelId!, resourceId: state.channelResourceId! },
+        }),
+      { label: 'stopWatchChannel.channels.stop' },
+    )
   } catch (err) {
     // Mesmo que o stop falhe, limpamos local — o canal expirará sozinho.
     console.warn('channels.stop falhou:', err)
   }
 
   await clearChannelFields(db)
+  await logSync({ operation: 'stop_watch', status: 'ok', durationMs: 0 })
   return { ok: true }
 }
 
@@ -239,8 +264,12 @@ export async function renewWatchChannel(): Promise<{ ok: boolean; error?: string
 }
 
 export async function processCalendarChanges(): Promise<{ processed: number; errors: string[] }> {
+  const start = Date.now()
   const cli = getCalendarClient()
-  if ('error' in cli) return { processed: 0, errors: [cli.error] }
+  if ('error' in cli) {
+    await logSync({ operation: 'webhook_google', status: 'error', durationMs: 0, errorMessage: cli.error })
+    return { processed: 0, errors: [cli.error] }
+  }
   const db = getAdminDb()
   if (!db) return { processed: 0, errors: [getAdminInitError() || 'admin-sdk não inicializado'] }
 
@@ -265,13 +294,17 @@ export async function processCalendarChanges(): Promise<{ processed: number; err
   let currentSyncToken: string | undefined = state.syncToken
   do {
     try {
-      const res = await cli.client.events.list({
-        calendarId: cli.calendarId,
-        syncToken: currentSyncToken,
-        showDeleted: true,
-        pageToken,
-        maxResults: 250,
-      })
+      const res = await withRetry(
+        () =>
+          cli.client.events.list({
+            calendarId: cli.calendarId,
+            syncToken: currentSyncToken,
+            showDeleted: true,
+            pageToken,
+            maxResults: 250,
+          }),
+        { label: 'processChanges.events.list' },
+      )
       const items = res.data.items || []
       for (const event of items) {
         try {
@@ -304,12 +337,42 @@ export async function processCalendarChanges(): Promise<{ processed: number; err
     currentSyncToken = undefined
   } while (pageToken)
 
+  // Contador de falhas consecutivas para alerta
+  const prevFails = (state.metadata as { failureStreak?: number } | undefined)?.failureStreak ?? 0
+  const newStreak = errors.length === 0 ? 0 : prevFails + 1
+
   await setSyncState(db, {
     syncToken: nextSyncToken || state.syncToken,
     lastSyncAt: Timestamp.now(),
     lastSyncStatus: errors.length === 0 ? 'ok' : 'error',
     lastError: errors.slice(0, 5).join(' | ') || FieldValue.delete() as unknown as string,
+    metadata: { failureStreak: newStreak },
   })
+
+  await logSync({
+    operation: 'webhook_google',
+    status: errors.length === 0 ? 'ok' : 'error',
+    durationMs: Date.now() - start,
+    metadata: { processed, errorsCount: errors.length },
+    ...(errors.length > 0 ? { errorMessage: errors.slice(0, 3).join(' | ') } : {}),
+  })
+
+  // Alerta após 3 falhas consecutivas
+  if (newStreak >= 3) {
+    const mensagem = `Sincronização Google → Site falhou ${newStreak} vezes consecutivas. Último erro: ${errors[0] || 'desconhecido'}`
+    const res = await emitirAlerta({
+      tipo: 'multiple_failures',
+      severidade: 'critico',
+      mensagem,
+      metadata: { failureStreak: newStreak, lastError: errors[0] },
+    })
+    if (res.created) {
+      await notificarAdminsPorEmail({
+        subject: '[ALERTA CRÍTICO] Sincronização Google Calendar — Francielly Costa',
+        htmlBody: `<p>${mensagem}</p><p>Ver detalhes em <a href="${WEBHOOK_BASE_URL}/admin/diagnostico">/admin/diagnostico</a>.</p>`,
+      })
+    }
+  }
 
   return { processed, errors }
 }
@@ -356,50 +419,53 @@ function horaFimDoEvento(event: calendar_v3.Schema$Event): string {
 async function applyEventToFirestore(db: Firestore, event: calendar_v3.Schema$Event): Promise<void> {
   if (!event.id) return
 
+  // Idempotência: já processámos este event.id + version?
+  const idKey = makeKey('google-calendar', event.id, event.updated || event.etag || '')
+  const prior = await getProcessed(idKey)
+  if (prior?.result === 'ok') return
+
   const fcType = event.extendedProperties?.private?.fcType
   const fcAgendamentoId = event.extendedProperties?.private?.fcAgendamentoId
   const fcBlockDocId = event.extendedProperties?.private?.fcBlockDocId
   const eventUpdated = event.updated ? new Date(event.updated).getTime() : 0
 
+  // Helper para gravar idempotência ao final
+  const ok = () => markProcessed(idKey, 'google-calendar', 'ok').catch(() => {})
+
   // ── CASO 1: evento cancelado ────────────────────────────────────────────────
   if (event.status === 'cancelled') {
     if (fcAgendamentoId) {
-      // Marca o agendamento como cancelado, sem tentar apagar no Google (já está)
       const ref = db.collection('agendamentos').doc(fcAgendamentoId)
       const snap = await ref.get()
       if (snap.exists) {
         const cur = snap.data() || {}
-        // Echo guard
         if (cur.lastGoogleSyncAt) {
           const lastMs = (cur.lastGoogleSyncAt as Timestamp).toMillis()
-          if (eventUpdated && eventUpdated - lastMs <= ECHO_TOLERANCE_MS) return
+          if (eventUpdated && eventUpdated - lastMs <= ECHO_TOLERANCE_MS) {
+            await ok()
+            return
+          }
         }
         if (cur.estado !== 'cancelado') {
-          await ref.update({
-            estado: 'cancelado',
-            lastGoogleSyncAt: Timestamp.now(),
-          })
+          await ref.update({ estado: 'cancelado', lastGoogleSyncAt: Timestamp.now() })
         }
       }
+      await ok()
       return
     }
-
-    // Pode ser um bloqueio nosso (fcBlockDocId) — apagar doc
     if (fcBlockDocId) {
       try {
         await db.collection('diasBloqueados').doc(fcBlockDocId).delete()
-      } catch {
-        // ignorado
-      }
+      } catch { /* ignored */ }
+      await ok()
       return
     }
-
-    // Pode ser um bloqueio externo (criado por nós a partir do Google)
     const extId = externalBlockDocId(event.id)
     const extSnap = await db.collection('diasBloqueados').doc(extId).get()
     if (extSnap.exists) {
       await db.collection('diasBloqueados').doc(extId).delete()
     }
+    await ok()
     return
   }
 
@@ -407,13 +473,12 @@ async function applyEventToFirestore(db: Firestore, event: calendar_v3.Schema$Ev
   if (fcType === 'agendamento' && fcAgendamentoId) {
     const ref = db.collection('agendamentos').doc(fcAgendamentoId)
     const snap = await ref.get()
-    if (!snap.exists) return
+    if (!snap.exists) { await ok(); return }
     const cur = snap.data() || {}
 
-    // Echo guard
     if (cur.lastGoogleSyncAt) {
       const lastMs = (cur.lastGoogleSyncAt as Timestamp).toMillis()
-      if (eventUpdated && eventUpdated - lastMs <= ECHO_TOLERANCE_MS) return
+      if (eventUpdated && eventUpdated - lastMs <= ECHO_TOLERANCE_MS) { await ok(); return }
     }
 
     const novaData = dataDoEvento(event)
@@ -429,6 +494,7 @@ async function applyEventToFirestore(db: Firestore, event: calendar_v3.Schema$Ev
       patch.lastGoogleSyncAt = Timestamp.now()
       await ref.update(patch)
     }
+    await ok()
     return
   }
 
@@ -436,19 +502,20 @@ async function applyEventToFirestore(db: Firestore, event: calendar_v3.Schema$Ev
   if (fcType === 'block' && fcBlockDocId) {
     const ref = db.collection('diasBloqueados').doc(fcBlockDocId)
     const snap = await ref.get()
-    if (!snap.exists) return
+    if (!snap.exists) { await ok(); return }
     const cur = snap.data() || {}
     const novaData = dataDoEvento(event)
     if (novaData && novaData !== cur.data) {
       await ref.update({ data: novaData })
     }
+    await ok()
     return
   }
 
   // ── CASO 4: evento criado externamente no Google ────────────────────────────
   const extId = externalBlockDocId(event.id)
   const data = dataDoEvento(event)
-  if (!data) return
+  if (!data) { await ok(); return }
 
   const allDay = isAllDay(event)
   const horaInicio = horaDoEvento(event)
@@ -467,4 +534,5 @@ async function applyEventToFirestore(db: Firestore, event: calendar_v3.Schema$Ev
     },
     { merge: true },
   )
+  await ok()
 }
