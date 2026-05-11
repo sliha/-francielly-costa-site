@@ -90,6 +90,20 @@ export default function DefinicoesPage() {
     detalhe?: string
   } | null>(null)
 
+  type SyncChannelState = {
+    channelId?: string
+    channelExpiration?: number
+    channelCreatedAt?: { seconds: number; nanoseconds: number } | null
+    syncToken?: string
+    lastSyncAt?: { seconds: number; nanoseconds: number } | null
+    lastSyncStatus?: 'ok' | 'error' | 'full-resync-needed'
+    lastError?: string
+  }
+  const [syncState, setSyncState] = useState<SyncChannelState | null>(null)
+  const [syncStateLoading, setSyncStateLoading] = useState(true)
+  const [syncBusy, setSyncBusy] = useState<'register' | 'renew' | 'stop' | 'full' | null>(null)
+  const [syncMsg, setSyncMsg] = useState<{ ok: boolean; text: string } | null>(null)
+
   const handleLimparDadosTeste = async () => {
     if (!confirm('Tem a certeza? Esta ação é irreversível.')) return
     if (!confirm('Confirmação final: apagar TODOS os agendamentos, clientes, contactos e fiberbrows-waitlist?')) return
@@ -252,6 +266,67 @@ export default function DefinicoesPage() {
       if (snap.exists()) setHomepageAbout({ ...DEFAULT_HOMEPAGE_ABOUT, ...snap.data() } as HomepageAbout)
     }).catch(() => {})
   }, [])
+
+  // Load Google Calendar sync state
+  const loadSyncState = async () => {
+    if (!db || !auth?.currentUser) return
+    setSyncStateLoading(true)
+    try {
+      const snap = await getDoc(doc(db, 'settings', 'googleCalendarSync'))
+      setSyncState(snap.exists() ? (snap.data() as SyncChannelState) : {})
+    } catch {
+      setSyncState(null)
+    } finally {
+      setSyncStateLoading(false)
+    }
+  }
+  useEffect(() => {
+    if (isAdminClaim) loadSyncState()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdminClaim])
+
+  const syncAction = async (
+    action: 'register' | 'renew' | 'stop' | 'full',
+  ) => {
+    if (action === 'stop' && !confirm('Parar a sincronização bidirecional? Eventos no Google deixarão de afetar o site.')) return
+    setSyncBusy(action)
+    setSyncMsg(null)
+    try {
+      const user = auth?.currentUser
+      if (!user) {
+        setSyncMsg({ ok: false, text: 'Não autenticado' })
+        return
+      }
+      const token = await user.getIdToken()
+      const endpoints = {
+        register: '/api/admin/google-calendar/register-watch',
+        renew: '/api/admin/google-calendar/renew-watch',
+        stop: '/api/admin/google-calendar/stop-watch',
+        full: '/api/admin/google-calendar/full-resync',
+      }
+      const res = await fetch(endpoints[action], {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const data = await res.json()
+      if (!res.ok || !data.ok) {
+        setSyncMsg({ ok: false, text: data.error || `HTTP ${res.status}` })
+        return
+      }
+      const labels = {
+        register: 'Sincronização iniciada',
+        renew: 'Canal renovado',
+        stop: 'Sincronização parada',
+        full: `Re-sync completo (${data.processed ?? '?'} eventos)`,
+      }
+      setSyncMsg({ ok: true, text: labels[action] })
+      await loadSyncState()
+    } catch (err) {
+      setSyncMsg({ ok: false, text: err instanceof Error ? err.message : 'Erro' })
+    } finally {
+      setSyncBusy(null)
+    }
+  }
 
   const handleChange = (key: keyof Config, value: string | boolean) => {
     setConfig((prev) => ({ ...prev, [key]: value }))
@@ -652,6 +727,82 @@ export default function DefinicoesPage() {
               {resyncResult.detalhe && (
                 <p className="opacity-70 break-words mt-1">{resyncResult.detalhe}</p>
               )}
+            </div>
+          )}
+        </Section>
+
+        {/* Sincronização Bidirecional Google Calendar (Fase 2) */}
+        <Section title="Sincronização Google Calendar (Bidirecional)">
+          <p className="text-white/30 text-xs -mt-1 mb-1">
+            Quando ativado, o site recebe push notifications do Google e bloqueia slots automaticamente quando criares eventos manualmente.
+          </p>
+
+          {/* Estado */}
+          {syncStateLoading ? (
+            <div className="text-white/40 text-xs">A carregar estado...</div>
+          ) : (() => {
+            const expiration = syncState?.channelExpiration
+            const now = Date.now()
+            const hasChannel = !!syncState?.channelId && !!expiration
+            const expired = hasChannel && expiration! < now
+            const dias = hasChannel ? Math.max(0, Math.floor((expiration! - now) / (24 * 60 * 60 * 1000))) : 0
+            const horas = hasChannel ? Math.max(0, Math.floor(((expiration! - now) % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000))) : 0
+            const estadoLabel = !hasChannel ? '🔴 Canal não registado' : expired ? '🟡 Canal expirado' : `🟢 Canal ativo (expira em ${dias}d ${horas}h)`
+            const lastSync = syncState?.lastSyncAt ? new Date(syncState.lastSyncAt.seconds * 1000) : null
+            const lastSyncStr = lastSync ? lastSync.toLocaleString('pt-PT') : '—'
+            return (
+              <div className="bg-white/5 border border-white/10 rounded-xl p-3 space-y-1 text-xs">
+                <p className="text-white/80 font-medium">{estadoLabel}</p>
+                <p className="text-white/40">Última sincronização: {lastSyncStr}{syncState?.lastSyncStatus ? ` (${syncState.lastSyncStatus})` : ''}</p>
+                {syncState?.lastError && (
+                  <p className="text-red-400/80 break-words">Erro: {syncState.lastError}</p>
+                )}
+              </div>
+            )
+          })()}
+
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            <button
+              onClick={() => syncAction('register')}
+              disabled={syncBusy !== null}
+              className="flex items-center justify-center gap-2 bg-emerald-400/10 hover:bg-emerald-400/20 border border-emerald-400/30 text-emerald-400 py-2.5 rounded-xl text-xs font-medium transition-colors disabled:opacity-50"
+            >
+              {syncBusy === 'register' && <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />}
+              Iniciar Sincronização
+            </button>
+            <button
+              onClick={() => syncAction('renew')}
+              disabled={syncBusy !== null}
+              className="flex items-center justify-center gap-2 bg-sky-400/10 hover:bg-sky-400/20 border border-sky-400/30 text-sky-400 py-2.5 rounded-xl text-xs font-medium transition-colors disabled:opacity-50"
+            >
+              {syncBusy === 'renew' && <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />}
+              Renovar Canal
+            </button>
+            <button
+              onClick={() => syncAction('full')}
+              disabled={syncBusy !== null}
+              className="flex items-center justify-center gap-2 bg-amber-400/10 hover:bg-amber-400/20 border border-amber-400/30 text-amber-400 py-2.5 rounded-xl text-xs font-medium transition-colors disabled:opacity-50"
+            >
+              {syncBusy === 'full' && <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />}
+              Forçar Re-sync
+            </button>
+            <button
+              onClick={() => syncAction('stop')}
+              disabled={syncBusy !== null}
+              className="flex items-center justify-center gap-2 bg-red-400/10 hover:bg-red-400/20 border border-red-400/30 text-red-400 py-2.5 rounded-xl text-xs font-medium transition-colors disabled:opacity-50"
+            >
+              {syncBusy === 'stop' && <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />}
+              Parar Sincronização
+            </button>
+          </div>
+
+          {syncMsg && (
+            <div className={`text-xs rounded-xl p-2.5 border ${
+              syncMsg.ok
+                ? 'bg-emerald-400/10 text-emerald-400 border-emerald-400/20'
+                : 'bg-red-400/10 text-red-400 border-red-400/20'
+            }`}>
+              {syncMsg.text}
             </div>
           )}
         </Section>

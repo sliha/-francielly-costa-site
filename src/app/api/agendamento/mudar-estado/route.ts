@@ -9,6 +9,7 @@ import {
   upsertCalendarEventWithMetadata,
   deleteCalendarEvent,
 } from '@/lib/googleCalendar'
+import { serverTimestamp, type Timestamp } from 'firebase/firestore'
 
 export const runtime = 'nodejs'
 
@@ -83,8 +84,15 @@ export async function POST(req: Request) {
       })
       if (newId && newId !== agendamento.googleEventId) {
         googleEventId = newId
-        await atualizarEstadoAgendamento(body.agendamentoId, body.novoEstado, { googleEventId: newId })
-      } else if (!newId) {
+        await atualizarEstadoAgendamento(body.agendamentoId, body.novoEstado, {
+          googleEventId: newId,
+          lastGoogleSyncAt: serverTimestamp() as unknown as Timestamp,
+        })
+      } else if (newId) {
+        await atualizarEstadoAgendamento(body.agendamentoId, body.novoEstado, {
+          lastGoogleSyncAt: serverTimestamp() as unknown as Timestamp,
+        })
+      } else {
         warning = 'Estado atualizado mas falhou sincronização Google'
       }
     }

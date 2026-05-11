@@ -35,6 +35,9 @@ export interface Agendamento {
   criadoPor: 'ia' | 'admin' | 'cliente'
   stripeSessionId?: string
   googleEventId?: string
+  // Última vez que o site escreveu no Google Calendar referente a este doc.
+  // Usado para detetar ecos do nosso próprio write quando o webhook Google nos notifica.
+  lastGoogleSyncAt?: Timestamp
 }
 
 export interface SlotDisponivel {
@@ -84,16 +87,29 @@ export async function getSlotsDisponiveis(
     intervalosOcupados.push({ inicio, fim: fimSeguro })
   }
 
-  // Check if day is blocked
+  // Check blocked days (manuais + google-externo). Pode haver múltiplos docs por data.
+  const horasBloqueadasAcumuladas: string[] = []
   try {
     const q = query(collection(db, 'diasBloqueados'), where('data', '==', data))
     const snap = await getDocs(q)
-    if (!snap.empty) {
-      const dia = snap.docs[0].data()
+    for (const docSnap of snap.docs) {
+      const dia = docSnap.data() as {
+        bloqueioTotal?: boolean
+        horasBloqueadas?: string[]
+        origem?: string
+      }
       if (dia.bloqueioTotal) return []
+      if (Array.isArray(dia.horasBloqueadas)) horasBloqueadasAcumuladas.push(...dia.horasBloqueadas)
     }
   } catch {
     // If blocked days collection doesn't exist yet, continue normally
+  }
+
+  // Construir intervalos a partir das horas bloqueadas (30 min cada)
+  for (const hora of horasBloqueadasAcumuladas) {
+    if (!/^\d{2}:\d{2}$/.test(hora)) continue
+    const inicio = hhmmParaMinutos(hora)
+    intervalosOcupados.push({ inicio, fim: inicio + 30 })
   }
 
   // Generate slots 10:00 - 18:00, 30-minute intervals

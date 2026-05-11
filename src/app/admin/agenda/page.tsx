@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import {
-  ChevronLeft, ChevronRight, PlusCircle, Calendar, Clock, X, Ban, CreditCard, ArrowRightLeft,
+  ChevronLeft, ChevronRight, PlusCircle, Calendar, Clock, X, Ban, CreditCard, ArrowRightLeft, Globe,
 } from 'lucide-react'
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, addMonths, subMonths, getDay, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -30,6 +30,7 @@ interface DiaBloqueado {
   motivo: string
   bloqueioTotal: boolean
   horasBloqueadas: string[]
+  origem?: 'manual' | 'google-externo'
 }
 
 const allEstados = ['todos', 'confirmado', 'pendente', 'pago', 'concluido', 'cancelado']
@@ -358,19 +359,25 @@ export default function AgendaPage() {
               const isSelected = isSameDay(day, selectedDate)
               const isTodayDay = isToday(day)
               const blocked = getDiaBloqueado(day)
+              const isExternal = blocked?.origem === 'google-externo'
 
               return (
                 <button key={day.toString()} onClick={() => setSelectedDate(day)}
                   className={`relative aspect-square flex flex-col items-center justify-center rounded-xl text-xs transition-colors ${
                     blocked
-                      ? isSelected ? 'bg-red-500/30 text-red-300 font-semibold' : 'bg-red-500/10 text-red-400/70 hover:bg-red-500/20'
+                      ? isExternal
+                        ? isSelected ? 'bg-white/20 text-white/90 font-semibold' : 'bg-white/10 text-white/60 hover:bg-white/15'
+                        : isSelected ? 'bg-red-500/30 text-red-300 font-semibold' : 'bg-red-500/10 text-red-400/70 hover:bg-red-500/20'
                       : isSelected ? 'bg-rose-gold text-white font-semibold'
                       : isTodayDay ? 'bg-rose-gold/20 text-rose-gold font-medium'
                       : 'text-white/70 hover:bg-white/5'
                   }`}
                 >
                   <span>{format(day, 'd')}</span>
-                  {blocked && <Ban size={6} className="mt-0.5 opacity-70" />}
+                  {blocked && (isExternal
+                    ? <Globe size={6} className="mt-0.5 opacity-70" />
+                    : <Ban size={6} className="mt-0.5 opacity-70" />
+                  )}
                   {!blocked && dots.length > 0 && (
                     <div className="flex gap-0.5 mt-0.5">
                       {dots.map((m) => (
@@ -386,7 +393,20 @@ export default function AgendaPage() {
         </div>
 
         {/* Blocked day notice */}
-        {selectedBlocked && (
+        {selectedBlocked && (selectedBlocked.origem === 'google-externo' ? (
+          <div className="bg-white/5 border border-white/10 rounded-2xl px-4 py-3 flex items-center gap-3">
+            <Globe size={16} className="text-white/60 flex-shrink-0" />
+            <div className="min-w-0 flex-1">
+              <p className="text-white/80 text-sm font-medium">EXTERNO (Google Calendar) — {selectedBlocked.motivo}</p>
+              {!selectedBlocked.bloqueioTotal && selectedBlocked.horasBloqueadas.length > 0 && (
+                <p className="text-white/40 text-xs mt-0.5">
+                  Horas: {selectedBlocked.horasBloqueadas.join(', ')}
+                </p>
+              )}
+              <p className="text-white/40 text-xs mt-1">Edita ou apaga este evento diretamente no Google Calendar.</p>
+            </div>
+          </div>
+        ) : (
           <div className="bg-red-500/10 border border-red-500/20 rounded-2xl px-4 py-3 flex items-center gap-3">
             <Ban size={16} className="text-red-400 flex-shrink-0" />
             <div className="min-w-0 flex-1">
@@ -407,7 +427,7 @@ export default function AgendaPage() {
               Remover
             </button>
           </div>
-        )}
+        ))}
 
         {/* Selected date bookings */}
         <section>

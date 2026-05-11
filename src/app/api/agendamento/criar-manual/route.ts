@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { verifyAdminRequest } from '@/lib/firebaseAdmin'
 import { criarAgendamento, atualizarEstadoAgendamento, upsertCliente, type Agendamento } from '@/lib/booking'
 import { createCalendarEvent } from '@/lib/googleCalendar'
+import { serverTimestamp, type Timestamp } from 'firebase/firestore'
 
 export const runtime = 'nodejs'
 
@@ -98,7 +99,10 @@ export async function POST(req: Request) {
         estado,
       })
       if (googleEventId) {
-        await atualizarEstadoAgendamento(agendamentoId, estado, { googleEventId })
+        await atualizarEstadoAgendamento(agendamentoId, estado, {
+          googleEventId,
+          lastGoogleSyncAt: serverTimestamp() as unknown as Timestamp,
+        })
       } else {
         warning = 'Marcação criada, mas falhou sincronização com Google Calendar. Usar "Re-sincronizar" em Definições.'
       }

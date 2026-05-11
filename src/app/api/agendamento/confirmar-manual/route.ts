@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { verifyAdminRequest } from '@/lib/firebaseAdmin'
 import { getAgendamentoPorId, atualizarEstadoAgendamento, type MetodoPagamento } from '@/lib/booking'
 import { upsertCalendarEventWithMetadata } from '@/lib/googleCalendar'
+import { serverTimestamp, type Timestamp } from 'firebase/firestore'
 
 export const runtime = 'nodejs'
 
@@ -62,8 +63,16 @@ export async function POST(req: Request) {
     })
     if (newId && newId !== agendamento.googleEventId) {
       googleEventId = newId
-      await atualizarEstadoAgendamento(body.agendamentoId, 'confirmado', { googleEventId: newId })
-    } else if (!newId) {
+      await atualizarEstadoAgendamento(body.agendamentoId, 'confirmado', {
+        googleEventId: newId,
+        lastGoogleSyncAt: serverTimestamp() as unknown as Timestamp,
+      })
+    } else if (newId) {
+      // atualização (não criação): só marcar lastGoogleSyncAt
+      await atualizarEstadoAgendamento(body.agendamentoId, 'confirmado', {
+        lastGoogleSyncAt: serverTimestamp() as unknown as Timestamp,
+      })
+    } else {
       warning = 'Falha ao sincronizar com Google Calendar'
     }
   } catch (err) {

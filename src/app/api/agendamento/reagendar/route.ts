@@ -6,6 +6,7 @@ import {
   getSlotsDisponiveis,
 } from '@/lib/booking'
 import { upsertCalendarEventWithMetadata } from '@/lib/googleCalendar'
+import { serverTimestamp, type Timestamp } from 'firebase/firestore'
 
 export const runtime = 'nodejs'
 
@@ -105,8 +106,15 @@ export async function POST(req: Request) {
     })
     if (newId && newId !== agendamento.googleEventId) {
       googleEventId = newId
-      await atualizarEstadoAgendamento(body.agendamentoId, agendamento.estado, { googleEventId: newId })
-    } else if (!newId) {
+      await atualizarEstadoAgendamento(body.agendamentoId, agendamento.estado, {
+        googleEventId: newId,
+        lastGoogleSyncAt: serverTimestamp() as unknown as Timestamp,
+      })
+    } else if (newId) {
+      await atualizarEstadoAgendamento(body.agendamentoId, agendamento.estado, {
+        lastGoogleSyncAt: serverTimestamp() as unknown as Timestamp,
+      })
+    } else {
       warning = 'Reagendado mas falhou sincronização com Google Calendar'
     }
   } catch (err) {

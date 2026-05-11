@@ -42,10 +42,12 @@ service cloud.firestore {
 
     // ── Settings (negócio, serviços) ──────────────────────────────────────────
     // Public: read-only for some settings
-    // Admin: full write
+    // Admin: full write (cliente). googleCalendarSync é caso especial.
     match /settings/{docId} {
-      allow read: if true;
-      allow write: if isAuthenticated();
+      // googleCalendarSync contém canal push + syncToken — só admin lê, só servidor escreve
+      allow read: if docId != 'googleCalendarSync' || (isAuthenticated() && request.auth.token.admin == true);
+      allow write: if docId != 'googleCalendarSync' && isAuthenticated();
+      // googleCalendarSync escrita: bloqueada para cliente. Server usa Admin SDK que bypassa.
     }
 
     // ── Dias Bloqueados ───────────────────────────────────────────────────────

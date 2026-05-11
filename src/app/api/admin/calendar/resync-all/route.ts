@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { verifyAdminRequest, getAdminDb, getAdminInitError } from '@/lib/firebaseAdmin'
 import { upsertCalendarEventWithMetadata, createBlockEvent } from '@/lib/googleCalendar'
+import { Timestamp } from 'firebase-admin/firestore'
 
 export const runtime = 'nodejs'
 
@@ -63,11 +64,11 @@ export async function POST(req: Request) {
           falhas++
           erros.push({ id, tipo: 'agendamento', motivo: 'upsert devolveu null' })
         } else {
+          const update: Record<string, unknown> = { lastGoogleSyncAt: Timestamp.now() }
+          if (!tinhaEvento) update.googleEventId = newId
+          await db.collection('agendamentos').doc(id).update(update)
           if (tinhaEvento) atualizados++
-          else {
-            criadosNovos++
-            await db.collection('agendamentos').doc(id).update({ googleEventId: newId })
-          }
+          else criadosNovos++
         }
       } catch (err) {
         falhas++
