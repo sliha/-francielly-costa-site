@@ -33,17 +33,19 @@ export async function POST(req: Request) {
   let falhas = 0
   let totalBloqueios = 0
 
-  // 1. Agendamentos ativos a partir de hoje
+  // 1. Agendamentos ativos a partir de hoje.
+  // Query simples por `data` (apenas 1 where → não requer índice composto).
+  // Filtro de `estado` em memória — futuro é tipicamente <100 docs.
   try {
     const snap = await db
       .collection('agendamentos')
-      .where('estado', 'in', ESTADOS_ATIVOS)
       .where('data', '>=', hojeStr)
       .get()
 
-    totalAgendamentos = snap.size
+    const ativos = snap.docs.filter((d) => ESTADOS_ATIVOS.includes(d.data().estado))
+    totalAgendamentos = ativos.length
 
-    for (const docSnap of snap.docs) {
+    for (const docSnap of ativos) {
       const a = docSnap.data()
       const id = docSnap.id
       const tinhaEvento = !!a.googleEventId
