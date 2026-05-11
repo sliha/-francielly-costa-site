@@ -214,3 +214,103 @@ body {
   -webkit-backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
+
+/* ─── Admin light mode overrides ─────────────────────────────────────────── */
+/* Scope: only takes effect within elements with .admin-light class           */
+.admin-light {
+  --admin-bg: #F8F9FA;
+  --admin-surface: #FFFFFF;
+  --admin-sidebar: #F0F0F5;
+  --admin-border: #E0E0E0;
+  --admin-input-border: #D0D0D0;
+  --admin-text: #1A1A2E;
+  --admin-text-muted: #555770;
+  --admin-text-faint: #8A8A99;
+
+  background-color: var(--admin-bg);
+  color: var(--admin-text);
+}
+
+/* Page / surface backgrounds */
+.admin-light .bg-\[\#0F0F0F\] { background-color: var(--admin-bg) !important; }
+.admin-light .bg-\[\#111111\] { background-color: var(--admin-sidebar) !important; }
+.admin-light .bg-\[\#1A1A1A\] { background-color: var(--admin-surface) !important; border-color: var(--admin-border) !important; }
+.admin-light .bg-\[\#252525\] { background-color: #F4F4F8 !important; }
+
+/* White text → dark text */
+.admin-light .text-white { color: var(--admin-text) !important; }
+.admin-light .text-white\/90 { color: var(--admin-text) !important; }
+.admin-light .text-white\/80 { color: var(--admin-text) !important; }
+.admin-light .text-white\/70 { color: var(--admin-text-muted) !important; }
+.admin-light .text-white\/60 { color: var(--admin-text-muted) !important; }
+.admin-light .text-white\/50 { color: var(--admin-text-muted) !important; }
+.admin-light .text-white\/40 { color: var(--admin-text-faint) !important; }
+.admin-light .text-white\/30 { color: var(--admin-text-faint) !important; }
+.admin-light .text-white\/20 { color: #B0B0BC !important; }
+
+/* Hover text variants */
+.admin-light .hover\:text-white:hover { color: var(--admin-text) !important; }
+.admin-light .hover\:text-white\/80:hover { color: var(--admin-text) !important; }
+.admin-light .hover\:text-white\/70:hover { color: var(--admin-text-muted) !important; }
+
+/* Placeholders */
+.admin-light input::placeholder,
+.admin-light textarea::placeholder { color: #B0B0BC !important; }
+
+/* Borders */
+.admin-light .border-white\/5,
+.admin-light .border-white\/10,
+.admin-light .border-white\/20 { border-color: var(--admin-border) !important; }
+.admin-light .border-t-white\/5,
+.admin-light .border-t-white\/10 { border-top-color: var(--admin-border) !important; }
+.admin-light .border-b-white\/5,
+.admin-light .border-b-white\/10 { border-bottom-color: var(--admin-border) !important; }
+.admin-light .border-r-white\/5,
+.admin-light .border-r-white\/10 { border-right-color: var(--admin-border) !important; }
+
+/* Input/translucent surfaces → white with border */
+.admin-light .bg-white\/5 {
+  background-color: #FFFFFF !important;
+  border-color: var(--admin-input-border) !important;
+}
+.admin-light .bg-white\/10 { background-color: #F4F4F8 !important; }
+.admin-light .hover\:bg-white\/5:hover { background-color: #F4F4F8 !important; }
+.admin-light .hover\:bg-white\/10:hover { background-color: #E9E9F0 !important; }
+
+/* Inputs/textareas inside admin */
+.admin-light input,
+.admin-light textarea,
+.admin-light select {
+  color: var(--admin-text);
+}
+.admin-light input[type="text"],
+.admin-light input[type="email"],
+.admin-light input[type="tel"],
+.admin-light input[type="url"],
+.admin-light input[type="number"],
+.admin-light input[type="password"],
+.admin-light input[type="date"],
+.admin-light input[type="time"],
+.admin-light input[type="search"],
+.admin-light textarea,
+.admin-light select {
+  background-color: #FFFFFF;
+  border-color: var(--admin-input-border);
+}
+
+/* Keep rose-gold accent borders on focus */
+.admin-light .focus\:border-rose-gold\/50:focus,
+.admin-light .focus-within\:border-rose-gold\/50:focus-within {
+  border-color: rgba(183, 110, 121, 0.5) !important;
+}
+
+/* Accent backgrounds: keep rose-gold and golden as-is (visible on both modes) */
+
+/* Cards/dividers using dashed white border in admin */
+.admin-light .border-dashed.border-white\/20 { border-color: #C8C8D2 !important; }
+.admin-light .hover\:border-rose-gold\/50:hover { border-color: rgba(183, 110, 121, 0.5) !important; }
+
+/* Splash and loading screens */
+.admin-light .bg-gradient-to-br.from-\[\#1A1A1A\].to-\[\#0F0F0F\] {
+  background: linear-gradient(135deg, #FFFFFF 0%, #F8F9FA 100%) !important;
+}

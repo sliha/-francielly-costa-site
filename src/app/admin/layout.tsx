@@ -12,6 +12,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<any>(null)
   const [showSplash, setShowSplash] = useState(true)
+  const [theme, setTheme] = useState<'light' | 'dark'>('dark')
   const pathname = usePathname()
   const router = useRouter()
   const isLoginPage = pathname === '/admin/login'
@@ -40,6 +41,23 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
   }, [isLoginPage, router])
 
+  // Sincroniza tema com localStorage e escuta alterações vindas do toggle
+  useEffect(() => {
+    const read = () => {
+      const saved = localStorage.getItem('admin_theme')
+      setTheme(saved === 'light' ? 'light' : 'dark')
+    }
+    read()
+    const onStorage = (e: StorageEvent) => { if (e.key === 'admin_theme') read() }
+    const onCustom = () => read()
+    window.addEventListener('storage', onStorage)
+    window.addEventListener('admin-theme-change', onCustom)
+    return () => {
+      window.removeEventListener('storage', onStorage)
+      window.removeEventListener('admin-theme-change', onCustom)
+    }
+  }, [])
+
   if (showSplash) return <AdminSplashScreen />
 
   if (loading) {
@@ -55,7 +73,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   if (isLoginPage) return <>{children}</>
 
   return (
-    <div className="min-h-screen bg-[#0F0F0F] text-white flex">
+    <div className={`min-h-screen bg-[#0F0F0F] text-white flex ${theme === 'light' ? 'admin-light' : ''}`}>
       {/* Desktop sidebar — hidden on mobile */}
       <div className="hidden md:flex">
         <AdminSideNav />

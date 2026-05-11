@@ -52,15 +52,21 @@ export default function AdminSideNav() {
   const [darkMode, setDarkMode] = useState(true)
 
   useEffect(() => {
-    const saved = localStorage.getItem('admin-dark-mode')
-    if (saved !== null) setDarkMode(saved === 'true')
+    const read = () => {
+      const saved = localStorage.getItem('admin_theme')
+      setDarkMode(saved !== 'light')
+    }
+    read()
+    const onCustom = () => read()
+    window.addEventListener('admin-theme-change', onCustom)
+    return () => window.removeEventListener('admin-theme-change', onCustom)
   }, [])
 
   const toggleDarkMode = () => {
     const novo = !darkMode
     setDarkMode(novo)
-    localStorage.setItem('admin-dark-mode', String(novo))
-    document.documentElement.classList.toggle('admin-light', !novo)
+    localStorage.setItem('admin_theme', novo ? 'dark' : 'light')
+    window.dispatchEvent(new Event('admin-theme-change'))
   }
 
   const handleLogout = async () => {

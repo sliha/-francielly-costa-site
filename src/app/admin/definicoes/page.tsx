@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from 'react'
 import {
   MapPin, Phone, Mail, Clock, Euro, Instagram, Globe,
   Bell, BellOff, CheckCircle2, Save, Facebook, User,
-  ImagePlus, Trash2, RefreshCw,
+  ImagePlus, Trash2, RefreshCw, AlertTriangle,
 } from 'lucide-react'
 import { db, storage, auth } from '@/lib/firebase'
 import { doc, getDoc, setDoc } from 'firebase/firestore'
@@ -63,6 +63,44 @@ export default function DefinicoesPage() {
   const [adminGranting, setAdminGranting] = useState(false)
   const [adminStatus, setAdminStatus] = useState<{ ok: boolean; msg: string } | null>(null)
   const [isAdminClaim, setIsAdminClaim] = useState<boolean | null>(null)
+
+  const [cleaning, setCleaning] = useState(false)
+  const [cleanResult, setCleanResult] = useState<{ ok: boolean; msg: string } | null>(null)
+
+  const handleLimparDadosTeste = async () => {
+    if (!confirm('Tem a certeza? Esta ação é irreversível.')) return
+    if (!confirm('Confirmação final: apagar TODOS os agendamentos, clientes, contactos e fiberbrows-waitlist?')) return
+    setCleaning(true)
+    setCleanResult(null)
+    try {
+      const user = auth?.currentUser
+      if (!user) {
+        setCleanResult({ ok: false, msg: 'Não autenticado.' })
+        return
+      }
+      const token = await user.getIdToken()
+      const res = await fetch('/api/admin/clean-test-data', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const data = await res.json()
+      if (!res.ok || !data.ok) {
+        setCleanResult({ ok: false, msg: data.error || `HTTP ${res.status}` })
+        return
+      }
+      const detalhe = (data.results || [])
+        .map((r: { collection: string; deleted: number; error?: string }) =>
+          `${r.collection}: ${r.deleted}${r.error ? ` (erro: ${r.error})` : ''}`,
+        )
+        .join(' · ')
+      setCleanResult({ ok: true, msg: `Apagados ${data.total} documentos. ${detalhe}` })
+      toast(`Limpeza concluída: ${data.total} documentos apagados`)
+    } catch (err) {
+      setCleanResult({ ok: false, msg: err instanceof Error ? err.message : 'Erro' })
+    } finally {
+      setCleaning(false)
+    }
+  }
 
   // Verifica claim admin no carregamento
   useEffect(() => {
@@ -516,6 +554,35 @@ export default function DefinicoesPage() {
                   Abrir no Google Calendar
                 </a>
               )}
+            </div>
+          )}
+        </Section>
+
+        {/* Limpeza de Dados de Teste */}
+        <Section title="Limpeza de Dados de Teste">
+          <p className="text-white/30 text-xs -mt-1 mb-1">
+            Apaga TODOS os documentos das colecções de teste: agendamentos, clientes, contactos e fiberbrows-waitlist. Mantém serviços, definições, galeria, blog e certificações. Acção irreversível.
+          </p>
+          <button
+            onClick={handleLimparDadosTeste}
+            disabled={cleaning}
+            className="w-full flex items-center justify-center gap-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 py-2.5 rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
+          >
+            {cleaning ? (
+              <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <AlertTriangle size={15} />
+            )}
+            {cleaning ? 'A limpar...' : 'Limpar Dados de Teste'}
+          </button>
+          {cleanResult && (
+            <div className={`text-xs rounded-xl p-2.5 border ${
+              cleanResult.ok
+                ? 'bg-emerald-400/10 text-emerald-400 border-emerald-400/20'
+                : 'bg-red-400/10 text-red-400 border-red-400/20'
+            }`}>
+              <p className="font-medium">{cleanResult.ok ? 'Sucesso' : 'Erro'}</p>
+              <p className="opacity-80 break-words">{cleanResult.msg}</p>
             </div>
           )}
         </Section>
