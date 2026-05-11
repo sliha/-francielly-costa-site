@@ -9,22 +9,17 @@
   "background_color": "#1A1A1A",
   "theme_color": "#B76E79",
   "lang": "pt-PT",
-  "icons": [
-    { "src": "/icons/admin-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "/icons/admin-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
-  ],
+  "icons": [],
   "shortcuts": [
     {
       "name": "Agenda de Hoje",
       "short_name": "Hoje",
-      "url": "/admin/agenda?view=hoje",
-      "icons": [{ "src": "/icons/shortcut-agenda.png", "sizes": "96x96" }]
+      "url": "/admin/agenda?view=hoje"
     },
     {
       "name": "Nova Marcação",
       "short_name": "Marcar",
-      "url": "/admin/agenda/nova",
-      "icons": [{ "src": "/icons/shortcut-nova.png", "sizes": "96x96" }]
+      "url": "/admin/agenda/nova"
     }
   ]
 }
