@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createTestEvent } from '@/lib/googleCalendar'
+import { createTestEvent, diagnosticarCalendar } from '@/lib/googleCalendar'
 
 export const runtime = 'nodejs'
 
@@ -13,7 +13,7 @@ async function verifyAdminToken(token: string): Promise<boolean> {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ idToken: token }),
-      }
+      },
     )
     if (!res.ok) return false
     const data = await res.json()
@@ -36,9 +36,26 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Sessão inválida' }, { status: 401 })
   }
 
-  const result = await createTestEvent()
-  if (!result.ok) {
-    return NextResponse.json(result, { status: 500 })
+  // Diagnóstico estruturado
+  const diag = await diagnosticarCalendar()
+
+  // Compat: continuar a devolver eventId + htmlLink se tudo OK (para a UI antiga que ainda lê isto)
+  let legacyEventId: string | undefined
+  let legacyLink: string | undefined
+  if (diag.overallOk) {
+    const test = await createTestEvent()
+    if (test.ok) {
+      legacyEventId = test.eventId
+      legacyLink = test.htmlLink
+    }
   }
-  return NextResponse.json(result)
+
+  return NextResponse.json({
+    ok: diag.overallOk,
+    diagnostico: diag,
+    eventId: legacyEventId,
+    htmlLink: legacyLink,
+    // Para retrocompatibilidade com a UI antiga
+    ...(diag.overallOk ? {} : { error: diag.hint || 'Diagnóstico falhou — ver detalhe em .diagnostico' }),
+  })
 }

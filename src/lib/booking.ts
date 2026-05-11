@@ -15,6 +15,8 @@ import {
   serverTimestamp,
 } from 'firebase/firestore'
 
+export type MetodoPagamento = 'stripe' | 'whatsapp' | 'transferencia' | 'dinheiro' | 'mbway' | 'outro'
+
 export interface Agendamento {
   id?: string
   clienteNome: string
@@ -27,7 +29,7 @@ export interface Agendamento {
   horaFim: string
   estado: 'pendente' | 'pendente_pagamento' | 'confirmado' | 'pago' | 'concluido' | 'cancelado'
   caucaoPaga: boolean
-  metodoPagamento?: string
+  metodoPagamento?: MetodoPagamento
   notas?: string
   criadoEm?: Timestamp
   criadoPor: 'ia' | 'admin' | 'cliente'
@@ -57,6 +59,12 @@ export async function getAgendamentosPorData(data: string): Promise<Agendamento[
   }
 }
 
+// Convert "HH:MM" to total minutes since 00:00
+function hhmmParaMinutos(hhmm: string): number {
+  const [h, m] = hhmm.split(':').map(Number)
+  return h * 60 + m
+}
+
 // Get available time slots for a date and service duration
 export async function getSlotsDisponiveis(
   data: string,
@@ -64,11 +72,16 @@ export async function getSlotsDisponiveis(
 ): Promise<SlotDisponivel[]> {
   const agendamentos = await getAgendamentosPorData(data)
 
-  // Build a set of all occupied time ranges (start minutes)
-  const ocupadosMinutos = new Set<number>()
+  // Build intervals [inicio, fim) em minutos para cada agendamento existente
+  const intervalosOcupados: Array<{ inicio: number; fim: number }> = []
   for (const a of agendamentos) {
-    const [h, m] = a.horaInicio.split(':').map(Number)
-    ocupadosMinutos.add(h * 60 + m)
+    if (!a.horaInicio) continue
+    const inicio = hhmmParaMinutos(a.horaInicio)
+    // Usar horaFim real se existir; fallback para 90 min (DURACAO_PADRAO_MIN do googleCalendar)
+    const fim = a.horaFim ? hhmmParaMinutos(a.horaFim) : inicio + 90
+    // Defesa contra dados inválidos (horaFim == horaInicio ou anterior)
+    const fimSeguro = fim > inicio ? fim : inicio + 90
+    intervalosOcupados.push({ inicio, fim: fimSeguro })
   }
 
   // Check if day is blocked
@@ -95,16 +108,13 @@ export async function getSlotsDisponiveis(
 
       const hora = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`
 
-      // Check if this slot overlaps with any existing booking
-      // A slot is unavailable if any occupied booking start is within [startMin, endMin)
+      // Overlap real: dois intervalos [a, b) e [c, d) sobrepõem-se se a < d AND c < b
       let disponivel = true
-      for (const ocupMin of ocupadosMinutos) {
-        if (ocupMin >= startMin && ocupMin < endMin) {
+      for (const ocup of intervalosOcupados) {
+        if (ocup.inicio < endMin && startMin < ocup.fim) {
           disponivel = false
           break
         }
-        // Also check if an existing booking would overlap this slot from behind
-        // (existing booking starts before this slot but its duration would overlap)
       }
 
       slots.push({ hora, disponivel })

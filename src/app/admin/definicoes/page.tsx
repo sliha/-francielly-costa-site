@@ -59,13 +59,36 @@ export default function DefinicoesPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [calTesting, setCalTesting] = useState(false)
-  const [calTestResult, setCalTestResult] = useState<{ ok: boolean; msg: string; link?: string } | null>(null)
+  type CalCheck = { ok: boolean; error?: string; value?: string; serviceAccountEmail?: string; testEventId?: string }
+  type CalDiagnostico = {
+    checks: {
+      serviceAccountKey: CalCheck
+      calendarId: CalCheck
+      auth: CalCheck
+      insertAndDelete: CalCheck
+    }
+    overallOk: boolean
+    hint?: string
+  }
+  const [calTestResult, setCalTestResult] = useState<{
+    ok: boolean
+    msg: string
+    link?: string
+    diagnostico?: CalDiagnostico
+  } | null>(null)
   const [adminGranting, setAdminGranting] = useState(false)
   const [adminStatus, setAdminStatus] = useState<{ ok: boolean; msg: string } | null>(null)
   const [isAdminClaim, setIsAdminClaim] = useState<boolean | null>(null)
 
   const [cleaning, setCleaning] = useState(false)
   const [cleanResult, setCleanResult] = useState<{ ok: boolean; msg: string } | null>(null)
+
+  const [resyncing, setResyncing] = useState(false)
+  const [resyncResult, setResyncResult] = useState<{
+    ok: boolean
+    msg: string
+    detalhe?: string
+  } | null>(null)
 
   const handleLimparDadosTeste = async () => {
     if (!confirm('Tem a certeza? Esta ação é irreversível.')) return
@@ -162,15 +185,53 @@ export default function DefinicoesPage() {
       })
       const data = await res.json()
       if (res.ok && data.ok) {
-        setCalTestResult({ ok: true, msg: `Evento criado (id: ${data.eventId})`, link: data.htmlLink })
+        setCalTestResult({
+          ok: true,
+          msg: data.eventId ? `Evento criado (id: ${data.eventId})` : 'Diagnóstico OK',
+          link: data.htmlLink,
+          diagnostico: data.diagnostico,
+        })
       } else {
-        setCalTestResult({ ok: false, msg: data.error || `Falhou (HTTP ${res.status})` })
+        setCalTestResult({
+          ok: false,
+          msg: data.error || data.diagnostico?.hint || `Falhou (HTTP ${res.status})`,
+          diagnostico: data.diagnostico,
+        })
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Erro desconhecido'
       setCalTestResult({ ok: false, msg })
     } finally {
       setCalTesting(false)
+    }
+  }
+
+  const handleResync = async () => {
+    if (!confirm('Re-sincronizar todos os agendamentos futuros e bloqueios com Google Calendar?')) return
+    setResyncing(true)
+    setResyncResult(null)
+    try {
+      const user = auth?.currentUser
+      if (!user) {
+        setResyncResult({ ok: false, msg: 'Não autenticado.' })
+        return
+      }
+      const token = await user.getIdToken()
+      const res = await fetch('/api/admin/calendar/resync-all', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const data = await res.json()
+      if (!res.ok || !data.success) {
+        setResyncResult({ ok: false, msg: data.error || `HTTP ${res.status}` })
+        return
+      }
+      const detalhe = `Agendamentos: ${data.totalAgendamentos} (criados ${data.criadosNovos}, atualizados ${data.atualizados}, falhas ${data.falhas}) · Bloqueios: ${data.totalBloqueios}${data.erros?.length ? ` · Erros: ${data.erros.length}` : ''}`
+      setResyncResult({ ok: true, msg: 'Re-sincronização concluída', detalhe })
+    } catch (err) {
+      setResyncResult({ ok: false, msg: err instanceof Error ? err.message : 'Erro' })
+    } finally {
+      setResyncing(false)
     }
   }
 
@@ -520,7 +581,7 @@ export default function DefinicoesPage() {
         {/* Google Calendar */}
         <Section title="Integração Google Calendar">
           <p className="text-white/30 text-xs -mt-1 mb-1">
-            Cria um evento de teste amanhã às 10:00 no calendário Google configurado.
+            Diagnóstico passo-a-passo da integração (key, calendar id, auth, insert+delete).
           </p>
           <button
             onClick={handleTestarCalendario}
@@ -536,14 +597,25 @@ export default function DefinicoesPage() {
           </button>
           {calTestResult && (
             <div
-              className={`text-xs rounded-xl p-2.5 border ${
+              className={`text-xs rounded-xl p-2.5 border space-y-1.5 ${
                 calTestResult.ok
                   ? 'bg-emerald-400/10 text-emerald-400 border-emerald-400/20'
                   : 'bg-red-400/10 text-red-400 border-red-400/20'
               }`}
             >
-              <p className="font-medium">{calTestResult.ok ? 'Sucesso' : 'Erro'}</p>
-              <p className="opacity-80 break-words">{calTestResult.msg}</p>
+              <p className="font-medium">{calTestResult.ok ? 'Sucesso' : 'Falhou'}</p>
+              {calTestResult.diagnostico && (
+                <ul className="space-y-0.5 opacity-90">
+                  <li>{calTestResult.diagnostico.checks.serviceAccountKey.ok ? '✓' : '✗'} GOOGLE_SERVICE_ACCOUNT_KEY {calTestResult.diagnostico.checks.serviceAccountKey.error ? `— ${calTestResult.diagnostico.checks.serviceAccountKey.error}` : ''}</li>
+                  <li>{calTestResult.diagnostico.checks.calendarId.ok ? '✓' : '✗'} GOOGLE_CALENDAR_ID {calTestResult.diagnostico.checks.calendarId.value ? `(${calTestResult.diagnostico.checks.calendarId.value})` : ''}</li>
+                  <li>{calTestResult.diagnostico.checks.auth.ok ? '✓' : '✗'} JWT auth {calTestResult.diagnostico.checks.auth.serviceAccountEmail ? `(${calTestResult.diagnostico.checks.auth.serviceAccountEmail})` : ''} {calTestResult.diagnostico.checks.auth.error ? `— ${calTestResult.diagnostico.checks.auth.error}` : ''}</li>
+                  <li>{calTestResult.diagnostico.checks.insertAndDelete.ok ? '✓' : '✗'} Insert + delete evento {calTestResult.diagnostico.checks.insertAndDelete.error ? `— ${calTestResult.diagnostico.checks.insertAndDelete.error}` : ''}</li>
+                </ul>
+              )}
+              <p className="opacity-80 break-words pt-1 border-t border-current/10">{calTestResult.msg}</p>
+              {calTestResult.diagnostico?.hint && (
+                <p className="opacity-80 break-words italic">{calTestResult.diagnostico.hint}</p>
+              )}
               {calTestResult.ok && calTestResult.link && (
                 <a
                   href={calTestResult.link}
@@ -553,6 +625,32 @@ export default function DefinicoesPage() {
                 >
                   Abrir no Google Calendar
                 </a>
+              )}
+            </div>
+          )}
+
+          <button
+            onClick={handleResync}
+            disabled={resyncing}
+            className="w-full flex items-center justify-center gap-2 bg-rose-gold/10 hover:bg-rose-gold/20 border border-rose-gold/30 text-rose-gold py-2.5 rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
+          >
+            {resyncing ? (
+              <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <RefreshCw size={15} />
+            )}
+            {resyncing ? 'A re-sincronizar...' : 'Re-sincronizar Calendário Agora'}
+          </button>
+          {resyncResult && (
+            <div className={`text-xs rounded-xl p-2.5 border ${
+              resyncResult.ok
+                ? 'bg-emerald-400/10 text-emerald-400 border-emerald-400/20'
+                : 'bg-red-400/10 text-red-400 border-red-400/20'
+            }`}>
+              <p className="font-medium">{resyncResult.ok ? 'Sucesso' : 'Erro'}</p>
+              <p className="opacity-80 break-words">{resyncResult.msg}</p>
+              {resyncResult.detalhe && (
+                <p className="opacity-70 break-words mt-1">{resyncResult.detalhe}</p>
               )}
             </div>
           )}

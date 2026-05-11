@@ -2,13 +2,13 @@
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import {
-  ChevronLeft, ChevronRight, PlusCircle, Calendar, Clock, X, Ban,
+  ChevronLeft, ChevronRight, PlusCircle, Calendar, Clock, X, Ban, CreditCard, ArrowRightLeft,
 } from 'lucide-react'
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, addMonths, subMonths, getDay, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { db } from '@/lib/firebase'
-import { collection, addDoc, serverTimestamp, getDocs } from 'firebase/firestore'
-import { getTodosAgendamentos, atualizarEstadoAgendamento, type Agendamento } from '@/lib/booking'
+import { db, auth } from '@/lib/firebase'
+import { collection, getDocs } from 'firebase/firestore'
+import { getTodosAgendamentos, type Agendamento, type MetodoPagamento } from '@/lib/booking'
 import { useServicosPrecos } from '@/lib/useServicosPrecos'
 
 interface MarcacaoView extends Agendamento {
@@ -57,7 +57,29 @@ export default function AgendaPage() {
   const [marcacoes, setMarcacoes] = useState<MarcacaoView[]>([])
   const [loadingMarcacoes, setLoadingMarcacoes] = useState(true)
   const [actionId, setActionId] = useState<string | null>(null)
+  const [confirmManualId, setConfirmManualId] = useState<string | null>(null)
+  const [confirmManualMetodo, setConfirmManualMetodo] = useState<MetodoPagamento>('whatsapp')
+  const [reagendarId, setReagendarId] = useState<string | null>(null)
+  const [reagendarData, setReagendarData] = useState('')
+  const [reagendarHora, setReagendarHora] = useState('')
+  const [reagendarSlots, setReagendarSlots] = useState<Array<{ hora: string; disponivel: boolean }>>([])
+  const [reagendarLoading, setReagendarLoading] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
   const precos = useServicosPrecos()
+
+  async function fetchWithAuth(url: string, init?: RequestInit): Promise<Response> {
+    const user = auth?.currentUser
+    if (!user) throw new Error('Não autenticado')
+    const token = await user.getIdToken()
+    return fetch(url, {
+      ...init,
+      headers: {
+        ...(init?.headers || {}),
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    })
+  }
 
   const parsePreco = useCallback((p?: string): number => {
     if (!p) return 0
@@ -115,12 +137,109 @@ export default function AgendaPage() {
   const handleAtualizarEstado = async (id: string, novoEstado: Agendamento['estado']) => {
     setActionId(id)
     try {
-      await atualizarEstadoAgendamento(id, novoEstado)
+      const res = await fetchWithAuth('/api/agendamento/mudar-estado', {
+        method: 'POST',
+        body: JSON.stringify({ agendamentoId: id, novoEstado }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.success) {
+        alert(data.error || 'Erro ao atualizar estado.')
+        return
+      }
+      if (data.warning) alert(data.warning)
       await loadMarcacoes()
     } catch {
       alert('Erro ao atualizar estado.')
     } finally {
       setActionId(null)
+    }
+  }
+
+  const handleConfirmManual = async () => {
+    if (!confirmManualId) return
+    setSubmitting(true)
+    try {
+      const res = await fetchWithAuth('/api/agendamento/confirmar-manual', {
+        method: 'POST',
+        body: JSON.stringify({
+          agendamentoId: confirmManualId,
+          metodoPagamento: confirmManualMetodo,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.success) {
+        alert(data.error || 'Erro ao confirmar pagamento.')
+        return
+      }
+      if (data.warning) alert(data.warning)
+      setConfirmManualId(null)
+      await loadMarcacoes()
+    } catch {
+      alert('Erro ao confirmar pagamento.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const openReagendar = async (booking: MarcacaoView) => {
+    setReagendarId(booking.id!)
+    setReagendarData(booking.data)
+    setReagendarHora(booking.horaInicio)
+    setReagendarSlots([])
+  }
+
+  useEffect(() => {
+    if (!reagendarId || !reagendarData) return
+    setReagendarLoading(true)
+    fetch(`/api/slots?data=${reagendarData}&duracao=90`)
+      .then((r) => r.json())
+      .then((d) => setReagendarSlots(d.slots || []))
+      .catch(() => setReagendarSlots([]))
+      .finally(() => setReagendarLoading(false))
+  }, [reagendarId, reagendarData])
+
+  const handleReagendar = async () => {
+    if (!reagendarId || !reagendarData || !reagendarHora) return
+    setSubmitting(true)
+    try {
+      const res = await fetchWithAuth('/api/agendamento/reagendar', {
+        method: 'POST',
+        body: JSON.stringify({
+          agendamentoId: reagendarId,
+          novaData: reagendarData,
+          novaHoraInicio: reagendarHora,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.success) {
+        alert(data.conflito || data.error || 'Erro ao reagendar.')
+        return
+      }
+      if (data.warning) alert(data.warning)
+      setReagendarId(null)
+      await loadMarcacoes()
+    } catch {
+      alert('Erro ao reagendar.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleApagarBloqueio = async (docId: string) => {
+    if (!confirm('Remover este bloqueio? O evento BLOQUEADO será apagado do Google Calendar.')) return
+    try {
+      const res = await fetchWithAuth('/api/dia-bloqueado/apagar', {
+        method: 'POST',
+        body: JSON.stringify({ docId }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.success) {
+        alert(data.error || 'Erro ao remover bloqueio.')
+        return
+      }
+      setDiasBloqueados((prev) => prev.filter((d) => d.id !== docId))
+    } catch {
+      alert('Erro ao remover bloqueio.')
     }
   }
 
@@ -149,20 +268,31 @@ export default function AgendaPage() {
   const handleSaveBlock = async () => {
     setSavingBlock(true)
     try {
-      const entry: Omit<DiaBloqueado, 'id'> = {
-        data: blockForm.data,
-        motivo: blockForm.motivo || 'Bloqueado',
-        bloqueioTotal: blockForm.bloqueioTotal,
-        horasBloqueadas: blockForm.bloqueioTotal ? [] : blockForm.horasBloqueadas,
+      const res = await fetchWithAuth('/api/dia-bloqueado/criar', {
+        method: 'POST',
+        body: JSON.stringify({
+          data: blockForm.data,
+          motivo: blockForm.motivo || 'Bloqueado',
+          bloqueioTotal: blockForm.bloqueioTotal,
+          horasBloqueadas: blockForm.bloqueioTotal ? [] : blockForm.horasBloqueadas,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.success) {
+        alert(data.error || 'Erro ao guardar bloqueio.')
+        return
       }
-      if (db) {
-        const docRef = await addDoc(collection(db, 'diasBloqueados'), {
-          ...entry, criadoEm: serverTimestamp(),
-        })
-        setDiasBloqueados((prev) => [...prev, { id: docRef.id, ...entry }])
-      } else {
-        setDiasBloqueados((prev) => [...prev, { id: Date.now().toString(), ...entry }])
-      }
+      setDiasBloqueados((prev) => [
+        ...prev,
+        {
+          id: data.docId,
+          data: blockForm.data,
+          motivo: blockForm.motivo || 'Bloqueado',
+          bloqueioTotal: blockForm.bloqueioTotal,
+          horasBloqueadas: blockForm.bloqueioTotal ? [] : blockForm.horasBloqueadas,
+        },
+      ])
+      if (data.warning) alert(data.warning)
       setShowBlockModal(false)
       setBlockForm({ data: format(new Date(), 'yyyy-MM-dd'), motivo: '', bloqueioTotal: true, horasBloqueadas: [] })
     } catch {
@@ -259,7 +389,7 @@ export default function AgendaPage() {
         {selectedBlocked && (
           <div className="bg-red-500/10 border border-red-500/20 rounded-2xl px-4 py-3 flex items-center gap-3">
             <Ban size={16} className="text-red-400 flex-shrink-0" />
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="text-red-400 text-sm font-medium">
                 {selectedBlocked.bloqueioTotal ? 'Dia inteiro bloqueado' : 'Horários parcialmente bloqueados'}
               </p>
@@ -270,6 +400,12 @@ export default function AgendaPage() {
                 </p>
               )}
             </div>
+            <button
+              onClick={() => handleApagarBloqueio(selectedBlocked.id)}
+              className="text-xs bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg px-3 py-1.5 transition-colors font-medium flex-shrink-0"
+            >
+              Remover
+            </button>
           </div>
         )}
 
@@ -335,15 +471,26 @@ export default function AgendaPage() {
                       )}
                     </div>
 
-                    <div className="flex gap-2 mt-2.5">
-                      {booking.estado === 'pendente' && (
-                        <button
-                          onClick={() => handleAtualizarEstado(booking.id!, 'confirmado')}
-                          disabled={actionId === booking.id}
-                          className="flex-1 text-xs bg-emerald-400/10 text-emerald-400 hover:bg-emerald-400/20 rounded-lg py-1.5 transition-colors font-medium disabled:opacity-50"
-                        >
-                          {actionId === booking.id ? '...' : 'Confirmar'}
-                        </button>
+                    <div className="flex gap-2 mt-2.5 flex-wrap">
+                      {(booking.estado === 'pendente' || booking.estado === 'pendente_pagamento') && (
+                        <>
+                          <button
+                            onClick={() => handleAtualizarEstado(booking.id!, 'confirmado')}
+                            disabled={actionId === booking.id}
+                            className="flex-1 text-xs bg-emerald-400/10 text-emerald-400 hover:bg-emerald-400/20 rounded-lg py-1.5 transition-colors font-medium disabled:opacity-50"
+                          >
+                            {actionId === booking.id ? '...' : 'Confirmar'}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setConfirmManualId(booking.id!)
+                              setConfirmManualMetodo('whatsapp')
+                            }}
+                            className="text-xs bg-rose-gold/10 text-rose-gold hover:bg-rose-gold/20 rounded-lg px-3 py-1.5 transition-colors font-medium flex items-center gap-1"
+                          >
+                            <CreditCard size={11} /> Pagamento Manual
+                          </button>
+                        </>
                       )}
                       {booking.estado === 'confirmado' && (
                         <button
@@ -364,13 +511,21 @@ export default function AgendaPage() {
                         </button>
                       )}
                       {booking.estado !== 'cancelado' && booking.estado !== 'concluido' && (
-                        <button
-                          onClick={() => handleCancelar(booking.id!)}
-                          disabled={cancelandoId === booking.id}
-                          className="text-xs bg-red-400/10 text-red-400 hover:bg-red-400/20 rounded-lg px-3 py-1.5 transition-colors disabled:opacity-50"
-                        >
-                          {cancelandoId === booking.id ? 'A cancelar...' : 'Cancelar'}
-                        </button>
+                        <>
+                          <button
+                            onClick={() => openReagendar(booking)}
+                            className="text-xs bg-white/10 text-white/70 hover:bg-white/20 rounded-lg px-3 py-1.5 transition-colors flex items-center gap-1"
+                          >
+                            <ArrowRightLeft size={11} /> Reagendar
+                          </button>
+                          <button
+                            onClick={() => handleCancelar(booking.id!)}
+                            disabled={cancelandoId === booking.id}
+                            className="text-xs bg-red-400/10 text-red-400 hover:bg-red-400/20 rounded-lg px-3 py-1.5 transition-colors disabled:opacity-50"
+                          >
+                            {cancelandoId === booking.id ? 'A cancelar...' : 'Cancelar'}
+                          </button>
+                        </>
                       )}
                     </div>
                   </div>
@@ -443,6 +598,87 @@ export default function AgendaPage() {
               className="w-full mt-4 bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 text-red-400 py-3 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2 disabled:opacity-50">
               {savingBlock && <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />}
               {savingBlock ? 'A guardar...' : 'Confirmar Bloqueio'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmar Pagamento Manual modal */}
+      {confirmManualId && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4">
+          <div className="bg-[#1A1A1A] rounded-2xl border border-white/10 p-5 w-full max-w-sm">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-white font-semibold text-sm flex items-center gap-2">
+                <CreditCard size={14} className="text-rose-gold" /> Confirmar Pagamento Manual
+              </h3>
+              <button onClick={() => setConfirmManualId(null)} className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center hover:bg-white/10">
+                <X size={14} className="text-white/60" />
+              </button>
+            </div>
+            <p className="text-white/50 text-xs mb-3">Como foi efetuado o pagamento?</p>
+            <select value={confirmManualMetodo}
+              onChange={(e) => setConfirmManualMetodo(e.target.value as MetodoPagamento)}
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-rose-gold/50 mb-4">
+              <option value="whatsapp" className="bg-[#1A1A1A]">WhatsApp / Outro link</option>
+              <option value="transferencia" className="bg-[#1A1A1A]">Transferência bancária</option>
+              <option value="mbway" className="bg-[#1A1A1A]">MB Way</option>
+              <option value="dinheiro" className="bg-[#1A1A1A]">Dinheiro</option>
+              <option value="outro" className="bg-[#1A1A1A]">Outro</option>
+            </select>
+            <button onClick={handleConfirmManual} disabled={submitting}
+              className="w-full bg-rose-gold text-white py-3 rounded-xl text-sm font-semibold hover:bg-opacity-90 transition-colors flex items-center justify-center gap-2 disabled:opacity-50">
+              {submitting && <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />}
+              {submitting ? 'A confirmar...' : 'Confirmar Pagamento'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Reagendar modal */}
+      {reagendarId && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4">
+          <div className="bg-[#1A1A1A] rounded-2xl border border-white/10 p-5 w-full max-w-sm">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-white font-semibold text-sm flex items-center gap-2">
+                <ArrowRightLeft size={14} className="text-rose-gold" /> Reagendar
+              </h3>
+              <button onClick={() => setReagendarId(null)} className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center hover:bg-white/10">
+                <X size={14} className="text-white/60" />
+              </button>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="text-white/40 text-xs mb-1 block">Nova data</label>
+                <input type="date" value={reagendarData}
+                  onChange={(e) => { setReagendarData(e.target.value); setReagendarHora('') }}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-rose-gold/50 [color-scheme:dark]" />
+              </div>
+              <div>
+                <label className="text-white/40 text-xs mb-1.5 block">Nova hora</label>
+                {reagendarLoading ? (
+                  <div className="text-white/40 text-xs py-2">A carregar slots...</div>
+                ) : (
+                  <div className="grid grid-cols-4 gap-1.5 max-h-36 overflow-y-auto">
+                    {reagendarSlots.length === 0 && <p className="col-span-4 text-white/40 text-xs">Sem slots disponíveis.</p>}
+                    {reagendarSlots.map((s) => (
+                      <button key={s.hora} type="button" disabled={!s.disponivel}
+                        onClick={() => setReagendarHora(s.hora)}
+                        className={`py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                          reagendarHora === s.hora ? 'bg-rose-gold text-white'
+                            : s.disponivel ? 'bg-white/5 text-white/70 hover:bg-white/10'
+                            : 'bg-white/5 text-white/20 cursor-not-allowed'
+                        }`}>
+                        {s.hora}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+            <button onClick={handleReagendar} disabled={submitting || !reagendarHora}
+              className="w-full mt-4 bg-rose-gold text-white py-3 rounded-xl text-sm font-semibold hover:bg-opacity-90 transition-colors flex items-center justify-center gap-2 disabled:opacity-50">
+              {submitting && <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />}
+              {submitting ? 'A reagendar...' : 'Confirmar Novo Horário'}
             </button>
           </div>
         </div>

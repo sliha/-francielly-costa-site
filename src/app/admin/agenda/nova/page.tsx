@@ -1,18 +1,16 @@
 'use client'
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { ChevronLeft, CheckCircle2, User, Phone, Mail, Scissors, Calendar, Clock, FileText } from 'lucide-react'
+import { ChevronLeft, CheckCircle2, User, Phone, Mail, Scissors, Calendar, Clock, FileText, AlertTriangle } from 'lucide-react'
 import Link from 'next/link'
-import { db } from '@/lib/firebase'
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
+import { auth } from '@/lib/firebase'
 
 const servicos = [
-  { value: 'fiberbrows', label: 'FiberBROWS', valor: 1000, duracao: 'A definir' },
-  { value: 'microblading', label: 'Microblading', valor: 180, duracao: '2h' },
-  { value: 'microshading', label: 'Microshading', valor: 180, duracao: '2h' },
-  { value: 'eyeliner', label: 'Eyeliner Permanente', valor: 120, duracao: '1h30' },
-  { value: 'labial', label: 'Micropigmentação Labial', valor: 150, duracao: '1h30' },
-  { value: 'tricopigmentacao', label: 'Tricopigmentação', valor: 200, duracao: '2h' },
+  { value: 'fiberbrows', label: 'FiberBROWS', valor: 1000, duracao: 'A definir', minutos: 120 },
+  { value: 'microblading', label: 'Microblading', valor: 180, duracao: '2h', minutos: 120 },
+  { value: 'microshading', label: 'Microshading', valor: 180, duracao: '2h', minutos: 120 },
+  { value: 'eyeliner', label: 'Eyeliner Permanente', valor: 120, duracao: '1h30', minutos: 90 },
+  { value: 'labial', label: 'Micropigmentação Labial', valor: 150, duracao: '1h30', minutos: 90 },
+  { value: 'tricopigmentacao', label: 'Tricopigmentação', valor: 200, duracao: '2h', minutos: 120 },
 ]
 
 // Time slots from 10:00 to 18:00 in 30-minute intervals
@@ -38,7 +36,6 @@ interface FormData {
 }
 
 export default function NovaMarcacaoPage() {
-  const router = useRouter()
   const [form, setForm] = useState<FormData>({
     clienteNome: '',
     telefone: '',
@@ -51,6 +48,7 @@ export default function NovaMarcacaoPage() {
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
+  const [warning, setWarning] = useState('')
 
   const selectedServico = servicos.find((s) => s.value === form.servico)
 
@@ -70,10 +68,22 @@ export default function NovaMarcacaoPage() {
 
     setLoading(true)
     setError('')
+    setWarning('')
 
     try {
-      if (db) {
-        await addDoc(collection(db, 'agendamentos'), {
+      const user = auth?.currentUser
+      if (!user) {
+        setError('Sessão expirou. Por favor faz login novamente.')
+        return
+      }
+      const token = await user.getIdToken()
+      const res = await fetch('/api/agendamento/criar-manual', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           clienteNome: form.clienteNome,
           clienteTelefone: form.telefone,
           clienteEmail: form.email,
@@ -81,16 +91,17 @@ export default function NovaMarcacaoPage() {
           servicoNome: selectedServico?.label ?? form.servico,
           data: form.data,
           horaInicio: form.hora,
-          horaFim: form.hora,
-          estado: 'confirmado',
-          caucaoPaga: false,
+          duracaoMinutos: selectedServico?.minutos ?? 90,
           notas: form.notas,
-          criadoPor: 'admin',
-          criadoEm: serverTimestamp(),
-        })
-      } else {
-        await new Promise((res) => setTimeout(res, 400))
+          estado: 'confirmado',
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.success) {
+        setError(data.error || 'Erro ao guardar a marcação. Por favor tente novamente.')
+        return
       }
+      if (data.warning) setWarning(data.warning)
       setSuccess(true)
     } catch {
       setError('Erro ao guardar a marcação. Por favor tente novamente.')
@@ -115,10 +126,17 @@ export default function NovaMarcacaoPage() {
           <p className="text-white/40 text-sm mb-6">
             {selectedServico?.label} — {form.data} às {form.hora}
           </p>
+          {warning && (
+            <div className="flex items-start gap-2 bg-amber-400/10 border border-amber-400/20 text-amber-400 text-xs rounded-xl px-3 py-2 mb-4 text-left">
+              <AlertTriangle size={14} className="flex-shrink-0 mt-0.5" />
+              <span>{warning}</span>
+            </div>
+          )}
           <div className="flex gap-3 justify-center">
             <button
               onClick={() => {
                 setSuccess(false)
+                setWarning('')
                 setForm({ clienteNome: '', telefone: '', email: '', servico: '', data: '', hora: '', notas: '' })
               }}
               className="px-5 py-2.5 bg-white/5 hover:bg-white/10 text-white/70 text-sm rounded-xl transition-colors"
