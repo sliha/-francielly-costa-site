@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Menu, X, Sparkles } from 'lucide-react'
 import { trackSchedule } from '@/lib/analytics'
@@ -53,26 +54,14 @@ export default function Navbar() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <nav className="flex items-center justify-between">
             {/* Logo */}
-            <Link href="/" className="flex items-center gap-2 group">
-              <div className="w-8 h-8 rounded-full bg-gradient-rose flex items-center justify-center">
-                <Sparkles className="w-4 h-4 text-white" />
-              </div>
-              <div className="flex flex-col leading-none">
-                <span
-                  className={`font-playfair font-bold text-lg transition-colors duration-300 ${
-                    isScrolled ? 'text-text-primary' : 'text-white'
-                  }`}
-                >
-                  Francielly Costa
-                </span>
-                <span
-                  className={`text-xs tracking-widest uppercase font-inter transition-colors duration-300 ${
-                    isScrolled ? 'text-rose-gold' : 'text-golden-light'
-                  }`}
-                >
-                  Dermopigmentação
-                </span>
-              </div>
+            <Link href="/" className="flex items-center group">
+              <Image
+                src="/logo/logo-francielly-rosa.svg"
+                alt="Francielly Costa"
+                width={210}
+                height={80}
+                priority
+              />
             </Link>
 
             {/* Desktop Nav */}

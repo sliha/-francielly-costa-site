@@ -1,7 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { Sparkles, MapPin, Phone, Mail, Clock, Facebook, Instagram } from 'lucide-react'
+import Image from 'next/image'
+import { MapPin, Phone, Mail, Clock, Facebook, Instagram } from 'lucide-react'
 import { trackContactPhone } from '@/lib/analytics'
 
 const navLinks = [
@@ -28,18 +29,13 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
           {/* Brand Column */}
           <div className="lg:col-span-1">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-9 h-9 rounded-full bg-gradient-rose flex items-center justify-center">
-                <Sparkles className="w-4 h-4 text-white" />
-              </div>
-              <div>
-                <p className="font-playfair font-bold text-lg text-white leading-none">
-                  Francielly Costa
-                </p>
-                <p className="text-xs tracking-widest uppercase text-golden font-inter mt-0.5">
-                  Dermopigmentação
-                </p>
-              </div>
+            <div className="mb-4">
+              <Image
+                src="/logo/logo-francielly-branco.svg"
+                alt="Francielly Costa"
+                width={190}
+                height={72}
+              />
             </div>
             <p className="text-white/60 text-sm font-inter leading-relaxed mb-6">
               Especialista em Dermopigmentação Avançada em Braga, Portugal.

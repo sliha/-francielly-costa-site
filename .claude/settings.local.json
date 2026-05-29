@@ -46,7 +46,22 @@
       "Bash(npx firebase-tools@latest apphosting:secrets:describe GOOGLE_SERVICE_ACCOUNT_KEY --project francielly-7b35c)",
       "Bash(npx firebase-tools@latest apphosting:secrets:access GOOGLE_SERVICE_ACCOUNT_KEY --project francielly-7b35c)",
       "Bash(npx firebase-tools@latest apphosting:secrets:grantaccess GOOGLE_SERVICE_ACCOUNT_KEY --backend francielly-costa --project francielly-7b35c)",
-      "Bash(npx firebase-tools@latest apphosting:rollouts:create francielly-costa --git-branch main --force --project francielly-7b35c)"
+      "Bash(npx firebase-tools@latest apphosting:rollouts:create francielly-costa --git-branch main --force --project francielly-7b35c)",
+      "Bash(npx next *)",
+      "Bash(git restore *)",
+      "WebFetch(domain:www.franciellycosta.pt)",
+      "Bash(xargs sed -i \"s|@/lib/tracking|@/lib/analytics|g\")",
+      "Bash(npx -y firebase-tools@latest --version)",
+      "Bash(npx -y firebase-tools@latest apphosting:backends:list --project francielly-7b35c)",
+      "Bash(npx -y firebase-tools@latest apphosting:rollouts:create francielly-costa --git-branch main --project francielly-7b35c --force)",
+      "Bash(npx -y firebase-tools@latest apphosting:rollouts:list francielly-costa --project francielly-7b35c)",
+      "Bash(echo \"EXIT_CODE=$?\")",
+      "Bash(xargs -I {} bash -c 'echo \"=== {} ===\" && head -30 {}')",
+      "Bash(git check-ignore *)",
+      "Bash(echo \"EXIT=$?\")",
+      "Bash(npx -y firebase-tools@latest projects:list)",
+      "Bash(npx -y firebase-tools@latest deploy --only firestore:rules --project francielly-7b35c)",
+      "PowerShell(git -C \"C:\\\\Users\\\\malta\\\\projects\\\\-francielly-costa-site\" add .)"
     ]
   }
 }
