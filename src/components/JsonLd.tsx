@@ -137,6 +137,58 @@ export function faqSchema(items: FAQItem[]) {
   }
 }
 
+interface BookSchemaInput {
+  name: string
+  description: string
+  url: string
+  image: string
+  pdfUrl: string
+  numberOfPages: number
+  datePublished: string
+  about?: string[]
+}
+
+export function bookSchema({ name, description, url, image, pdfUrl, numberOfPages, datePublished, about }: BookSchemaInput) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Book',
+    name,
+    description,
+    url,
+    image,
+    numberOfPages,
+    datePublished,
+    bookFormat: 'https://schema.org/EBook',
+    inLanguage: 'pt-PT',
+    ...(about ? { about } : {}),
+    isAccessibleForFree: true,
+    author: {
+      '@type': 'Person',
+      name: 'Francielly Costa',
+      url: `${SITE_URL}/sobre`,
+    },
+    publisher: {
+      '@type': 'Organization',
+      name: 'Francielly Costa',
+      logo: { '@type': 'ImageObject', url: `${SITE_URL}/og-image.jpg` },
+    },
+    offers: {
+      '@type': 'Offer',
+      price: '0',
+      priceCurrency: 'EUR',
+      availability: 'https://schema.org/InStock',
+      url: pdfUrl,
+    },
+    workExample: {
+      '@type': 'Book',
+      bookFormat: 'https://schema.org/EBook',
+      encoding: { '@type': 'MediaObject', encodingFormat: 'application/pdf', contentUrl: pdfUrl },
+      inLanguage: 'pt-PT',
+      isAccessibleForFree: true,
+    },
+  }
+}
+
 interface ArticleSchemaInput {
   headline: string
   description: string

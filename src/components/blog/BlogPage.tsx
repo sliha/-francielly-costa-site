@@ -1,9 +1,11 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { useInView } from 'react-intersection-observer'
-import { Clock, ArrowRight, Tag } from 'lucide-react'
+import { Clock, ArrowRight, Tag, BookOpen, Download, Sparkles, Check } from 'lucide-react'
+import { EBOOK } from './ebookData'
 
 const blogPosts = [
   {
@@ -143,6 +145,74 @@ export default function BlogPage() {
       {/* Blog Posts */}
       <section ref={ref} className="py-20 bg-cream">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* eBook gratuito — destaque */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={inView ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.7 }}
+            className="mb-12"
+          >
+            <Link
+              href={`/blog/${EBOOK.slug}`}
+              className="group block relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#2a1a1f] to-[#140d10] shadow-card-hover"
+            >
+              {/* Decoração */}
+              <div className="absolute -top-20 -right-10 w-72 h-72 rounded-full bg-rose-gold/20 blur-3xl" />
+              <div className="absolute -bottom-24 left-1/3 w-72 h-72 rounded-full bg-golden/10 blur-3xl" />
+
+              <div className="relative grid md:grid-cols-[1.4fr_1fr] gap-8 items-center p-8 md:p-12">
+                {/* Texto */}
+                <div>
+                  <span className="inline-flex items-center gap-2 rounded-full bg-rose-gold/15 border border-rose-gold/30 px-4 py-1.5 text-xs font-semibold tracking-widest uppercase text-golden-light font-inter mb-5">
+                    <Sparkles className="w-3.5 h-3.5" />
+                    eBook Gratuito
+                  </span>
+                  <h2 className="font-playfair font-bold text-3xl md:text-4xl text-white leading-tight">
+                    A Chave para o{' '}
+                    <span className="bg-clip-text text-transparent" style={{ backgroundImage: 'linear-gradient(135deg, #D4A0A8, #C9A96E)' }}>
+                      Sucesso
+                    </span>
+                  </h2>
+                  <p className="mt-2 font-playfair italic text-lg text-white/70">{EBOOK.subtitle}</p>
+                  <p className="mt-4 text-white/70 font-inter text-sm md:text-base leading-relaxed max-w-lg">
+                    O método completo da Francielly Costa em {EBOOK.pageCount} páginas: ferramentas, anatomia,
+                    ética e o sistema de medição que cria sobrancelhas perfeitas. Lê online ou descarrega em PDF.
+                  </p>
+                  <div className="mt-6 flex flex-wrap items-center gap-3">
+                    <span className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-rose-gold text-white font-semibold font-inter text-sm shadow-rose group-hover:bg-rose-gold-dark group-hover:gap-3 transition-all duration-300">
+                      <BookOpen className="w-4 h-4" />
+                      Abrir eBook gratuito
+                      <ArrowRight className="w-4 h-4" />
+                    </span>
+                    <span className="inline-flex items-center gap-2 text-white/60 text-sm font-inter">
+                      <Download className="w-4 h-4" /> {EBOOK.fileSizeLabel}
+                    </span>
+                  </div>
+                  <div className="mt-5 flex flex-wrap gap-x-5 gap-y-1.5 text-white/50 text-xs font-inter">
+                    <span className="inline-flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-golden" /> Grátis</span>
+                    <span className="inline-flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-golden" /> Sem registo</span>
+                    <span className="inline-flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-golden" /> 12 módulos</span>
+                  </div>
+                </div>
+
+                {/* Capa do livro */}
+                <div className="hidden md:flex justify-center" style={{ perspective: '1200px' }}>
+                  <div className="relative transition-transform duration-700 ease-out group-hover:[transform:rotateY(-10deg)]" style={{ transform: 'rotateY(-18deg) rotateX(3deg)' }}>
+                    <Image
+                      src={EBOOK.cover}
+                      alt={`Capa do eBook ${EBOOK.title}`}
+                      width={260}
+                      height={406}
+                      className="rounded-r-lg rounded-l-sm shadow-2xl w-[200px] lg:w-[240px] h-auto"
+                    />
+                    <div className="absolute top-0 left-0 h-full w-3 bg-gradient-to-r from-black/60 to-transparent rounded-l-sm" />
+                    <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 w-3/4 h-5 bg-black/40 blur-xl rounded-full" />
+                  </div>
+                </div>
+              </div>
+            </Link>
+          </motion.div>
+
           {/* Featured post */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}

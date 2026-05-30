@@ -1,6 +1,7 @@
 import { MetadataRoute } from 'next'
 import { services } from '@/data/services'
 import { blogArticles } from '@/components/blog/blogContent'
+import { EBOOK } from '@/components/blog/ebookData'
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://franciellycosta.pt'
 
@@ -38,5 +39,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.7,
   }))
 
-  return [...staticPages, ...servicePages, ...blogPages]
+  const ebookPage: MetadataRoute.Sitemap = [
+    {
+      url: `${BASE_URL}/blog/${EBOOK.slug}`,
+      lastModified: new Date(EBOOK.date),
+      changeFrequency: 'monthly',
+      priority: 0.8,
+    },
+  ]
+
+  return [...staticPages, ...servicePages, ...blogPages, ...ebookPage]
 }
