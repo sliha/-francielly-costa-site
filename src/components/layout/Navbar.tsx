@@ -54,13 +54,15 @@ export default function Navbar() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <nav className="flex items-center justify-between">
             {/* Logo */}
-            <Link href="/" className="flex items-center group">
+            <Link href="/" className="flex items-center group" aria-label="Francielly Costa — Início">
               <Image
                 src="/logo/logo-francielly-rosa.svg"
                 alt="Francielly Costa"
-                width={210}
-                height={80}
+                width={1431}
+                height={544}
                 priority
+                unoptimized
+                className="h-9 w-auto sm:h-10 md:h-11"
               />
             </Link>
 

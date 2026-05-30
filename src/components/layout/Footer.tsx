@@ -33,8 +33,10 @@ export default function Footer() {
               <Image
                 src="/logo/logo-francielly-branco.svg"
                 alt="Francielly Costa"
-                width={190}
-                height={72}
+                width={1431}
+                height={544}
+                unoptimized
+                className="h-11 w-auto"
               />
             </div>
             <p className="text-white/60 text-sm font-inter leading-relaxed mb-6">
