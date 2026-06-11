@@ -2,11 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { Plus, Save, Trash2, Upload, Award, GripVertical } from 'lucide-react'
-import { db, storage } from '@/lib/firebase'
-import {
-  collection, getDocs, addDoc, updateDoc, deleteDoc, doc, orderBy, query, serverTimestamp
-} from 'firebase/firestore'
-import { ref as storageRef, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage'
+import { supabase } from '@/lib/supabase/client'
+import { uploadMedia, deleteMedia } from '@/lib/upload'
 
 interface Certificacao {
   id: string
@@ -39,11 +36,21 @@ export default function CertificacoesAdminPage() {
   const fileRef = useRef<HTMLInputElement>(null)
 
   const load = async () => {
-    if (!db) return
     setLoading(true)
     try {
-      const snap = await getDocs(query(collection(db, 'certificacoes'), orderBy('ordem', 'asc')))
-      setItems(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Certificacao)))
+      const { data, error } = await supabase
+        .from('certificacoes')
+        .select('*')
+        .order('ordem', { ascending: true })
+      if (error) throw error
+      setItems((data ?? []).map((d) => ({
+        id: d.id,
+        titulo: d.titulo ?? '',
+        descricao: d.descricao ?? '',
+        fotoUrl: d.foto_url ?? '',
+        fotoPath: d.foto_path ?? '',
+        ordem: d.ordem ?? 0,
+      } as Certificacao)))
     } catch { toast('Erro ao carregar.', true) }
     finally { setLoading(false) }
   }
@@ -51,34 +58,43 @@ export default function CertificacoesAdminPage() {
   useEffect(() => { load() }, [])
 
   const handleUpload = async (file: File) => {
-    if (!storage) return
     setUploading(true)
     setUploadProgress(0)
-    const path = `certificacoes/${Date.now()}_${file.name}`
-    const sRef = storageRef(storage, path)
-    const task = uploadBytesResumable(sRef, file)
-    task.on('state_changed',
-      (snap) => setUploadProgress(Math.round(snap.bytesTransferred / snap.totalBytes * 100)),
-      () => { toast('Erro no upload.', true); setUploading(false) },
-      async () => {
-        const url = await getDownloadURL(task.snapshot.ref)
-        console.log('Upload URL:', url)
-        setForm((f) => ({ ...f, fotoUrl: url, fotoPath: path }))
-        setUploading(false)
-        toast('Foto carregada!')
-      }
-    )
+    const path = `certificacoes/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`
+    try {
+      const { url, path: p } = await uploadMedia(file, path)
+      setUploadProgress(100)
+      setForm((f) => ({ ...f, fotoUrl: url, fotoPath: p }))
+      toast('Foto carregada!')
+    } catch (e) {
+      toast(e instanceof Error ? e.message : 'Erro no upload.', true)
+    } finally {
+      setUploading(false)
+    }
   }
 
   const handleSave = async () => {
     if (!form.titulo.trim()) { toast('O título é obrigatório.', true); return }
     setSaving(true)
     try {
+      const row = {
+        titulo: form.titulo,
+        descricao: form.descricao,
+        foto_url: form.fotoUrl,
+        foto_path: form.fotoPath,
+        ordem: form.ordem,
+      }
       if (editId) {
-        await updateDoc(doc(db!, 'certificacoes', editId), { ...form })
+        const { error } = await supabase.from('certificacoes').update(row).eq('id', editId)
+        if (error) throw error
         toast('Certificação atualizada!')
       } else {
-        await addDoc(collection(db!, 'certificacoes'), { ...form, criadoEm: serverTimestamp() })
+        const { error } = await supabase.from('certificacoes').insert({
+          id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+          ...row,
+          criado_em: new Date().toISOString(),
+        })
+        if (error) throw error
         toast('Certificação adicionada!')
       }
       setForm({ ...EMPTY })
@@ -97,10 +113,11 @@ export default function CertificacoesAdminPage() {
   const handleDelete = async (item: Certificacao) => {
     if (!confirm(`Eliminar "${item.titulo}"?`)) return
     try {
-      if (item.fotoPath && storage) {
-        await deleteObject(storageRef(storage, item.fotoPath)).catch(() => {})
+      if (item.fotoPath) {
+        await deleteMedia(item.fotoPath)
       }
-      await deleteDoc(doc(db!, 'certificacoes', item.id))
+      const { error } = await supabase.from('certificacoes').delete().eq('id', item.id)
+      if (error) throw error
       toast('Eliminada.')
       await load()
     } catch { toast('Erro ao eliminar.', true) }

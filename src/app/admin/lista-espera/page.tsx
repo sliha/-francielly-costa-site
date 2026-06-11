@@ -1,8 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { Clock, Bell, X, RefreshCw, CheckCircle2, Link2, Mail } from 'lucide-react'
-import { db } from '@/lib/firebase'
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, orderBy, query, serverTimestamp } from 'firebase/firestore'
+import { supabase } from '@/lib/supabase/client'
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://franciellycosta.pt'
 
@@ -45,9 +44,24 @@ export default function ListaEsperaAdminPage() {
   const carregar = async () => {
     setLoading(true)
     try {
-      if (!db) { setLoading(false); return }
-      const snap = await getDocs(query(collection(db, 'lista-espera'), orderBy('criadoEm', 'desc')))
-      setLista(snap.docs.map((d) => ({ id: d.id, ...d.data() } as EntradaEspera)))
+      const { data, error } = await supabase
+        .from('lista_espera')
+        .select('*')
+        .order('criado_em', { ascending: false })
+      if (error) throw error
+      setLista((data ?? []).map((d) => ({
+        id: d.id,
+        clienteNome: d.cliente_nome || '',
+        telefone: d.telefone || '',
+        email: d.email || '',
+        servico: d.servico || '',
+        servicoSlug: d.servico_slug || '',
+        preferenciaDatas: d.preferencia_datas || [],
+        criadoEm: d.criado_em || undefined,
+        notificada: d.notificada ?? false,
+        notificadaEm: d.notificada_em || undefined,
+        linkEnviado: d.link_enviado || undefined,
+      })))
     } catch (err) {
       console.error('[lista-espera] erro ao carregar:', err)
     } finally {
@@ -100,7 +114,8 @@ export default function ListaEsperaAdminPage() {
   const removerDaLista = async (id: string) => {
     if (!confirm('Remover esta cliente da lista de espera?')) return
     try {
-      if (db) await deleteDoc(doc(db, 'lista-espera', id))
+      const { error } = await supabase.from('lista_espera').delete().eq('id', id)
+      if (error) throw error
       setLista((prev) => prev.filter((l) => l.id !== id))
     } catch {
       alert('Erro ao remover.')
@@ -108,7 +123,7 @@ export default function ListaEsperaAdminPage() {
   }
 
   const adicionarCliente = async () => {
-    if (!novaEntrada.clienteNome || !novaEntrada.servico || !db) return
+    if (!novaEntrada.clienteNome || !novaEntrada.servico) return
     setAdicionando(true)
     try {
       const svc = servicosDisponiveis.find((s) => s.nome === novaEntrada.servico)
@@ -121,11 +136,22 @@ export default function ListaEsperaAdminPage() {
         preferenciaDatas: novaEntrada.preferencia ? [novaEntrada.preferencia] : ['Sem preferência'],
         notificada: false,
       }
-      const ref = await addDoc(collection(db, 'lista-espera'), {
-        ...nova,
-        criadoEm: serverTimestamp(),
-      })
-      setLista((prev) => [{ id: ref.id, ...nova }, ...prev])
+      const { data, error } = await supabase
+        .from('lista_espera')
+        .insert({
+          cliente_nome: nova.clienteNome,
+          telefone: nova.telefone,
+          email: nova.email,
+          servico: nova.servico,
+          servico_slug: nova.servicoSlug,
+          preferencia_datas: nova.preferenciaDatas,
+          notificada: false,
+          criado_em: new Date().toISOString(),
+        })
+        .select('id')
+        .single()
+      if (error) throw error
+      setLista((prev) => [{ id: data!.id, ...nova }, ...prev])
       setNovaEntrada({ clienteNome: '', telefone: '', email: '', servico: '', preferencia: '' })
       setMostrarAdicionar(false)
     } catch {

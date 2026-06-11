@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
-import { verifyAdminRequest, getAdminDb, getAdminInitError } from '@/lib/firebaseAdmin'
+import { verifyAdminRequest } from '@/lib/auth'
 import { createBlockEvent } from '@/lib/googleCalendar'
-import { Timestamp } from 'firebase-admin/firestore'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 
 export const runtime = 'nodejs'
 
@@ -29,32 +29,30 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'data (YYYY-MM-DD) é obrigatória' }, { status: 400 })
   }
 
-  const db = getAdminDb()
-  if (!db) {
-    return NextResponse.json(
-      { error: getAdminInitError() || 'firebase-admin não inicializado' },
-      { status: 500 },
-    )
-  }
+  const sb = supabaseAdmin()
 
   const motivo = body.motivo?.trim() || 'Bloqueado'
   const bloqueioTotal = body.bloqueioTotal ?? true
   const horasBloqueadas = bloqueioTotal ? [] : (body.horasBloqueadas || [])
 
-  // 1. Cria doc Firestore
-  let docId: string
+  // 1. Cria registo em dias_bloqueados (id é text — geramos um uuid)
+  const docId = crypto.randomUUID()
   try {
-    const ref = await db.collection('diasBloqueados').add({
+    const nowIso = new Date().toISOString()
+    const { error } = await sb.from('dias_bloqueados').insert({
+      id: docId,
       data: body.data,
       motivo,
-      bloqueioTotal,
-      horasBloqueadas,
-      criadoEm: Timestamp.now(),
+      bloqueio_total: bloqueioTotal,
+      horas_bloqueadas: horasBloqueadas,
+      origem: 'manual',
+      criado_em: nowIso,
+      atualizado_em: nowIso,
     })
-    docId = ref.id
+    if (error) throw new Error(error.message)
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
-    return NextResponse.json({ error: `Firestore: ${msg}` }, { status: 500 })
+    return NextResponse.json({ error: `Base de dados: ${msg}` }, { status: 500 })
   }
 
   // 2. Cria evento(s) no Google Calendar
@@ -88,9 +86,11 @@ export async function POST(req: Request) {
     }
 
     if (googleEventIds.length > 0) {
-      await db.collection('diasBloqueados').doc(docId).update({
-        googleEventIds,
-      })
+      const { error } = await sb
+        .from('dias_bloqueados')
+        .update({ google_event_ids: googleEventIds })
+        .eq('id', docId)
+      if (error) console.error('Falha ao guardar google_event_ids:', error.message)
     } else if (bloqueioTotal || horasBloqueadas.length > 0) {
       warning = 'Bloqueio guardado mas falhou sincronização com Google Calendar'
     }

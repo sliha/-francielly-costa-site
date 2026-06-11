@@ -1,18 +1,5 @@
-import { db } from './firebase'
-import {
-  collection,
-  doc,
-  addDoc,
-  setDoc,
-  getDoc,
-  getDocs,
-  updateDoc,
-  query,
-  where,
-  orderBy,
-  Timestamp,
-  serverTimestamp,
-} from 'firebase/firestore'
+import 'server-only'
+import { supabaseAdmin } from './supabase/admin'
 
 export interface Referencia {
   id?: string
@@ -24,19 +11,27 @@ export interface Referencia {
   agendamentoId: string
   servicoNome: string
   estado: 'pendente' | 'convertida' | 'cancelada'
-  criadoEm?: Timestamp
-  convertidaEm?: Timestamp | null
+  criadoEm?: string
+  convertidaEm?: string | null
 }
 
-export interface ClienteComCodigo {
-  email: string
-  nome: string
-  codigoReferencia: string
-  totalEnviadas: number
-  totalConvertidas: number
+function rowToReferencia(r: Record<string, any>): Referencia {
+  return {
+    id: r.id,
+    codigoUsado: r.codigo_usado ?? '',
+    refenteEmail: r.refente_email ?? '',
+    refenteNome: r.refente_nome ?? '',
+    novoNome: r.novo_nome ?? '',
+    novoEmail: r.novo_email ?? '',
+    agendamentoId: r.agendamento_id ?? '',
+    servicoNome: r.servico_nome ?? '',
+    estado: r.estado,
+    criadoEm: r.criado_em ?? undefined,
+    convertidaEm: r.convertida_em ?? null,
+  }
 }
 
-// Gera código determinístico baseado no nome + 4 chars do email hash
+// Gera código determinístico baseado no nome + 4 chars do hash do email
 function gerarCodigo(nome: string, email: string): string {
   const prefixo = nome
     .normalize('NFD')
@@ -54,34 +49,27 @@ function gerarCodigo(nome: string, email: string): string {
   return `${prefixo}${sufixo}`
 }
 
-function clienteIdFromEmail(email: string): string {
-  return email.toLowerCase().replace(/[@.]/g, '_')
-}
-
 // Garante que o cliente tem código (cria se não tiver). Retorna o código.
 export async function getOuCriarCodigoCliente(email: string, nome: string): Promise<string> {
-  if (!db) throw new Error('Firestore indisponível')
-  const id = clienteIdFromEmail(email)
-  const ref = doc(db, 'clientes', id)
-  const snap = await getDoc(ref)
+  const sb = supabaseAdmin()
+  const lower = email.toLowerCase()
+  const { data: existing } = await sb
+    .from('clientes')
+    .select('codigo_referencia')
+    .eq('email', lower)
+    .maybeSingle()
 
-  if (snap.exists()) {
-    const data = snap.data()
-    if (data.codigoReferencia && typeof data.codigoReferencia === 'string') {
-      return data.codigoReferencia
-    }
-  }
+  if (existing?.codigo_referencia) return existing.codigo_referencia
 
   const codigo = gerarCodigo(nome, email)
-  await setDoc(
-    ref,
+  await sb.from('clientes').upsert(
     {
-      email: email.toLowerCase(),
+      email: lower,
       nome,
-      codigoReferencia: codigo,
-      atualizadoEm: serverTimestamp(),
+      codigo_referencia: codigo,
+      atualizado_em: new Date().toISOString(),
     },
-    { merge: true }
+    { onConflict: 'email' }
   )
   return codigo
 }
@@ -90,16 +78,13 @@ export async function getClientePorCodigoReferencia(codigo: string): Promise<{
   email: string
   nome: string
 } | null> {
-  if (!db) return null
-  try {
-    const q = query(collection(db, 'clientes'), where('codigoReferencia', '==', codigo))
-    const snap = await getDocs(q)
-    if (snap.empty) return null
-    const d = snap.docs[0].data()
-    return { email: String(d.email || ''), nome: String(d.nome || '') }
-  } catch {
-    return null
-  }
+  const { data } = await supabaseAdmin()
+    .from('clientes')
+    .select('email, nome')
+    .eq('codigo_referencia', codigo)
+    .maybeSingle()
+  if (!data) return null
+  return { email: String(data.email || ''), nome: String(data.nome || '') }
 }
 
 export async function registrarReferencia(params: {
@@ -109,60 +94,48 @@ export async function registrarReferencia(params: {
   agendamentoId: string
   servicoNome: string
 }): Promise<{ ok: boolean; error?: string }> {
-  if (!db) return { ok: false, error: 'Firestore indisponível' }
-
-  const refente = await getClientePorCodigoReferencia(params.codigoUsado)
+  const refente = await getClientePorCodigoReferencia(params.codigoUsado.toUpperCase())
   if (!refente) return { ok: false, error: 'Código de referência inválido' }
 
-  // Não permitir auto-referência
   if (refente.email.toLowerCase() === params.novoEmail.toLowerCase()) {
     return { ok: false, error: 'Não pode usar o seu próprio código' }
   }
 
-  await addDoc(collection(db, 'referencias'), {
-    codigoUsado: params.codigoUsado.toUpperCase(),
-    refenteEmail: refente.email,
-    refenteNome: refente.nome,
-    novoNome: params.novoNome,
-    novoEmail: params.novoEmail.toLowerCase(),
-    agendamentoId: params.agendamentoId,
-    servicoNome: params.servicoNome,
+  const { error } = await supabaseAdmin().from('referencias').insert({
+    codigo_usado: params.codigoUsado.toUpperCase(),
+    refente_email: refente.email,
+    refente_nome: refente.nome,
+    novo_nome: params.novoNome,
+    novo_email: params.novoEmail.toLowerCase(),
+    agendamento_id: params.agendamentoId,
+    servico_nome: params.servicoNome,
     estado: 'pendente',
-    criadoEm: serverTimestamp(),
-    convertidaEm: null,
+    convertida_em: null,
   })
+  if (error) return { ok: false, error: error.message }
 
   return { ok: true }
 }
 
 export async function marcarReferenciaConvertida(agendamentoId: string): Promise<void> {
-  if (!db) return
   try {
-    const q = query(collection(db, 'referencias'), where('agendamentoId', '==', agendamentoId))
-    const snap = await getDocs(q)
-    for (const d of snap.docs) {
-      const data = d.data()
-      if (data.estado === 'pendente') {
-        await updateDoc(doc(db, 'referencias', d.id), {
-          estado: 'convertida',
-          convertidaEm: serverTimestamp(),
-        })
-      }
-    }
+    await supabaseAdmin()
+      .from('referencias')
+      .update({ estado: 'convertida', convertida_em: new Date().toISOString() })
+      .eq('agendamento_id', agendamentoId)
+      .eq('estado', 'pendente')
   } catch (err) {
     console.error('Erro ao marcar referência convertida:', err)
   }
 }
 
 export async function getTodasReferencias(): Promise<Referencia[]> {
-  if (!db) return []
-  try {
-    const q = query(collection(db, 'referencias'), orderBy('criadoEm', 'desc'))
-    const snap = await getDocs(q)
-    return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Referencia))
-  } catch {
-    return []
-  }
+  const { data, error } = await supabaseAdmin()
+    .from('referencias')
+    .select('*')
+    .order('criado_em', { ascending: false })
+  if (error || !data) return []
+  return data.map(rowToReferencia)
 }
 
 // Agrupa referências por cliente refente para o admin
@@ -172,7 +145,7 @@ export async function getReferenciasAgrupadas(): Promise<{
   codigoReferencia: string
   totalEnviadas: number
   totalConvertidas: number
-  ultimaActividade?: Timestamp | null
+  ultimaActividade?: string | null
   referencias: Referencia[]
 }[]> {
   const todas = await getTodasReferencias()

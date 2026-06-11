@@ -6,89 +6,7 @@ import { motion } from 'framer-motion'
 import { useInView } from 'react-intersection-observer'
 import { Clock, ArrowRight, Tag, BookOpen, Download, Sparkles, Check } from 'lucide-react'
 import { EBOOK } from './ebookData'
-
-const blogPosts = [
-  {
-    slug: 'fiberbrows-nova-tecnica',
-    title: 'FiberBROWS: A Nova Técnica Que Está a Revolucionar as Sobrancelhas',
-    excerpt:
-      'Descubra a FiberBROWS, a técnica não cirúrgica com fios sintéticos biocompatíveis que promete sobrancelhas naturais durante 6 meses — disponível em breve na Francielly Costa.',
-    category: 'FiberBROWS',
-    readTime: '5 min',
-    date: '2026-04-06',
-    gradient: 'from-golden/30 to-rose-gold/40',
-  },
-  {
-    slug: 'tricopigmentacao-guia-completo',
-    title: 'Tricopigmentação: Tudo O Que Precisa de Saber Sobre Micropigmentação Capilar',
-    excerpt:
-      'A solução definitiva para a calvície sem cirurgia. Saiba como a Tricopigmentação cria a ilusão perfeita de folículos capilares com resultado imediato e duração de 2 a 5 anos.',
-    category: 'Tricopigmentação',
-    readTime: '6 min',
-    date: '2026-04-06',
-    gradient: 'from-slate-600/30 to-blue-900/40',
-  },
-  {
-    slug: 'o-que-e-microblading',
-    title: 'O que é o Microblading e como funciona?',
-    excerpt:
-      'O Microblading é uma técnica de dermopigmentação que cria sobrancelhas naturais e perfeitas. Descubra tudo sobre este procedimento.',
-    category: 'Microblading',
-    readTime: '5 min',
-    date: '2024-01-15',
-    gradient: 'from-rose-gold/20 to-rose-gold/40',
-  },
-  {
-    slug: 'cuidados-pos-microblading',
-    title: 'Cuidados Essenciais Após o Microblading',
-    excerpt:
-      'Os cuidados pós-procedimento são fundamentais para o resultado perfeito. Aprenda tudo o que deve e não deve fazer.',
-    category: 'Cuidados',
-    readTime: '4 min',
-    date: '2024-01-22',
-    gradient: 'from-golden/20 to-golden/40',
-  },
-  {
-    slug: 'microblading-vs-microshading',
-    title: 'Microblading ou Microshading? Qual é o Ideal Para Si?',
-    excerpt:
-      'Duas técnicas populares mas diferentes. Descubra qual é a mais indicada para o seu tipo de pele e estilo de sobrancelha.',
-    category: 'Comparativo',
-    readTime: '6 min',
-    date: '2024-02-01',
-    gradient: 'from-rose-gold/30 to-golden/30',
-  },
-  {
-    slug: 'historia-dermopigmentacao',
-    title: 'A História da Dermopigmentação: Do Passado ao Presente',
-    excerpt:
-      'Uma viagem fascinante pela história da maquilhagem permanente, desde as civilizações antigas até às técnicas modernas.',
-    category: 'Curiosidades',
-    readTime: '7 min',
-    date: '2024-02-10',
-    gradient: 'from-golden/20 to-rose-gold/30',
-  },
-  {
-    slug: 'eyeliner-permanente-guia-completo',
-    title: 'Guia Completo do Eyeliner Permanente',
-    excerpt:
-      'Tudo o que precisa de saber sobre o delineado permanente: técnicas, durabilidade, cuidados e para quem é indicado.',
-    category: 'Eyeliner',
-    readTime: '5 min',
-    date: '2024-02-18',
-    gradient: 'from-rose-gold-dark/20 to-rose-gold/40',
-  },
-  {
-    slug: 'mitos-dermopigmentacao',
-    title: '7 Mitos sobre Dermopigmentação que Precisa de Esclarecer',
-    excerpt:
-      'Há muitas informações erradas sobre a maquilhagem permanente. Vamos desmistificar os principais mitos.',
-    category: 'Desmistificando',
-    readTime: '6 min',
-    date: '2024-02-25',
-    gradient: 'from-golden/30 to-rose-gold-dark/30',
-  },
-]
+import type { BlogPost } from '@/lib/blogTypes'
 
 const categoryColors: Record<string, string> = {
   FiberBROWS: 'bg-golden/15 text-golden',
@@ -98,45 +16,48 @@ const categoryColors: Record<string, string> = {
   Comparativo: 'bg-rose-gold/10 text-rose-gold-dark',
   Curiosidades: 'bg-golden/10 text-golden',
   Eyeliner: 'bg-rose-gold/10 text-rose-gold',
-  'Desmistificando': 'bg-golden/10 text-golden-dark',
+  Desmistificando: 'bg-golden/10 text-golden-dark',
 }
 
-export default function BlogPage() {
+const fallbackGradients = [
+  'from-golden/30 to-rose-gold/40',
+  'from-slate-600/30 to-blue-900/40',
+  'from-rose-gold/20 to-rose-gold/40',
+  'from-golden/20 to-golden/40',
+  'from-rose-gold/30 to-golden/30',
+  'from-golden/20 to-rose-gold/30',
+  'from-rose-gold-dark/20 to-rose-gold/40',
+  'from-golden/30 to-rose-gold-dark/30',
+]
+
+export default function BlogPage({ posts }: { posts: BlogPost[] }) {
   const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.1 })
 
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('pt-PT', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    })
+    if (!dateStr) return ''
+    return new Date(dateStr).toLocaleDateString('pt-PT', { day: 'numeric', month: 'long', year: 'numeric' })
   }
+
+  const featured = posts[0]
+  const rest = posts.slice(1)
 
   return (
     <div className="pt-20">
       {/* Hero */}
       <section className="py-20 bg-gradient-to-br from-[#2a1a1f] to-[#1a1215] relative overflow-hidden">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7 }}
-          >
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }}>
             <span className="inline-block text-sm font-semibold tracking-widest uppercase text-golden mb-4 font-inter">
               Artigos & Dicas
             </span>
             <h1 className="font-playfair font-bold text-4xl md:text-6xl text-white mb-6">
               O Nosso{' '}
-              <span
-                className="bg-clip-text text-transparent"
-                style={{ backgroundImage: 'linear-gradient(135deg, #B76E79, #C9A96E)' }}
-              >
+              <span className="bg-clip-text text-transparent" style={{ backgroundImage: 'linear-gradient(135deg, #B76E79, #C9A96E)' }}>
                 Blog
               </span>
             </h1>
             <p className="text-white/70 text-lg font-inter max-w-2xl mx-auto">
-              Artigos sobre dermopigmentação, dicas de beleza, novidades e
-              curiosidades do mundo da maquilhagem permanente.
+              Artigos sobre dermopigmentação, dicas de beleza, novidades e curiosidades do mundo da maquilhagem permanente.
             </p>
           </motion.div>
         </div>
@@ -146,22 +67,11 @@ export default function BlogPage() {
       <section ref={ref} className="py-20 bg-cream">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* eBook gratuito — destaque */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={inView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.7 }}
-            className="mb-12"
-          >
-            <Link
-              href={`/blog/${EBOOK.slug}`}
-              className="group block relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#2a1a1f] to-[#140d10] shadow-card-hover"
-            >
-              {/* Decoração */}
+          <motion.div initial={{ opacity: 0, y: 30 }} animate={inView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.7 }} className="mb-12">
+            <Link href={`/blog/${EBOOK.slug}`} className="group block relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#2a1a1f] to-[#140d10] shadow-card-hover">
               <div className="absolute -top-20 -right-10 w-72 h-72 rounded-full bg-rose-gold/20 blur-3xl" />
               <div className="absolute -bottom-24 left-1/3 w-72 h-72 rounded-full bg-golden/10 blur-3xl" />
-
               <div className="relative grid md:grid-cols-[1.4fr_1fr] gap-8 items-center p-8 md:p-12">
-                {/* Texto */}
                 <div>
                   <span className="inline-flex items-center gap-2 rounded-full bg-rose-gold/15 border border-rose-gold/30 px-4 py-1.5 text-xs font-semibold tracking-widest uppercase text-golden-light font-inter mb-5">
                     <Sparkles className="w-3.5 h-3.5" />
@@ -169,20 +79,15 @@ export default function BlogPage() {
                   </span>
                   <h2 className="font-playfair font-bold text-3xl md:text-4xl text-white leading-tight">
                     A Chave para o{' '}
-                    <span className="bg-clip-text text-transparent" style={{ backgroundImage: 'linear-gradient(135deg, #D4A0A8, #C9A96E)' }}>
-                      Sucesso
-                    </span>
+                    <span className="bg-clip-text text-transparent" style={{ backgroundImage: 'linear-gradient(135deg, #D4A0A8, #C9A96E)' }}>Sucesso</span>
                   </h2>
                   <p className="mt-2 font-playfair italic text-lg text-white/70">{EBOOK.subtitle}</p>
                   <p className="mt-4 text-white/70 font-inter text-sm md:text-base leading-relaxed max-w-lg">
-                    O método completo da Francielly Costa em {EBOOK.pageCount} páginas: ferramentas, anatomia,
-                    ética e o sistema de medição que cria sobrancelhas perfeitas. Lê online ou descarrega em PDF.
+                    O método completo da Francielly Costa em {EBOOK.pageCount} páginas: ferramentas, anatomia, ética e o sistema de medição que cria sobrancelhas perfeitas. Lê online ou descarrega em PDF.
                   </p>
                   <div className="mt-6 flex flex-wrap items-center gap-3">
                     <span className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-rose-gold text-white font-semibold font-inter text-sm shadow-rose group-hover:bg-rose-gold-dark group-hover:gap-3 transition-all duration-300">
-                      <BookOpen className="w-4 h-4" />
-                      Abrir eBook gratuito
-                      <ArrowRight className="w-4 h-4" />
+                      <BookOpen className="w-4 h-4" /> Abrir eBook gratuito <ArrowRight className="w-4 h-4" />
                     </span>
                     <span className="inline-flex items-center gap-2 text-white/60 text-sm font-inter">
                       <Download className="w-4 h-4" /> {EBOOK.fileSizeLabel}
@@ -194,17 +99,9 @@ export default function BlogPage() {
                     <span className="inline-flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-golden" /> 12 módulos</span>
                   </div>
                 </div>
-
-                {/* Capa do livro */}
                 <div className="hidden md:flex justify-center" style={{ perspective: '1200px' }}>
                   <div className="relative transition-transform duration-700 ease-out group-hover:[transform:rotateY(-10deg)]" style={{ transform: 'rotateY(-18deg) rotateX(3deg)' }}>
-                    <Image
-                      src={EBOOK.cover}
-                      alt={`Capa do eBook ${EBOOK.title}`}
-                      width={260}
-                      height={406}
-                      className="rounded-r-lg rounded-l-sm shadow-2xl w-[200px] lg:w-[240px] h-auto"
-                    />
+                    <Image src={EBOOK.cover} alt={`Capa do eBook ${EBOOK.title}`} width={260} height={406} className="rounded-r-lg rounded-l-sm shadow-2xl w-[200px] lg:w-[240px] h-auto" />
                     <div className="absolute top-0 left-0 h-full w-3 bg-gradient-to-r from-black/60 to-transparent rounded-l-sm" />
                     <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 w-3/4 h-5 bg-black/40 blur-xl rounded-full" />
                   </div>
@@ -214,106 +111,68 @@ export default function BlogPage() {
           </motion.div>
 
           {/* Featured post */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={inView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.7 }}
-            className="mb-12"
-          >
-            <div className="bg-white rounded-3xl overflow-hidden shadow-card hover:shadow-card-hover transition-all duration-300 group grid grid-cols-1 md:grid-cols-2">
-              {/* Image */}
-              <div className={`bg-gradient-to-br ${blogPosts[0].gradient} min-h-[280px] flex items-center justify-center relative`}>
-                <div className="text-center px-8">
-                  <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold font-inter mb-4 ${categoryColors[blogPosts[0].category]}`}>
-                    <Tag className="w-3 h-3" />
-                    {blogPosts[0].category}
-                  </span>
-                  <p className="text-white/80 font-playfair text-2xl font-bold">Artigo em Destaque</p>
+          {featured && (
+            <motion.div initial={{ opacity: 0, y: 30 }} animate={inView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.7 }} className="mb-12">
+              <Link href={`/blog/${featured.slug}`} className="block bg-white rounded-3xl overflow-hidden shadow-card hover:shadow-card-hover transition-all duration-300 group grid grid-cols-1 md:grid-cols-2">
+                <div className={`relative min-h-[280px] flex items-center justify-center bg-gradient-to-br ${fallbackGradients[0]}`}>
+                  {featured.coverUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={featured.coverUrl} alt={featured.title} className="absolute inset-0 w-full h-full object-cover" />
+                  ) : (
+                    <div className="text-center px-8 relative z-10">
+                      <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold font-inter mb-4 ${categoryColors[featured.category] ?? 'bg-white/20 text-white'}`}>
+                        <Tag className="w-3 h-3" /> {featured.category}
+                      </span>
+                      <p className="text-white/80 font-playfair text-2xl font-bold">Artigo em Destaque</p>
+                    </div>
+                  )}
+                  <div className="absolute top-4 right-4 bg-rose-gold text-white text-xs font-semibold px-3 py-1 rounded-full font-inter z-10">Novo</div>
                 </div>
-                <div className="absolute top-4 right-4 bg-rose-gold text-white text-xs font-semibold px-3 py-1 rounded-full font-inter">
-                  Novo
+                <div className="p-8 flex flex-col justify-center">
+                  <div className="flex items-center gap-3 mb-3">
+                    <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold font-inter ${categoryColors[featured.category] ?? 'bg-rose-gold/10 text-rose-gold'}`}>
+                      <Tag className="w-3 h-3" /> {featured.category}
+                    </span>
+                    <span className="text-text-muted text-xs font-inter flex items-center gap-1"><Clock className="w-3 h-3" /> {featured.readTime} leitura</span>
+                  </div>
+                  <h2 className="font-playfair font-bold text-2xl text-text-primary mb-3 group-hover:text-rose-gold transition-colors duration-300">{featured.title}</h2>
+                  <p className="text-text-secondary font-inter text-sm leading-relaxed mb-6">{featured.excerpt}</p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-text-muted text-xs font-inter">{formatDate(featured.date)}</span>
+                    <span className="inline-flex items-center gap-1.5 text-rose-gold font-semibold text-sm font-inter group-hover:gap-2.5 transition-all duration-200">Ler Artigo <ArrowRight className="w-4 h-4" /></span>
+                  </div>
                 </div>
-              </div>
-
-              {/* Content */}
-              <div className="p-8 flex flex-col justify-center">
-                <div className="flex items-center gap-3 mb-3">
-                  <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold font-inter ${categoryColors[blogPosts[0].category]}`}>
-                    <Tag className="w-3 h-3" />
-                    {blogPosts[0].category}
-                  </span>
-                  <span className="text-text-muted text-xs font-inter flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
-                    {blogPosts[0].readTime} leitura
-                  </span>
-                </div>
-                <h2 className="font-playfair font-bold text-2xl text-text-primary mb-3 group-hover:text-rose-gold transition-colors duration-300">
-                  {blogPosts[0].title}
-                </h2>
-                <p className="text-text-secondary font-inter text-sm leading-relaxed mb-6">
-                  {blogPosts[0].excerpt}
-                </p>
-                <div className="flex items-center justify-between">
-                  <span className="text-text-muted text-xs font-inter">
-                    {formatDate(blogPosts[0].date)}
-                  </span>
-                  <Link
-                    href={`/blog/${blogPosts[0].slug}`}
-                    className="inline-flex items-center gap-1.5 text-rose-gold font-semibold text-sm font-inter group-hover:gap-2.5 transition-all duration-200"
-                  >
-                    Ler Artigo
-                    <ArrowRight className="w-4 h-4" />
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </motion.div>
+              </Link>
+            </motion.div>
+          )}
 
           {/* Grid of other posts */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {blogPosts.slice(1).map((post, i) => (
-              <motion.article
-                key={post.slug}
-                initial={{ opacity: 0, y: 30 }}
-                animate={inView ? { opacity: 1, y: 0 } : {}}
-                transition={{ duration: 0.6, delay: 0.1 + i * 0.1 }}
-                className="bg-white rounded-2xl overflow-hidden shadow-card hover:shadow-card-hover transition-all duration-300 hover:-translate-y-1 group flex flex-col"
-              >
-                {/* Image */}
-                <div className={`bg-gradient-to-br ${post.gradient} h-48 flex items-center justify-center`}>
-                  <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold font-inter bg-white/20 text-white backdrop-blur-sm`}>
-                    <Tag className="w-3 h-3" />
-                    {post.category}
-                  </span>
-                </div>
-
-                {/* Content */}
+            {rest.map((post, i) => (
+              <motion.article key={post.slug} initial={{ opacity: 0, y: 30 }} animate={inView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.6, delay: 0.1 + i * 0.1 }}
+                className="bg-white rounded-2xl overflow-hidden shadow-card hover:shadow-card-hover transition-all duration-300 hover:-translate-y-1 group flex flex-col">
+                <Link href={`/blog/${post.slug}`} className="block">
+                  <div className={`relative h-48 flex items-center justify-center bg-gradient-to-br ${fallbackGradients[(i + 1) % fallbackGradients.length]}`}>
+                    {post.coverUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={post.coverUrl} alt={post.title} className="absolute inset-0 w-full h-full object-cover" />
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold font-inter bg-white/20 text-white backdrop-blur-sm relative z-10">
+                        <Tag className="w-3 h-3" /> {post.category}
+                      </span>
+                    )}
+                  </div>
+                </Link>
                 <div className="p-6 flex flex-col flex-1">
                   <div className="flex items-center gap-2 mb-3">
-                    <span className="text-text-muted text-xs font-inter flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      {post.readTime} leitura
-                    </span>
+                    <span className="text-text-muted text-xs font-inter flex items-center gap-1"><Clock className="w-3 h-3" /> {post.readTime} leitura</span>
                     <span className="text-text-muted text-xs">·</span>
-                    <span className="text-text-muted text-xs font-inter">
-                      {formatDate(post.date)}
-                    </span>
+                    <span className="text-text-muted text-xs font-inter">{formatDate(post.date)}</span>
                   </div>
-
-                  <h3 className="font-playfair font-bold text-lg text-text-primary mb-2 group-hover:text-rose-gold transition-colors duration-300 flex-1">
-                    {post.title}
-                  </h3>
-
-                  <p className="text-text-secondary font-inter text-sm leading-relaxed mb-4">
-                    {post.excerpt}
-                  </p>
-
-                  <Link
-                    href={`/blog/${post.slug}`}
-                    className="inline-flex items-center gap-1.5 text-rose-gold font-semibold text-sm font-inter group-hover:gap-2.5 transition-all duration-200 mt-auto"
-                  >
-                    Ler Mais
-                    <ArrowRight className="w-4 h-4" />
+                  <h3 className="font-playfair font-bold text-lg text-text-primary mb-2 group-hover:text-rose-gold transition-colors duration-300 flex-1">{post.title}</h3>
+                  <p className="text-text-secondary font-inter text-sm leading-relaxed mb-4">{post.excerpt}</p>
+                  <Link href={`/blog/${post.slug}`} className="inline-flex items-center gap-1.5 text-rose-gold font-semibold text-sm font-inter group-hover:gap-2.5 transition-all duration-200 mt-auto">
+                    Ler Mais <ArrowRight className="w-4 h-4" />
                   </Link>
                 </div>
               </motion.article>

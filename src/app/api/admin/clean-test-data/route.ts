@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getAdminDb, getAdminInitError, verifyAdminRequest } from '@/lib/firebaseAdmin'
+import { verifyAdminRequest } from '@/lib/auth'
 import { cleanTestData } from '@/scripts/cleanTestData'
 
 export const runtime = 'nodejs'
@@ -10,16 +10,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: authResult.error }, { status: authResult.status })
   }
 
-  const db = getAdminDb()
-  if (!db) {
-    return NextResponse.json(
-      { error: getAdminInitError() || 'firebase-admin não inicializado' },
-      { status: 500 },
-    )
-  }
-
   try {
-    const results = await cleanTestData(db)
+    const results = await cleanTestData()
     const total = results.reduce((acc, r) => acc + r.deleted, 0)
     return NextResponse.json({ ok: true, total, results, by: authResult.email })
   } catch (err) {

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
-import { verifyAdminRequest, getAdminDb, getAdminInitError } from '@/lib/firebaseAdmin'
+import { verifyAdminRequest } from '@/lib/auth'
 import { deleteCalendarEvent } from '@/lib/googleCalendar'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 
 export const runtime = 'nodejs'
 
@@ -24,24 +25,25 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'docId é obrigatório' }, { status: 400 })
   }
 
-  const db = getAdminDb()
-  if (!db) {
-    return NextResponse.json(
-      { error: getAdminInitError() || 'firebase-admin não inicializado' },
-      { status: 500 },
-    )
-  }
+  const sb = supabaseAdmin()
 
-  const snap = await db.collection('diasBloqueados').doc(body.docId).get()
-  if (!snap.exists) {
+  const { data: bloqueio, error: getErr } = await sb
+    .from('dias_bloqueados')
+    .select('google_event_ids, google_event_id')
+    .eq('id', body.docId)
+    .maybeSingle()
+
+  if (getErr) {
+    return NextResponse.json({ error: `Base de dados: ${getErr.message}` }, { status: 500 })
+  }
+  if (!bloqueio) {
     return NextResponse.json({ error: 'Bloqueio não encontrado' }, { status: 404 })
   }
-  const data = snap.data() as { googleEventIds?: string[]; googleEventId?: string } | undefined
 
   // Apagar eventos Google
   const ids: string[] = []
-  if (data?.googleEventIds && Array.isArray(data.googleEventIds)) ids.push(...data.googleEventIds)
-  if (data?.googleEventId) ids.push(data.googleEventId)
+  if (Array.isArray(bloqueio.google_event_ids)) ids.push(...bloqueio.google_event_ids)
+  if (bloqueio.google_event_id) ids.push(bloqueio.google_event_id)
 
   let warning: string | undefined
   for (const eid of ids) {
@@ -54,12 +56,10 @@ export async function POST(req: Request) {
     }
   }
 
-  // Apagar doc Firestore
-  try {
-    await db.collection('diasBloqueados').doc(body.docId).delete()
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err)
-    return NextResponse.json({ error: `Firestore: ${msg}` }, { status: 500 })
+  // Apagar registo
+  const { error: delErr } = await sb.from('dias_bloqueados').delete().eq('id', body.docId)
+  if (delErr) {
+    return NextResponse.json({ error: `Base de dados: ${delErr.message}` }, { status: 500 })
   }
 
   return NextResponse.json({ success: true, warning })

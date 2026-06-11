@@ -3,7 +3,6 @@ import Stripe from 'stripe'
 import { atualizarEstadoAgendamento, getAgendamentoPorId } from '@/lib/booking'
 import { createCalendarEvent } from '@/lib/googleCalendar'
 import { marcarReferenciaConvertida } from '@/lib/referencias'
-import { serverTimestamp, type Timestamp } from 'firebase/firestore'
 import { getProcessed, markProcessed, makeKey } from '@/lib/idempotency'
 import { logSync } from '@/lib/syncLog'
 
@@ -88,7 +87,7 @@ export async function POST(req: NextRequest) {
               if (eventId) {
                 await atualizarEstadoAgendamento(agendamentoId, 'confirmado', {
                   googleEventId: eventId,
-                  lastGoogleSyncAt: serverTimestamp() as unknown as Timestamp,
+                  lastGoogleSyncAt: new Date().toISOString(),
                 })
                 console.log(`Google Calendar evento criado: ${eventId}`)
               }

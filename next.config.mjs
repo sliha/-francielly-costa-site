@@ -15,6 +15,7 @@ const nextConfig = {
       { protocol: 'https', hostname: 'www.franciellycosta.pt' },
       { protocol: 'https', hostname: 'images.unsplash.com' },
       { protocol: 'https', hostname: 'firebasestorage.googleapis.com' },
+      { protocol: 'https', hostname: 'vptyaaxzjrhsjmyrbbxm.supabase.co' },
     ],
   },
   experimental: {

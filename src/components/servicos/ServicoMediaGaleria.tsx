@@ -3,8 +3,7 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Play, ChevronLeft, ChevronRight, Images } from 'lucide-react'
-import { db } from '@/lib/firebase'
-import { collection, getDocs, query, where, orderBy } from 'firebase/firestore'
+import { supabase } from '@/lib/supabase/client'
 
 interface MediaItem {
   id: string
@@ -26,17 +25,26 @@ export default function ServicoMediaGaleria({ servicoSlug, accentColor = '#B76E7
   const [filter, setFilter] = useState<'todos' | 'antes' | 'depois'>('todos')
 
   useEffect(() => {
-    if (!db) { setLoading(false); return }
-    const q = query(
-      collection(db, 'galeria'),
-      where('servico', '==', servicoSlug),
-      where('ativa', '==', true),
-      orderBy('criadoEm', 'desc')
-    )
-    getDocs(q)
-      .then((snap) => setItems(snap.docs.map((d) => ({ id: d.id, ...d.data() } as MediaItem))))
-      .catch(() => {})
-      .finally(() => setLoading(false))
+    supabase
+      .from('galeria')
+      .select('*')
+      .eq('servico', servicoSlug)
+      .eq('ativa', true)
+      .order('criado_em', { ascending: false })
+      .then(({ data, error }) => {
+        if (!error) {
+          setItems(
+            (data ?? []).map((d) => ({
+              id: d.id,
+              url: d.url,
+              tipo: d.tipo,
+              mediaType: d.media_type,
+              label: d.label,
+            }))
+          )
+        }
+        setLoading(false)
+      })
   }, [servicoSlug])
 
   const filtered = filter === 'todos' ? items : items.filter((i) => i.tipo === filter)

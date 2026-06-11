@@ -1,11 +1,12 @@
-import type { Firestore } from 'firebase-admin/firestore'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 
-const TEST_COLLECTIONS = [
-  'agendamentos',
-  'clientes',
-  'contactos',
-  'fiberbrows-waitlist',
-] as const
+// Tabela -> coluna PK (usada como filtro obrigatório no DELETE do Supabase).
+const TEST_TABLES: { table: string; key: string }[] = [
+  { table: 'agendamentos', key: 'id' },
+  { table: 'clientes', key: 'email' },
+  { table: 'contactos', key: 'id' },
+  { table: 'fiberbrows_waitlist', key: 'id' },
+]
 
 export type CleanResult = {
   collection: string
@@ -13,33 +14,28 @@ export type CleanResult = {
   error?: string
 }
 
-async function deleteCollection(
-  db: Firestore,
-  collection: string,
-  batchSize = 200,
-): Promise<number> {
-  let total = 0
-  while (true) {
-    const snap = await db.collection(collection).limit(batchSize).get()
-    if (snap.empty) break
-    const batch = db.batch()
-    snap.docs.forEach((d) => batch.delete(d.ref))
-    await batch.commit()
-    total += snap.size
-    if (snap.size < batchSize) break
-  }
-  return total
+async function deleteTable(table: string, key: string): Promise<number> {
+  const sb = supabaseAdmin()
+  // Conta antes de apagar (para reportar quantos foram removidos).
+  const { count } = await sb.from(table).select('*', { count: 'exact', head: true })
+
+  // Apaga todas as linhas. O Supabase exige sempre um filtro no DELETE;
+  // `key IS NOT NULL` é verdadeiro para todas as linhas (PK nunca nula).
+  const { error } = await sb.from(table).delete().not(key, 'is', null)
+  if (error) throw new Error(error.message)
+
+  return count ?? 0
 }
 
-export async function cleanTestData(db: Firestore): Promise<CleanResult[]> {
+export async function cleanTestData(): Promise<CleanResult[]> {
   const results: CleanResult[] = []
-  for (const col of TEST_COLLECTIONS) {
+  for (const { table, key } of TEST_TABLES) {
     try {
-      const deleted = await deleteCollection(db, col)
-      results.push({ collection: col, deleted })
+      const deleted = await deleteTable(table, key)
+      results.push({ collection: table, deleted })
     } catch (err) {
       results.push({
-        collection: col,
+        collection: table,
         deleted: 0,
         error: err instanceof Error ? err.message : String(err),
       })
@@ -48,4 +44,4 @@ export async function cleanTestData(db: Firestore): Promise<CleanResult[]> {
   return results
 }
 
-export const TEST_COLLECTIONS_LIST = TEST_COLLECTIONS
+export const TEST_COLLECTIONS_LIST = TEST_TABLES.map((t) => t.table)

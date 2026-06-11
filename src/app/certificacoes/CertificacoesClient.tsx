@@ -3,8 +3,7 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Award } from 'lucide-react'
-import { db } from '@/lib/firebase'
-import { collection, getDocs, orderBy, query } from 'firebase/firestore'
+import { supabase } from '@/lib/supabase/client'
 
 interface Certificacao {
   id: string
@@ -19,13 +18,24 @@ export default function CertificacoesClient() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!db) { setLoading(false); return }
-    getDocs(query(collection(db, 'certificacoes'), orderBy('ordem', 'asc')))
-      .then((snap) => {
-        setItems(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Certificacao)))
+    supabase
+      .from('certificacoes')
+      .select('*')
+      .order('ordem', { ascending: true })
+      .then(({ data, error }) => {
+        if (!error) {
+          setItems(
+            (data ?? []).map((d) => ({
+              id: d.id,
+              titulo: d.titulo,
+              descricao: d.descricao ?? undefined,
+              fotoUrl: d.foto_url ?? undefined,
+              ordem: d.ordem ?? undefined,
+            }))
+          )
+        }
+        setLoading(false)
       })
-      .catch(() => {})
-      .finally(() => setLoading(false))
   }, [])
 
   return (

@@ -15,8 +15,7 @@ import { services } from '@/data/services'
 import { trackSchedule, trackContactWhatsapp } from '@/lib/analytics'
 import { useServicosPrecos } from '@/lib/useServicosPrecos'
 import { useEffect, useState } from 'react'
-import { db } from '@/lib/firebase'
-import { doc, getDoc } from 'firebase/firestore'
+import { supabase } from '@/lib/supabase/client'
 
 interface ServicoInfo { id: string; fotoUrl?: string }
 
@@ -26,15 +25,19 @@ export default function ServicosPage() {
   const [servicosInfo, setServicosInfo] = useState<Record<string, ServicoInfo>>({})
 
   useEffect(() => {
-    if (!db) return
-    getDoc(doc(db, 'settings', 'servicos')).then((snap) => {
-      if (!snap.exists()) return
-      const lista = snap.data().lista
-      if (!Array.isArray(lista)) return
-      const map: Record<string, ServicoInfo> = {}
-      for (const s of lista) { if (s.id) map[s.id] = s }
-      setServicosInfo(map)
-    }).catch(() => {})
+    supabase
+      .from('settings')
+      .select('value')
+      .eq('key', 'servicos')
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (error || !data) return
+        const lista = data.value?.lista
+        if (!Array.isArray(lista)) return
+        const map: Record<string, ServicoInfo> = {}
+        for (const s of lista) { if (s.id) map[s.id] = s }
+        setServicosInfo(map)
+      })
   }, [])
 
   return (

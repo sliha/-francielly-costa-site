@@ -6,9 +6,9 @@ import {
 } from 'lucide-react'
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, addMonths, subMonths, getDay, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { db, auth } from '@/lib/firebase'
-import { collection, getDocs } from 'firebase/firestore'
-import { getTodosAgendamentos, type Agendamento, type MetodoPagamento } from '@/lib/booking'
+import { supabase, getAccessToken } from '@/lib/supabase/client'
+import { rowToAgendamento } from '@/lib/mappers'
+import type { Agendamento, MetodoPagamento } from '@/lib/booking'
 import { useServicosPrecos } from '@/lib/useServicosPrecos'
 
 interface MarcacaoView extends Agendamento {
@@ -69,9 +69,8 @@ export default function AgendaPage() {
   const precos = useServicosPrecos()
 
   async function fetchWithAuth(url: string, init?: RequestInit): Promise<Response> {
-    const user = auth?.currentUser
-    if (!user) throw new Error('Não autenticado')
-    const token = await user.getIdToken()
+    const token = await getAccessToken()
+    if (!token) throw new Error('Não autenticado')
     return fetch(url, {
       ...init,
       headers: {
@@ -91,7 +90,12 @@ export default function AgendaPage() {
   const loadMarcacoes = useCallback(async () => {
     setLoadingMarcacoes(true)
     try {
-      const lista = await getTodosAgendamentos()
+      const { data } = await supabase
+        .from('agendamentos')
+        .select('*')
+        .order('data', { ascending: false })
+        .order('hora_inicio')
+      const lista = (data ?? []).map(rowToAgendamento)
       const view = lista
         .filter((a) => a.id && a.data && a.horaInicio)
         .map<MarcacaoView>((a) => ({
@@ -111,19 +115,29 @@ export default function AgendaPage() {
 
   // Load blocked days
   useEffect(() => {
-    if (!db) return
-    getDocs(collection(db, 'diasBloqueados')).then((snap) => {
-      setDiasBloqueados(snap.docs.map((d) => ({ id: d.id, ...d.data() } as DiaBloqueado)))
-    }).catch(() => {})
+    supabase
+      .from('dias_bloqueados')
+      .select('*')
+      .then(({ data }) => {
+        setDiasBloqueados(
+          (data ?? []).map((d) => ({
+            id: d.id,
+            data: d.data ?? '',
+            motivo: d.motivo ?? '',
+            bloqueioTotal: d.bloqueio_total ?? false,
+            horasBloqueadas: Array.isArray(d.horas_bloqueadas) ? d.horas_bloqueadas : [],
+            origem: d.origem ?? undefined,
+          })),
+        )
+      }, () => {})
   }, [])
 
   const handleCancelar = async (agendamentoId: string) => {
     if (!confirm('Cancelar este agendamento? O evento será removido do Google Calendar.')) return
     setCancelandoId(agendamentoId)
     try {
-      const res = await fetch('/api/agendamento/cancelar', {
+      const res = await fetchWithAuth('/api/agendamento/cancelar', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ agendamentoId }),
       })
       if (!res.ok) throw new Error('Falha no cancelamento')

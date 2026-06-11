@@ -14,8 +14,7 @@ import {
   ArrowRight,
 } from 'lucide-react'
 import { trackSchedule, trackContactWhatsapp } from '@/lib/analytics'
-import { db } from '@/lib/firebase'
-import { doc, getDoc } from 'firebase/firestore'
+import { supabase } from '@/lib/supabase/client'
 
 const timeline = [
   {
@@ -87,12 +86,17 @@ export default function SobrePage() {
   const { ref: valuesRef, inView: valuesInView } = useInView({ triggerOnce: true, threshold: 0.1 })
 
   useEffect(() => {
-    if (!db) return
-    getDoc(doc(db, 'settings', 'negocio')).then((snap) => {
-      if (snap.exists() && snap.data().fotoPessoalUrl) {
-        setFotoUrl(snap.data().fotoPessoalUrl as string)
-      }
-    }).catch(() => {})
+    supabase
+      .from('settings')
+      .select('value')
+      .eq('key', 'negocio')
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (error || !data) return
+        if (data.value?.fotoPessoalUrl) {
+          setFotoUrl(data.value.fotoPessoalUrl as string)
+        }
+      })
   }, [])
 
   return (

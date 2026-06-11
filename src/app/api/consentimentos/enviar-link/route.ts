@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { criarConsentimento, getConsentimentoPorAgendamento, reenviarLinkConsentimento } from '@/lib/consentimentos'
+import { verifyAdminRequest } from '@/lib/auth'
 
 export const runtime = 'nodejs'
 
@@ -69,6 +70,12 @@ async function enviarEmailConsentimento(params: {
 
 export async function POST(req: NextRequest) {
   try {
+    // Ação admin: exige autenticação
+    const auth = await verifyAdminRequest(req)
+    if (!auth.ok) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status })
+    }
+
     const body = (await req.json()) as Payload
 
     if (!body.clienteNome || !body.clienteEmail || !body.servicoNome || !body.dataAgendamento) {

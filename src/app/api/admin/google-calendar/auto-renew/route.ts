@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { renewWatchChannel } from '@/lib/googleCalendarSync'
-import { getAdminDb } from '@/lib/firebaseAdmin'
+import { renewWatchChannel, getSyncState } from '@/lib/googleCalendarSync'
 import { logSync } from '@/lib/syncLog'
 import crypto from 'node:crypto'
 
 export const runtime = 'nodejs'
+export const maxDuration = 60
 
 const HORAS_LIMITE = 48
 const MS_HORA = 60 * 60 * 1000
@@ -17,8 +17,10 @@ function safeEqual(a: string, b: string): boolean {
 }
 
 export async function POST(req: NextRequest) {
-  // Autenticação via header bearer + CRON_SECRET
-  const headerSecret = req.headers.get('x-cron-secret') || ''
+  // Autenticação: x-cron-secret OU Authorization: Bearer <CRON_SECRET> (Vercel Cron)
+  const headerSecret =
+    req.headers.get('x-cron-secret') ||
+    (req.headers.get('authorization') || '').replace(/^Bearer\s+/i, '')
   const cronSecret = process.env.CRON_SECRET || ''
   if (!cronSecret) {
     return NextResponse.json({ ok: false, error: 'CRON_SECRET não configurado' }, { status: 500 })
@@ -27,12 +29,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 })
   }
 
-  const db = getAdminDb()
-  if (!db) return NextResponse.json({ ok: false, error: 'admin-sdk não inicializado' }, { status: 500 })
-
-  const snap = await db.collection('settings').doc('googleCalendarSync').get()
-  const state = snap.exists ? snap.data() : null
-  if (!state?.channelExpiration) {
+  const state = await getSyncState()
+  if (!state.channelExpiration) {
     return NextResponse.json({ ok: false, error: 'Canal não registado' }, { status: 404 })
   }
 

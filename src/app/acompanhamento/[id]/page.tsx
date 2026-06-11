@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import {
   CheckCircle2,
@@ -13,17 +13,7 @@ import {
 } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import {
-  getAcompanhamentoPorCodigo,
-  subscribeMensagens,
-  adicionarMensagem,
-  uploadFoto,
-  getFotos,
-  confirmarRetoque,
-  type Acompanhamento,
-  type Mensagem,
-  type Foto,
-} from '@/lib/acompanhamentos'
+import type { Acompanhamento, Mensagem, Foto } from '@/lib/acompanhamentos'
 
 const timelineData = [
   {
@@ -64,6 +54,7 @@ export default function AcompanhamentoPage() {
 
   const [carregando, setCarregando] = useState(true)
   const [acomp, setAcomp] = useState<Acompanhamento | null>(null)
+  const [codigoAtivo, setCodigoAtivo] = useState<string>('')
   const [autenticado, setAutenticado] = useState(false)
   const [codigoInput, setCodigoInput] = useState('')
   const [erroCodigo, setErroCodigo] = useState(false)
@@ -78,12 +69,25 @@ export default function AcompanhamentoPage() {
   const [fotos, setFotos] = useState<Foto[]>([])
   const [uploading, setUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const unsubRef = useRef<(() => void) | null>(null)
 
   useEffect(() => {
     const init: Record<number, boolean[]> = {}
     timelineData.forEach((t, i) => { init[i] = Array(t.checklistItems.length).fill(false) })
     setChecklist(init)
+  }, [])
+
+  // Faz fetch ao acompanhamento por código (rota server; cliente anónimo, sem RLS)
+  const carregarPorCodigo = useCallback(async (codigo: string): Promise<boolean> => {
+    const res = await fetch(`/api/acompanhamento/${encodeURIComponent(codigo)}`, { cache: 'no-store' })
+    if (!res.ok) return false
+    const data = await res.json()
+    if (!data.acompanhamento) return false
+    setAcomp(data.acompanhamento as Acompanhamento)
+    setMensagens((data.mensagens ?? []) as Mensagem[])
+    setFotos((data.fotos ?? []) as Foto[])
+    setCodigoAtivo(codigo)
+    setAutenticado(true)
+    return true
   }, [])
 
   // Tenta carregar pelo código que vem no URL
@@ -92,34 +96,34 @@ export default function AcompanhamentoPage() {
       setCarregando(false)
       return
     }
-    getAcompanhamentoPorCodigo(codigoUrl)
-      .then((d) => {
-        if (d) {
-          setAcomp(d)
-          setAutenticado(true)
-        }
-      })
-      .finally(() => setCarregando(false))
-  }, [codigoUrl])
+    carregarPorCodigo(codigoUrl).finally(() => setCarregando(false))
+  }, [codigoUrl, carregarPorCodigo])
 
-  // Subscribe mensagens
+  // Polling das mensagens a cada 5s (cliente anónimo não tem realtime/RLS)
   useEffect(() => {
-    if (!acomp?.id) return
-    if (unsubRef.current) unsubRef.current()
-    unsubRef.current = subscribeMensagens(acomp.id, setMensagens)
-    getFotos(acomp.id).then(setFotos).catch(() => setFotos([]))
-    return () => { if (unsubRef.current) unsubRef.current() }
-  }, [acomp?.id])
+    if (!autenticado || !codigoAtivo) return
+    let cancelado = false
+    const intervalo = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/acompanhamento/${encodeURIComponent(codigoAtivo)}`, { cache: 'no-store' })
+        if (!res.ok) return
+        const data = await res.json()
+        if (cancelado) return
+        if (data.mensagens) setMensagens(data.mensagens as Mensagem[])
+        if (data.fotos) setFotos(data.fotos as Foto[])
+      } catch {
+        // silencioso — tenta de novo no próximo ciclo
+      }
+    }, 5000)
+    return () => { cancelado = true; clearInterval(intervalo) }
+  }, [autenticado, codigoAtivo])
 
   const handleCodigoManual = async () => {
     if (codigoInput.length !== 6) return
     setCarregando(true)
     try {
-      const d = await getAcompanhamentoPorCodigo(codigoInput)
-      if (d) {
-        setAcomp(d)
-        setAutenticado(true)
-      } else {
+      const ok = await carregarPorCodigo(codigoInput)
+      if (!ok) {
         setErroCodigo(true)
         setTimeout(() => setErroCodigo(false), 2000)
       }
@@ -142,10 +146,21 @@ export default function AcompanhamentoPage() {
   }
 
   const enviarMensagem = async () => {
-    if (!acomp?.id || !mensagem.trim() || enviando) return
+    if (!codigoAtivo || !mensagem.trim() || enviando) return
     setEnviando(true)
+    const texto = mensagem.trim()
     try {
-      await adicionarMensagem(acomp.id, 'cliente', mensagem)
+      const res = await fetch(`/api/acompanhamento/${encodeURIComponent(codigoAtivo)}/mensagem`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ texto }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.ok) {
+        alert(data.error || 'Erro ao enviar mensagem.')
+        return
+      }
+      if (data.mensagens) setMensagens(data.mensagens as Mensagem[])
       setMensagem('')
     } catch {
       alert('Erro ao enviar mensagem.')
@@ -155,9 +170,16 @@ export default function AcompanhamentoPage() {
   }
 
   const handleConfirmarRetoque = async () => {
-    if (!acomp?.id) return
+    if (!codigoAtivo || !acomp) return
     try {
-      await confirmarRetoque(acomp.id, true)
+      const res = await fetch(`/api/acompanhamento/${encodeURIComponent(codigoAtivo)}/retoque`, {
+        method: 'POST',
+      })
+      const data = await res.json()
+      if (!res.ok || !data.ok) {
+        alert(data.error || 'Erro ao confirmar.')
+        return
+      }
       setAcomp({ ...acomp, retoqueConfirmado: true })
     } catch {
       alert('Erro ao confirmar.')
@@ -165,11 +187,22 @@ export default function AcompanhamentoPage() {
   }
 
   const handleUploadFoto = async (file: File) => {
-    if (!acomp?.id || !file) return
+    if (!codigoAtivo || !file) return
     setUploading(true)
     try {
-      const nova = await uploadFoto(acomp.id, file, showFotoUpload ?? undefined)
-      setFotos((prev) => [...prev, nova])
+      const fd = new FormData()
+      fd.append('file', file)
+      if (showFotoUpload != null) fd.append('diaIdx', String(showFotoUpload))
+      const res = await fetch(`/api/acompanhamento/${encodeURIComponent(codigoAtivo)}/foto`, {
+        method: 'POST',
+        body: fd,
+      })
+      const data = await res.json()
+      if (!res.ok || !data.ok) {
+        alert(data.error || 'Erro no upload da foto.')
+        return
+      }
+      if (data.fotos) setFotos(data.fotos as Foto[])
       setShowFotoUpload(null)
     } catch {
       alert('Erro no upload da foto.')

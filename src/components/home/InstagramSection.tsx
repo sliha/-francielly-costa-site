@@ -3,8 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion, useInView } from 'framer-motion'
 import { Instagram, ExternalLink, Heart } from 'lucide-react'
-import { db } from '@/lib/firebase'
-import { collection, getDocs, query, where } from 'firebase/firestore'
+import { supabase } from '@/lib/supabase/client'
 
 const INSTAGRAM_URL = 'https://www.instagram.com/franciellycostamaster'
 
@@ -29,7 +28,7 @@ const servicosConfig = [
 interface GaleriaItem {
   url: string
   servico: string
-  criadoEm?: { seconds: number } | null
+  criadoEm?: string | null
 }
 
 function AnimatedCounter({ target, duration = 2000 }: { target: number; duration?: number }) {
@@ -60,22 +59,31 @@ export default function InstagramSection() {
   const inView = useInView(sectionRef, { once: true, margin: '-100px' })
 
   useEffect(() => {
-    if (!db) { setLoading(false); return }
-    const q = query(collection(db, 'galeria'), where('ativa', '==', true))
-    getDocs(q)
-      .then((snap) => {
-        const all = snap.docs.map((d) => ({ ...d.data() } as GaleriaItem))
-        const byService: Record<string, GaleriaItem> = {}
-        for (const svc of servicosConfig) {
-          const photos = all
-            .filter((item) => item.servico === svc.servico && item.url)
-            .sort((a, b) => (b.criadoEm?.seconds ?? 0) - (a.criadoEm?.seconds ?? 0))
-          if (photos.length > 0) byService[svc.servico] = photos[0]
+    supabase
+      .from('galeria')
+      .select('url, servico, criado_em')
+      .eq('ativa', true)
+      .order('criado_em', { ascending: false })
+      .then(({ data, error }) => {
+        if (error) {
+          console.error('[InstagramSection] erro:', error)
+        } else {
+          const all: GaleriaItem[] = (data ?? []).map((d) => ({
+            url: d.url,
+            servico: d.servico,
+            criadoEm: d.criado_em ?? null,
+          }))
+          const byService: Record<string, GaleriaItem> = {}
+          for (const svc of servicosConfig) {
+            const photos = all
+              .filter((item) => item.servico === svc.servico && item.url)
+              .sort((a, b) => (b.criadoEm ?? '').localeCompare(a.criadoEm ?? ''))
+            if (photos.length > 0) byService[svc.servico] = photos[0]
+          }
+          setPhotosByService(byService)
         }
-        setPhotosByService(byService)
+        setLoading(false)
       })
-      .catch((err) => console.error('[InstagramSection] erro:', err))
-      .finally(() => setLoading(false))
   }, [])
 
   const visibleCards = servicosConfig.filter((s) => photosByService[s.servico])

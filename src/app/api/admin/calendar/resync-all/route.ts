@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
-import { verifyAdminRequest, getAdminDb, getAdminInitError } from '@/lib/firebaseAdmin'
+import { verifyAdminRequest } from '@/lib/auth'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 import { upsertCalendarEventVerbose, createBlockEvent } from '@/lib/googleCalendar'
-import { Timestamp } from 'firebase-admin/firestore'
 
 export const runtime = 'nodejs'
 
@@ -13,13 +13,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: auth.error }, { status: auth.status })
   }
 
-  const db = getAdminDb()
-  if (!db) {
-    return NextResponse.json(
-      { error: getAdminInitError() || 'firebase-admin não inicializado' },
-      { status: 500 },
-    )
-  }
+  const sb = supabaseAdmin()
 
   const hojeStr = (() => {
     const d = new Date()
@@ -34,41 +28,41 @@ export async function POST(req: Request) {
   let totalBloqueios = 0
 
   // 1. Agendamentos ativos a partir de hoje.
-  // Query simples por `data` (apenas 1 where → não requer índice composto).
-  // Filtro de `estado` em memória — futuro é tipicamente <100 docs.
+  // Query simples por `data` (>= hoje) + filtro de estados ativos.
   try {
-    const snap = await db
-      .collection('agendamentos')
-      .where('data', '>=', hojeStr)
-      .get()
+    const { data: rows, error } = await sb
+      .from('agendamentos')
+      .select('*')
+      .gte('data', hojeStr)
+      .in('estado', ESTADOS_ATIVOS)
+    if (error) throw new Error(error.message)
 
-    const ativos = snap.docs.filter((d) => ESTADOS_ATIVOS.includes(d.data().estado))
+    const ativos = rows || []
     totalAgendamentos = ativos.length
 
-    for (const docSnap of ativos) {
-      const a = docSnap.data()
-      const id = docSnap.id
-      const tinhaEvento = !!a.googleEventId
+    for (const a of ativos) {
+      const id = a.id as string
+      const tinhaEvento = !!a.google_event_id
       try {
         const result = await upsertCalendarEventVerbose({
-          clienteNome: a.clienteNome || '',
-          clienteEmail: a.clienteEmail || '',
-          clienteTelefone: a.clienteTelefone || '',
-          servicoNome: a.servicoNome || '',
+          clienteNome: a.cliente_nome || '',
+          clienteEmail: a.cliente_email || '',
+          clienteTelefone: a.cliente_telefone || '',
+          servicoNome: a.servico_nome || '',
           data: a.data,
-          horaInicio: a.horaInicio,
-          horaFim: a.horaFim || '',
+          horaInicio: a.hora_inicio,
+          horaFim: a.hora_fim || '',
           agendamentoId: id,
           estado: a.estado,
-          googleEventId: a.googleEventId,
+          googleEventId: a.google_event_id || undefined,
         })
         if (!result.ok) {
           falhas++
           erros.push({ id, tipo: 'agendamento', motivo: result.error })
         } else {
-          const update: Record<string, unknown> = { lastGoogleSyncAt: Timestamp.now() }
-          if (result.mode === 'create') update.googleEventId = result.eventId
-          await db.collection('agendamentos').doc(id).update(update)
+          const update: Record<string, unknown> = { last_google_sync_at: new Date().toISOString() }
+          if (result.mode === 'create') update.google_event_id = result.eventId
+          await sb.from('agendamentos').update(update).eq('id', id)
           if (tinhaEvento && result.mode === 'update') atualizados++
           else criadosNovos++
         }
@@ -86,29 +80,31 @@ export async function POST(req: Request) {
 
   // 2. Bloqueios futuros sem googleEventIds
   try {
-    const snap = await db
-      .collection('diasBloqueados')
-      .where('data', '>=', hojeStr)
-      .get()
+    const { data: rows, error } = await sb
+      .from('dias_bloqueados')
+      .select('*')
+      .gte('data', hojeStr)
+    if (error) throw new Error(error.message)
 
-    totalBloqueios = snap.size
+    const bloqueios = rows || []
+    totalBloqueios = bloqueios.length
 
-    for (const docSnap of snap.docs) {
-      const d = docSnap.data()
-      if (Array.isArray(d.googleEventIds) && d.googleEventIds.length > 0) continue
+    for (const d of bloqueios) {
+      const docId = d.id as string
+      if (Array.isArray(d.google_event_ids) && d.google_event_ids.length > 0) continue
       // Tentar criar evento(s) de bloqueio
       try {
         const eids: string[] = []
-        if (d.bloqueioTotal) {
+        if (d.bloqueio_total) {
           const eid = await createBlockEvent({
             data: d.data,
             motivo: d.motivo || 'Bloqueado',
             bloqueioTotal: true,
-            docId: docSnap.id,
+            docId,
           })
           if (eid) eids.push(eid)
-        } else if (Array.isArray(d.horasBloqueadas)) {
-          for (const hora of d.horasBloqueadas) {
+        } else if (Array.isArray(d.horas_bloqueadas)) {
+          for (const hora of d.horas_bloqueadas) {
             const [h, m] = String(hora).split(':').map(Number)
             const total = h * 60 + m + 30
             const horaFim = `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
@@ -118,19 +114,19 @@ export async function POST(req: Request) {
               horaFim,
               motivo: d.motivo || 'Bloqueado',
               bloqueioTotal: false,
-              docId: docSnap.id,
+              docId,
             })
             if (eid) eids.push(eid)
           }
         }
         if (eids.length > 0) {
-          await db.collection('diasBloqueados').doc(docSnap.id).update({ googleEventIds: eids })
+          await sb.from('dias_bloqueados').update({ google_event_ids: eids }).eq('id', docId)
         } else {
-          erros.push({ id: docSnap.id, tipo: 'bloqueio', motivo: 'sem eventos criados' })
+          erros.push({ id: docId, tipo: 'bloqueio', motivo: 'sem eventos criados' })
         }
       } catch (err) {
         erros.push({
-          id: docSnap.id,
+          id: docId,
           tipo: 'bloqueio',
           motivo: err instanceof Error ? err.message : String(err),
         })

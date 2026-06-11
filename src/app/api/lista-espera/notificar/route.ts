@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/firebase'
-import { doc, updateDoc } from 'firebase/firestore'
+import { supabaseAdmin } from '@/lib/supabase/admin'
+import { verifyAdminRequest } from '@/lib/auth'
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://franciellycosta.pt'
 
@@ -65,6 +65,12 @@ async function enviarEmailEspera(payload: {
 
 export async function POST(req: NextRequest) {
   try {
+    // Ação admin: exige autenticação
+    const auth = await verifyAdminRequest(req)
+    if (!auth.ok) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status })
+    }
+
     const { waitlistId, clienteEmail, clienteNome, servico, servicoSlug } = await req.json()
 
     if (!waitlistId || !clienteEmail || !servico) {
@@ -77,14 +83,16 @@ export async function POST(req: NextRequest) {
     // Send email
     await enviarEmailEspera({ clienteEmail, clienteNome, servico, link })
 
-    // Mark as notified in Firestore
-    if (db) {
-      await updateDoc(doc(db, 'lista-espera', waitlistId), {
+    // Marcar como notificada na BD
+    const { error } = await supabaseAdmin()
+      .from('lista_espera')
+      .update({
         notificada: true,
-        notificadaEm: new Date().toISOString(),
-        linkEnviado: link,
+        notificada_em: new Date().toISOString(),
+        link_enviado: link,
       })
-    }
+      .eq('id', waitlistId)
+    if (error) console.error('[lista-espera/notificar] erro update:', error.message)
 
     return NextResponse.json({ success: true, link })
   } catch (err) {

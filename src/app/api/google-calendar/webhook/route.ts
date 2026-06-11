@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { verifyChannelToken, processCalendarChanges } from '@/lib/googleCalendarSync'
-import { getAdminDb } from '@/lib/firebaseAdmin'
+import { verifyChannelToken, processCalendarChanges, getSyncState } from '@/lib/googleCalendarSync'
 
 export const runtime = 'nodejs'
 
@@ -21,17 +20,9 @@ export async function POST(req: NextRequest) {
   }
 
   // 3. Verificar que o canal corresponde ao registado em settings/googleCalendarSync
-  const db = getAdminDb()
-  if (!db) {
-    // Se admin SDK não inicializou, devolvemos 200 para não causar retry — o problema é nosso
-    console.error('Admin SDK não inicializado no webhook Google Calendar')
-    return NextResponse.json({ received: true, warning: 'admin-sdk não disponível' })
-  }
-
   try {
-    const snap = await db.collection('settings').doc('googleCalendarSync').get()
-    const state = snap.exists ? snap.data() : null
-    const expectedChannelId = state?.channelId
+    const state = await getSyncState()
+    const expectedChannelId = state.channelId
     if (!expectedChannelId || expectedChannelId !== channelId) {
       // Canal antigo ou desconhecido — pedimos ao Google para parar
       return NextResponse.json({ error: 'Canal desconhecido' }, { status: 410 })
@@ -50,15 +41,18 @@ export async function POST(req: NextRequest) {
   }
 
   if (resourceState === 'exists') {
-    // Dispara processamento async — NÃO await
-    queueMicrotask(() => {
-      processCalendarChanges().catch((err) => {
-        console.error('processCalendarChanges falhou:', err)
-      })
-    })
+    // Em serverless (Vercel) a função congela após a resposta — por isso AGUARDAMOS
+    // o processamento (incremental e idempotente, normalmente rápido) para garantir
+    // que o sync Google->Site corre mesmo. Em caso de erro respondemos 200 na mesma
+    // (o Google reentrega; a idempotência evita duplicados).
+    try {
+      await processCalendarChanges()
+    } catch (err) {
+      console.error('processCalendarChanges falhou:', err)
+    }
   }
 
-  // 5. Sempre 200 dentro de poucos segundos
+  // 5. Sempre 200
   return NextResponse.json({ received: true })
 }
 

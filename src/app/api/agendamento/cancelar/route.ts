@@ -1,10 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { verifyAdminRequest } from '@/lib/auth'
 import { atualizarEstadoAgendamento, getAgendamentoPorId } from '@/lib/booking'
 import { deleteCalendarEvent } from '@/lib/googleCalendar'
 
 export const runtime = 'nodejs'
 
 export async function POST(req: NextRequest) {
+  // SEGURANÇA: exige admin autenticado (antes era IDOR — qualquer pessoa podia
+  // cancelar qualquer agendamento sabendo apenas o id).
+  const auth = await verifyAdminRequest(req)
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status })
+  }
+
   try {
     const { agendamentoId } = await req.json()
     if (!agendamentoId) {

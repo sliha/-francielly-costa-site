@@ -1,6 +1,9 @@
 import type { Metadata } from 'next'
 import BlogPage from '@/components/blog/BlogPage'
 import JsonLd, { breadcrumbSchema, SITE_URL } from '@/components/JsonLd'
+import { getPublishedPosts } from '@/lib/blog'
+
+export const dynamic = 'force-dynamic'
 
 const url = `${SITE_URL}/blog`
 
@@ -26,7 +29,8 @@ export const metadata: Metadata = {
   },
 }
 
-export default function Blog() {
+export default async function Blog() {
+  const posts = await getPublishedPosts()
   return (
     <>
       <JsonLd
@@ -36,7 +40,7 @@ export default function Blog() {
           { name: 'Blog', url },
         ])}
       />
-      <BlogPage />
+      <BlogPage posts={posts} />
     </>
   )
 }

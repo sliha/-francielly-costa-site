@@ -1,18 +1,16 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import BlogPostPage from '@/components/blog/BlogPostPage'
-import { blogArticles } from '@/components/blog/blogContent'
+import { getPostBySlug } from '@/lib/blog'
 import JsonLd, { articleSchema, breadcrumbSchema, SITE_URL } from '@/components/JsonLd'
+
+export const dynamic = 'force-dynamic'
 
 interface Props { params: { slug: string } }
 
-export async function generateStaticParams() {
-  return blogArticles.map((a) => ({ slug: a.slug }))
-}
-
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const article = blogArticles.find((a) => a.slug === params.slug)
-  if (!article) return {}
+  const article = await getPostBySlug(params.slug)
+  if (!article || !article.published) return {}
   const url = `${SITE_URL}/blog/${article.slug}`
   return {
     title: article.title,
@@ -27,20 +25,20 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       type: 'article',
       publishedTime: article.date,
       authors: ['Francielly Costa'],
-      images: [{ url: '/og-image.jpg', width: 1200, height: 630, alt: article.title }],
+      images: [{ url: article.coverUrl || '/og-image.jpg', width: 1200, height: 630, alt: article.title }],
     },
     twitter: {
       card: 'summary_large_image',
       title: article.title,
       description: article.excerpt,
-      images: ['/og-image.jpg'],
+      images: [article.coverUrl || '/og-image.jpg'],
     },
   }
 }
 
-export default function BlogPost({ params }: Props) {
-  const article = blogArticles.find((a) => a.slug === params.slug)
-  if (!article) notFound()
+export default async function BlogPost({ params }: Props) {
+  const article = await getPostBySlug(params.slug)
+  if (!article || !article.published) notFound()
   const url = `${SITE_URL}/blog/${article.slug}`
   return (
     <>

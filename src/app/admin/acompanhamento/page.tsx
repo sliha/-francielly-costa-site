@@ -12,18 +12,47 @@ import {
 } from 'lucide-react'
 import { format, parseISO, differenceInDays } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import {
-  getTodosAcompanhamentos,
-  criarAcompanhamento,
-  subscribeMensagens,
-  adicionarMensagem,
-  getFotos,
-  confirmarRetoque,
-  type Acompanhamento,
-  type Mensagem,
-  type Foto,
-} from '@/lib/acompanhamentos'
-import { getTodosAgendamentos, type Agendamento } from '@/lib/booking'
+import { supabase } from '@/lib/supabase/client'
+import { subscribeMensagens, getFotosClient } from '@/lib/acompanhamentos.client'
+import { rowToAgendamento } from '@/lib/mappers'
+import type { Acompanhamento, Mensagem, Foto } from '@/lib/acompanhamentos'
+import type { Agendamento } from '@/lib/booking'
+
+function rowToAcompanhamento(r: Record<string, any>): Acompanhamento {
+  return {
+    id: r.id,
+    agendamentoId: r.agendamento_id ?? undefined,
+    clienteNome: r.cliente_nome ?? '',
+    clienteEmail: r.cliente_email ?? '',
+    clienteTelefone: r.cliente_telefone ?? undefined,
+    servicoNome: r.servico_nome ?? '',
+    dataProcedimento: r.data_procedimento ?? '',
+    codigoAcesso: r.codigo_acesso ?? '',
+    retoqueData: r.retoque_data ?? undefined,
+    retoqueConfirmado: r.retoque_confirmado ?? undefined,
+    ultimaAtividadeCliente: r.ultima_atividade_cliente ?? null,
+    ultimaAtividadeAdmin: r.ultima_atividade_admin ?? null,
+    fechado: r.fechado ?? false,
+    criadoEm: r.criado_em ?? undefined,
+  }
+}
+
+// Replica calcularRetoqueData (30 dias após o procedimento) client-side.
+function calcularRetoqueData(dataProcedimento: string): string {
+  const d = new Date(dataProcedimento + 'T12:00:00')
+  d.setDate(d.getDate() + 30)
+  const yyyy = d.getFullYear()
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  return `${yyyy}-${mm}-${dd}`
+}
+
+// Converte timestamp ISO em milissegundos (substitui Timestamp.toMillis()).
+function isoToMillis(iso?: string | null): number {
+  if (!iso) return 0
+  const t = new Date(iso).getTime()
+  return Number.isNaN(t) ? 0 : t
+}
 
 export default function AcompanhamentoAdminPage() {
   const [busca, setBusca] = useState('')
@@ -43,7 +72,11 @@ export default function AcompanhamentoAdminPage() {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      setLista(await getTodosAcompanhamentos())
+      const { data } = await supabase
+        .from('acompanhamentos')
+        .select('*')
+        .order('criado_em', { ascending: false })
+      setLista((data ?? []).map(rowToAcompanhamento))
     } finally {
       setLoading(false)
     }
@@ -63,7 +96,7 @@ export default function AcompanhamentoAdminPage() {
       return
     }
     unsubRef.current = subscribeMensagens(selecionadoId, setMensagens)
-    getFotos(selecionadoId).then(setFotos).catch(() => setFotos([]))
+    getFotosClient(selecionadoId).then(setFotos).catch(() => setFotos([]))
     return () => {
       if (unsubRef.current) unsubRef.current()
     }
@@ -76,9 +109,17 @@ export default function AcompanhamentoAdminPage() {
 
   const enviarMensagem = async () => {
     if (!selecionadoId || !novaMensagem.trim() || enviandoMsg) return
+    const texto = novaMensagem.trim()
     setEnviandoMsg(true)
     try {
-      await adicionarMensagem(selecionadoId, 'admin', novaMensagem)
+      const { error } = await supabase
+        .from('acompanhamento_mensagens')
+        .insert({ acompanhamento_id: selecionadoId, de: 'admin', texto })
+      if (error) throw error
+      await supabase
+        .from('acompanhamentos')
+        .update({ ultima_atividade_admin: new Date().toISOString() })
+        .eq('id', selecionadoId)
       setNovaMensagem('')
     } catch {
       alert('Erro ao enviar mensagem.')
@@ -96,7 +137,11 @@ export default function AcompanhamentoAdminPage() {
 
   const handleConfirmarRetoque = async (id: string, atual: boolean) => {
     try {
-      await confirmarRetoque(id, !atual)
+      const { error } = await supabase
+        .from('acompanhamentos')
+        .update({ retoque_confirmado: !atual })
+        .eq('id', id)
+      if (error) throw error
       await load()
     } catch {
       alert('Erro ao atualizar retoque.')
@@ -107,7 +152,12 @@ export default function AcompanhamentoAdminPage() {
     setShowNovoModal(true)
     setCarregandoModal(true)
     try {
-      const todos = await getTodosAgendamentos()
+      const { data } = await supabase
+        .from('agendamentos')
+        .select('*')
+        .order('data', { ascending: false })
+        .order('hora_inicio')
+      const todos = (data ?? []).map(rowToAgendamento)
       const idsExistentes = new Set(lista.map((a) => a.agendamentoId).filter(Boolean))
       const elegiveis = todos.filter((a) => {
         if (a.estado !== 'pago' && a.estado !== 'concluido') return false
@@ -124,14 +174,28 @@ export default function AcompanhamentoAdminPage() {
     if (!a.id) return
     setCriandoId(a.id)
     try {
-      await criarAcompanhamento({
-        agendamentoId: a.id,
-        clienteNome: a.clienteNome,
-        clienteEmail: a.clienteEmail,
-        clienteTelefone: a.clienteTelefone,
-        servicoNome: a.servicoNome,
-        dataProcedimento: a.data,
-      })
+      // Idempotência: não duplicar se já existe acompanhamento para este agendamento.
+      const { data: existente } = await supabase
+        .from('acompanhamentos')
+        .select('id')
+        .eq('agendamento_id', a.id)
+        .maybeSingle()
+      if (!existente) {
+        const codigoAcesso = String(Math.floor(100000 + Math.random() * 900000))
+        const { error } = await supabase.from('acompanhamentos').insert({
+          agendamento_id: a.id,
+          cliente_nome: a.clienteNome,
+          cliente_email: a.clienteEmail,
+          cliente_telefone: a.clienteTelefone || '',
+          servico_nome: a.servicoNome,
+          data_procedimento: a.data,
+          codigo_acesso: codigoAcesso,
+          retoque_data: calcularRetoqueData(a.data),
+          retoque_confirmado: false,
+          fechado: false,
+        })
+        if (error) throw error
+      }
       await load()
       setShowNovoModal(false)
     } catch {
@@ -155,7 +219,7 @@ export default function AcompanhamentoAdminPage() {
   const comMensagensCliente = lista.filter((a) => {
     if (!a.ultimaAtividadeCliente) return false
     if (!a.ultimaAtividadeAdmin) return true
-    return a.ultimaAtividadeCliente.toMillis() > a.ultimaAtividadeAdmin.toMillis()
+    return isoToMillis(a.ultimaAtividadeCliente) > isoToMillis(a.ultimaAtividadeAdmin)
   })
 
   const selecionado = lista.find((a) => a.id === selecionadoId) || null

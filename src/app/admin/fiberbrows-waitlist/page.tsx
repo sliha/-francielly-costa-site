@@ -1,8 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { db } from '@/lib/firebase'
-import { collection, getDocs, orderBy, query, doc, updateDoc } from 'firebase/firestore'
+import { supabase } from '@/lib/supabase/client'
 import { CheckCircle2, Clock, Mail, Phone, User, RefreshCw } from 'lucide-react'
 
 interface WaitlistEntry {
@@ -10,7 +9,7 @@ interface WaitlistEntry {
   nome: string
   email: string
   telefone: string
-  criadoEm: { toDate: () => Date } | null
+  criadoEm: string | null
   contactada: boolean
 }
 
@@ -20,12 +19,21 @@ export default function FiberBROWSWaitlistPage() {
   const [updating, setUpdating] = useState<string | null>(null)
 
   const fetchEntries = async () => {
-    if (!db) { setLoading(false); return }
     setLoading(true)
     try {
-      const q = query(collection(db, 'fiberbrows-waitlist'), orderBy('criadoEm', 'desc'))
-      const snap = await getDocs(q)
-      setEntries(snap.docs.map((d) => ({ id: d.id, ...d.data() } as WaitlistEntry)))
+      const { data, error } = await supabase
+        .from('fiberbrows_waitlist')
+        .select('*')
+        .order('criado_em', { ascending: false })
+      if (error) throw error
+      setEntries((data ?? []).map((d) => ({
+        id: d.id,
+        nome: d.nome || '',
+        email: d.email || '',
+        telefone: d.telefone || '',
+        criadoEm: d.criado_em || null,
+        contactada: d.contactada ?? false,
+      })))
     } catch (err) {
       console.error('Erro ao carregar waitlist:', err)
     } finally {
@@ -36,10 +44,13 @@ export default function FiberBROWSWaitlistPage() {
   useEffect(() => { fetchEntries() }, [])
 
   const toggleContactada = async (id: string, current: boolean) => {
-    if (!db) return
     setUpdating(id)
     try {
-      await updateDoc(doc(db, 'fiberbrows-waitlist', id), { contactada: !current })
+      const { error } = await supabase
+        .from('fiberbrows_waitlist')
+        .update({ contactada: !current })
+        .eq('id', id)
+      if (error) throw error
       setEntries((prev) =>
         prev.map((e) => (e.id === id ? { ...e, contactada: !current } : e))
       )
@@ -147,7 +158,7 @@ export default function FiberBROWSWaitlistPage() {
                 {entry.criadoEm && (
                   <div className="flex items-center gap-1 text-white/30 text-xs font-inter">
                     <Clock className="w-3 h-3" />
-                    {entry.criadoEm.toDate().toLocaleDateString('pt-PT')}
+                    {new Date(entry.criadoEm).toLocaleDateString('pt-PT')}
                   </div>
                 )}
                 <button

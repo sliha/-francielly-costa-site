@@ -1,21 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { verifyAdminRequest, getAdminDb, getAdminInitError } from '@/lib/firebaseAdmin'
+import { verifyAdminRequest } from '@/lib/auth'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 import {
   upsertCalendarEventVerbose,
-  createBlockEvent,
   deleteCalendarEvent,
 } from '@/lib/googleCalendar'
 import { withRetry } from '@/lib/retry'
 import { logSync } from '@/lib/syncLog'
 import { google, calendar_v3 } from 'googleapis'
-import { Timestamp } from 'firebase-admin/firestore'
 import crypto from 'node:crypto'
 
 export const runtime = 'nodejs'
+export const maxDuration = 60
 
 const ESTADOS_ATIVOS = ['pendente', 'confirmado', 'pago']
 const SCOPES = ['https://www.googleapis.com/auth/calendar']
-const TIMEZONE = 'Europe/Lisbon'
 
 function safeEqual(a: string, b: string): boolean {
   const ba = Buffer.from(a)
@@ -45,6 +44,8 @@ function getCalendar(): { client: calendar_v3.Calendar; calendarId: string } | {
 function externalBlockDocId(eventId: string): string {
   return 'ext_' + crypto.createHash('sha256').update(eventId).digest('hex').slice(0, 20)
 }
+
+const msFrom = (iso?: string | null) => (iso ? new Date(iso).getTime() : 0)
 
 async function listFutureEvents(
   client: calendar_v3.Calendar,
@@ -78,8 +79,10 @@ async function listFutureEvents(
 }
 
 export async function POST(req: NextRequest) {
-  // Aceita admin OU cron secret
-  const cronHeader = req.headers.get('x-cron-secret') || ''
+  // Aceita admin OU cron secret (x-cron-secret OU Authorization: Bearer do Vercel Cron)
+  const cronHeader =
+    req.headers.get('x-cron-secret') ||
+    (req.headers.get('authorization') || '').replace(/^Bearer\s+/i, '')
   const isCron = cronHeader && process.env.CRON_SECRET && safeEqual(cronHeader, process.env.CRON_SECRET)
 
   if (!isCron) {
@@ -87,8 +90,7 @@ export async function POST(req: NextRequest) {
     if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status })
   }
 
-  const db = getAdminDb()
-  if (!db) return NextResponse.json({ error: getAdminInitError() || 'admin-sdk' }, { status: 500 })
+  const sb = supabaseAdmin()
 
   const cal = getCalendar()
   if ('error' in cal) {
@@ -127,98 +129,107 @@ export async function POST(req: NextRequest) {
     if (e.id) googleById.set(e.id, e)
   }
 
-  // 3. Query Firestore agendamentos ativos futuros (sem composto; filtrar em memória)
-  const snap = await db.collection('agendamentos').where('data', '>=', hojeStr).get()
-  const ativos = snap.docs.filter((d) => ESTADOS_ATIVOS.includes(d.data().estado))
+  // 3. Agendamentos ativos futuros no Supabase
+  const { data: ativosRows, error: ativosErr } = await sb
+    .from('agendamentos')
+    .select('*')
+    .gte('data', hojeStr)
+    .in('estado', ESTADOS_ATIVOS)
+  if (ativosErr) {
+    await logSync({ operation: 'full_reconcile', status: 'error', durationMs: Date.now() - start, errorMessage: ativosErr.message })
+    return NextResponse.json({ error: `Erro a ler agendamentos: ${ativosErr.message}` }, { status: 500 })
+  }
+  const ativos = ativosRows || []
   counters.agendamentosTotal = ativos.length
 
   // 4. Para cada agendamento, decidir ação
-  for (const docSnap of ativos) {
-    const a = docSnap.data()
-    const id = docSnap.id
-    const gEvent = a.googleEventId ? googleById.get(a.googleEventId) : undefined
+  for (const a of ativos) {
+    const id = a.id as string
+    const gEvent = a.google_event_id ? googleById.get(a.google_event_id) : undefined
 
     try {
-      if (a.googleEventId && gEvent) {
+      if (a.google_event_id && gEvent) {
         // Comparar campos chave; decidir vencedor por timestamp mais recente
         const eventUpdatedMs = gEvent.updated ? new Date(gEvent.updated).getTime() : 0
-        const localUpdatedMs = a.lastGoogleSyncAt
-          ? (a.lastGoogleSyncAt as Timestamp).toMillis()
-          : 0
+        const localUpdatedMs = msFrom(a.last_google_sync_at)
 
         const eventoStartDate = gEvent.start?.dateTime?.slice(0, 10) || gEvent.start?.date || ''
         const eventoStartHora = gEvent.start?.dateTime?.split('T')[1]?.slice(0, 5) || ''
         const eventoEndHora = gEvent.end?.dateTime?.split('T')[1]?.slice(0, 5) || ''
 
         const dadosIguais =
-          eventoStartDate === a.data && eventoStartHora === a.horaInicio && eventoEndHora === (a.horaFim || '')
+          eventoStartDate === a.data && eventoStartHora === a.hora_inicio && eventoEndHora === (a.hora_fim || '')
 
         if (dadosIguais) {
           // Marcar como visitado para depois detetar bloqueios sem agendamento
-          googleById.delete(a.googleEventId)
+          googleById.delete(a.google_event_id)
           continue
         }
 
         if (eventUpdatedMs > localUpdatedMs) {
-          // Google é mais recente → atualizar Firestore
-          await db.collection('agendamentos').doc(id).update({
-            data: eventoStartDate || a.data,
-            horaInicio: eventoStartHora || a.horaInicio,
-            horaFim: eventoEndHora || a.horaFim,
-            lastGoogleSyncAt: Timestamp.now(),
-          })
+          // Google é mais recente → atualizar Supabase
+          await sb
+            .from('agendamentos')
+            .update({
+              data: eventoStartDate || a.data,
+              hora_inicio: eventoStartHora || a.hora_inicio,
+              hora_fim: eventoEndHora || a.hora_fim,
+              last_google_sync_at: new Date().toISOString(),
+            })
+            .eq('id', id)
           counters.agendamentosAtualizados++
         } else {
-          // Firestore é mais recente → atualizar Google
+          // Supabase é mais recente → atualizar Google
           const result = await upsertCalendarEventVerbose({
-            clienteNome: a.clienteNome || '',
-            clienteEmail: a.clienteEmail || '',
-            clienteTelefone: a.clienteTelefone || '',
-            servicoNome: a.servicoNome || '',
+            clienteNome: a.cliente_nome || '',
+            clienteEmail: a.cliente_email || '',
+            clienteTelefone: a.cliente_telefone || '',
+            servicoNome: a.servico_nome || '',
             data: a.data,
-            horaInicio: a.horaInicio,
-            horaFim: a.horaFim || '',
+            horaInicio: a.hora_inicio,
+            horaFim: a.hora_fim || '',
             agendamentoId: id,
             estado: a.estado,
-            googleEventId: a.googleEventId,
+            googleEventId: a.google_event_id,
           })
           if (!result.ok) {
             erros.push({ tipo: 'agendamento_update', id, motivo: result.error })
           } else {
-            await db.collection('agendamentos').doc(id).update({
-              lastGoogleSyncAt: Timestamp.now(),
-            })
+            await sb
+              .from('agendamentos')
+              .update({ last_google_sync_at: new Date().toISOString() })
+              .eq('id', id)
             counters.agendamentosAtualizados++
           }
         }
-        googleById.delete(a.googleEventId)
-      } else if (a.googleEventId && !gEvent) {
+        googleById.delete(a.google_event_id)
+      } else if (a.google_event_id && !gEvent) {
         // Tinha evento mas não está mais no Google — foi apagado externamente
-        await db.collection('agendamentos').doc(id).update({
-          estado: 'cancelado',
-          lastGoogleSyncAt: Timestamp.now(),
-        })
+        await sb
+          .from('agendamentos')
+          .update({ estado: 'cancelado', last_google_sync_at: new Date().toISOString() })
+          .eq('id', id)
         counters.agendamentosCancelados++
       } else {
         // Sem googleEventId — criar
         const result = await upsertCalendarEventVerbose({
-          clienteNome: a.clienteNome || '',
-          clienteEmail: a.clienteEmail || '',
-          clienteTelefone: a.clienteTelefone || '',
-          servicoNome: a.servicoNome || '',
+          clienteNome: a.cliente_nome || '',
+          clienteEmail: a.cliente_email || '',
+          clienteTelefone: a.cliente_telefone || '',
+          servicoNome: a.servico_nome || '',
           data: a.data,
-          horaInicio: a.horaInicio,
-          horaFim: a.horaFim || '',
+          horaInicio: a.hora_inicio,
+          horaFim: a.hora_fim || '',
           agendamentoId: id,
           estado: a.estado,
         })
         if (!result.ok) {
           erros.push({ tipo: 'agendamento_create', id, motivo: result.error })
         } else {
-          await db.collection('agendamentos').doc(id).update({
-            googleEventId: result.eventId,
-            lastGoogleSyncAt: Timestamp.now(),
-          })
+          await sb
+            .from('agendamentos')
+            .update({ google_event_id: result.eventId, last_google_sync_at: new Date().toISOString() })
+            .eq('id', id)
           counters.agendamentosCriados++
         }
       }
@@ -229,13 +240,18 @@ export async function POST(req: NextRequest) {
   }
 
   // 5+6. Eventos restantes em googleById: pertencem a outros agendamentos (não ativos) ou são externos
-  const bloqueiosSnap = await db.collection('diasBloqueados').where('data', '>=', hojeStr).get()
+  const { data: bloqueiosRows } = await sb
+    .from('dias_bloqueados')
+    .select('*')
+    .gte('data', hojeStr)
+  const bloqueios = bloqueiosRows || []
   const bloqueiosByEventId = new Map<string, string>() // googleEventId -> docId
-  for (const docSnap of bloqueiosSnap.docs) {
-    const d = docSnap.data()
-    if (d.googleEventId) bloqueiosByEventId.set(d.googleEventId, docSnap.id)
-    if (Array.isArray(d.googleEventIds)) {
-      for (const eid of d.googleEventIds) bloqueiosByEventId.set(eid, docSnap.id)
+  const bloqueiosById = new Map<string, Record<string, any>>()
+  for (const d of bloqueios) {
+    bloqueiosById.set(d.id, d)
+    if (d.google_event_id) bloqueiosByEventId.set(d.google_event_id, d.id)
+    if (Array.isArray(d.google_event_ids)) {
+      for (const eid of d.google_event_ids) bloqueiosByEventId.set(eid, d.id)
     }
   }
 
@@ -246,8 +262,12 @@ export async function POST(req: NextRequest) {
     if (fcType === 'agendamento') {
       // Evento órfão — agendamento foi apagado mas evento ficou
       if (fcAgendamentoId) {
-        const exists = await db.collection('agendamentos').doc(fcAgendamentoId).get()
-        if (!exists.exists) {
+        const { data: exists } = await sb
+          .from('agendamentos')
+          .select('id')
+          .eq('id', fcAgendamentoId)
+          .maybeSingle()
+        if (!exists) {
           counters.agendamentosOrfaos++
           try {
             await deleteCalendarEvent(eventId)
@@ -265,7 +285,7 @@ export async function POST(req: NextRequest) {
 
     if (fcType === 'block') continue // bloqueio nosso — mantém como está
 
-    // CASO 6: criado externamente — upsert em diasBloqueados
+    // CASO 6: criado externamente — upsert em dias_bloqueados
     const extId = externalBlockDocId(eventId)
     const data = event.start?.date || event.start?.dateTime?.slice(0, 10) || ''
     if (!data) continue
@@ -274,18 +294,19 @@ export async function POST(req: NextRequest) {
     const motivo = event.summary || 'Evento externo'
 
     try {
-      await db.collection('diasBloqueados').doc(extId).set(
+      await sb.from('dias_bloqueados').upsert(
         {
+          id: extId,
           data,
           motivo,
-          bloqueioTotal: allDay,
-          horasBloqueadas: allDay ? [] : (horaInicio ? [horaInicio] : []),
+          bloqueio_total: allDay,
+          horas_bloqueadas: allDay ? [] : (horaInicio ? [horaInicio] : []),
           origem: 'google-externo',
-          googleEventId: eventId,
-          googleEventUpdated: event.updated || null,
-          atualizadoEm: Timestamp.now(),
+          google_event_id: eventId,
+          google_event_updated: event.updated || null,
+          atualizado_em: new Date().toISOString(),
         },
-        { merge: true },
+        { onConflict: 'id' },
       )
       counters.bloqueiosCriados++
       bloqueiosByEventId.delete(eventId)
@@ -300,16 +321,15 @@ export async function POST(req: NextRequest) {
 
   // Marca todos os bloqueios google-externo cujos eventos já não existem no Google
   for (const [eventId, docId] of bloqueiosByEventId.entries()) {
-    const doc = bloqueiosSnap.docs.find((d) => d.id === docId)
-    if (!doc) continue
-    const data = doc.data()
+    const data = bloqueiosById.get(docId)
+    if (!data) continue
     if (data.origem !== 'google-externo') {
       counters.bloqueiosMantidos++
       continue
     }
     // Sem retentar — se está aqui, é porque o evento Google desapareceu
     try {
-      await db.collection('diasBloqueados').doc(docId).delete()
+      await sb.from('dias_bloqueados').delete().eq('id', docId)
       counters.bloqueiosApagados++
     } catch (err) {
       erros.push({

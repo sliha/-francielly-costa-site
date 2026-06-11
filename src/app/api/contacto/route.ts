@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/firebase'
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 
 async function enviarEmailContacto(nome: string, email: string, telefone: string, servico: string, mensagem: string) {
   const resendKey = process.env.RESEND_API_KEY
@@ -66,18 +65,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Email inválido' }, { status: 400 })
     }
 
-    // Save to Firestore — non-blocking so email still sends even if Firestore fails
-    if (db) {
-      addDoc(collection(db, 'contactos'), {
+    // Guardar na BD — non-blocking, o email envia mesmo que a escrita falhe
+    supabaseAdmin()
+      .from('contactos')
+      .insert({
         nome: name.trim(),
         email: email.trim().toLowerCase(),
         telefone: phone?.trim() || '',
         servico: service?.trim() || '',
         mensagem: message?.trim() || '',
-        criadoEm: serverTimestamp(),
+        criado_em: new Date().toISOString(),
         lido: false,
-      }).catch((err) => console.error('Firestore contacto save error:', err))
-    }
+      })
+      .then(({ error }) => {
+        if (error) console.error('Erro ao guardar contacto:', error.message)
+      })
 
     // Send emails — fire and forget
     enviarEmailContacto(

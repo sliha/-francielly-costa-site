@@ -16,7 +16,9 @@ import {
 } from 'lucide-react'
 import { format, parseISO, subMonths, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { getTodosAgendamentos, type Agendamento } from '@/lib/booking'
+import { supabase } from '@/lib/supabase/client'
+import { rowToAgendamento } from '@/lib/mappers'
+import type { Agendamento } from '@/lib/booking'
 import { useServicosPrecos } from '@/lib/useServicosPrecos'
 
 const SERVICO_CORES = ['#B76E79', '#C9A96E', '#8E4F58', '#A07840', '#6B7280', '#7E22CE']
@@ -197,10 +199,13 @@ export default function RelatorioPage() {
 
   useEffect(() => {
     setLoading(true)
-    getTodosAgendamentos()
-      .then((lista) => setAgendamentos(lista))
-      .catch(() => setAgendamentos([]))
-      .finally(() => setLoading(false))
+    supabase
+      .from('agendamentos')
+      .select('*')
+      .order('data', { ascending: false })
+      .order('hora_inicio')
+      .then(({ data }) => setAgendamentos((data ?? []).map(rowToAgendamento)), () => setAgendamentos([]))
+      .then(() => setLoading(false))
   }, [])
 
   const mesAtual = meses[mesIndex]

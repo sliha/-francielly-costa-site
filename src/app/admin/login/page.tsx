@@ -1,7 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { signInWithEmailAndPassword } from 'firebase/auth'
-import { auth } from '@/lib/firebase'
+import { supabase } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react'
 import Link from 'next/link'
@@ -19,7 +18,14 @@ export default function AdminLogin() {
     setError('')
     setLoading(true)
     try {
-      await signInWithEmailAndPassword(auth, email, password)
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+      if (signInError) {
+        setError('Email ou palavra-passe incorretos.')
+        return
+      }
       router.push('/admin')
     } catch {
       setError('Email ou palavra-passe incorretos.')

@@ -1,8 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
-import { onAuthStateChanged } from 'firebase/auth'
-import { auth } from '@/lib/firebase'
+import { supabase } from '@/lib/supabase/client'
 import AdminBottomNav from '@/components/admin/BottomNav'
 import AdminSideNav from '@/components/admin/SideNav'
 import InstallBanner from '@/components/admin/InstallBanner'
@@ -28,16 +27,26 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     // Show splash for 1.5s on initial load
     const splashTimer = setTimeout(() => setShowSplash(false), 1500)
 
-    const unsub = onAuthStateChanged(auth, (u) => {
+    const applySession = (u: any) => {
       setUser(u)
       setLoading(false)
-      if (!u && !isLoginPage) router.push('/admin/login')
-      if (u && isLoginPage) router.push('/admin')
+      if (!u && !isLoginPage) router.replace('/admin/login')
+      if (u && isLoginPage) router.replace('/admin')
+    }
+
+    // Sessão inicial
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      applySession(session?.user ?? null)
+    })
+
+    // Reage a alterações de autenticação (login, logout, refresh de token)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      applySession(session?.user ?? null)
     })
 
     return () => {
       clearTimeout(splashTimer)
-      unsub()
+      subscription.unsubscribe()
     }
   }, [isLoginPage, router])
 

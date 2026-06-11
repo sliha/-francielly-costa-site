@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSlotsDisponiveis } from '@/lib/booking'
-import { db } from '@/lib/firebase'
-import { collection, query, where, getDocs } from 'firebase/firestore'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
@@ -34,33 +33,22 @@ export async function GET(req: NextRequest) {
     )
   }
 
-  // Check if day is blocked in Firestore
-  if (db) {
-    try {
-      const q = query(collection(db, 'diasBloqueados'), where('data', '==', data))
-      const snap = await getDocs(q)
-      if (!snap.empty) {
-        const bloqueio = snap.docs[0].data()
-        if (bloqueio.bloqueioTotal) {
-          return NextResponse.json(
-            { slots: [], motivo: bloqueio.motivo || 'Dia indisponível' },
-            { status: 200 }
-          )
-        }
-        // Partial block: filter out blocked hours later
-        const horasBloqueadas: string[] = bloqueio.horasBloqueadas ?? []
-        if (horasBloqueadas.length > 0) {
-          const slots = await getSlotsDisponiveis(data, duracao)
-          const filtered = slots.map((s) => ({
-            ...s,
-            disponivel: s.disponivel && !horasBloqueadas.includes(s.hora),
-          }))
-          return NextResponse.json({ slots: filtered })
-        }
-      }
-    } catch {
-      // If Firestore check fails, continue normally
+  // Check if day is fully blocked (devolve motivo personalizado).
+  // Os bloqueios parciais (horas) são tratados dentro de getSlotsDisponiveis.
+  try {
+    const { data: bloqueios } = await supabaseAdmin()
+      .from('dias_bloqueados')
+      .select('motivo, bloqueio_total')
+      .eq('data', data)
+    const total = (bloqueios ?? []).find((b) => b.bloqueio_total)
+    if (total) {
+      return NextResponse.json(
+        { slots: [], motivo: total.motivo || 'Dia indisponível' },
+        { status: 200 }
+      )
     }
+  } catch {
+    // If the block check fails, continue normally
   }
 
   const slots = await getSlotsDisponiveis(data, duracao)

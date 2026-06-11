@@ -1,17 +1,5 @@
-import { db } from './firebase'
-import {
-  collection,
-  doc,
-  addDoc,
-  getDoc,
-  getDocs,
-  updateDoc,
-  query,
-  where,
-  orderBy,
-  Timestamp,
-  serverTimestamp,
-} from 'firebase/firestore'
+import 'server-only'
+import { supabaseAdmin } from './supabase/admin'
 
 export interface RespostasAnamnese {
   alergias?: string
@@ -35,14 +23,36 @@ export interface Consentimento {
   servicoNome: string
   dataAgendamento: string // 'YYYY-MM-DD'
   estado: 'pendente' | 'submetido'
-  dataLinkEnviado?: Timestamp | null
-  dataSubmissao?: Timestamp | null
+  dataLinkEnviado?: string | null
+  dataSubmissao?: string | null
   respostas?: RespostasAnamnese
   assinaturaNome?: string
   consentimentoAceite?: boolean
   rgpdAceite?: boolean
   alertas?: string[]
-  criadoEm?: Timestamp
+  criadoEm?: string
+}
+
+function rowToConsentimento(r: Record<string, any>): Consentimento {
+  return {
+    id: r.id,
+    token: r.token,
+    agendamentoId: r.agendamento_id ?? undefined,
+    clienteNome: r.cliente_nome ?? '',
+    clienteEmail: r.cliente_email ?? '',
+    clienteTelefone: r.cliente_telefone ?? undefined,
+    servicoNome: r.servico_nome ?? '',
+    dataAgendamento: r.data_agendamento ?? '',
+    estado: r.estado,
+    dataLinkEnviado: r.data_link_enviado ?? null,
+    dataSubmissao: r.data_submissao ?? null,
+    respostas: r.respostas ?? undefined,
+    assinaturaNome: r.assinatura_nome ?? undefined,
+    consentimentoAceite: r.consentimento_aceite ?? undefined,
+    rgpdAceite: r.rgpd_aceite ?? undefined,
+    alertas: r.alertas ?? undefined,
+    criadoEm: r.criado_em ?? undefined,
+  }
 }
 
 function gerarToken(): string {
@@ -54,42 +64,34 @@ function gerarToken(): string {
 }
 
 export async function getTodosConsentimentos(): Promise<Consentimento[]> {
-  if (!db) return []
-  try {
-    const q = query(collection(db, 'consentimentos'), orderBy('criadoEm', 'desc'))
-    const snap = await getDocs(q)
-    return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Consentimento))
-  } catch {
-    return []
-  }
+  const { data, error } = await supabaseAdmin()
+    .from('consentimentos')
+    .select('*')
+    .order('criado_em', { ascending: false })
+  if (error || !data) return []
+  return data.map(rowToConsentimento)
 }
 
 export async function getConsentimentoPorToken(token: string): Promise<Consentimento | null> {
-  if (!db) return null
-  try {
-    const q = query(collection(db, 'consentimentos'), where('token', '==', token))
-    const snap = await getDocs(q)
-    if (snap.empty) return null
-    const d = snap.docs[0]
-    return { id: d.id, ...d.data() } as Consentimento
-  } catch {
-    return null
-  }
+  const { data, error } = await supabaseAdmin()
+    .from('consentimentos')
+    .select('*')
+    .eq('token', token)
+    .maybeSingle()
+  if (error || !data) return null
+  return rowToConsentimento(data)
 }
 
 export async function getConsentimentoPorAgendamento(
   agendamentoId: string
 ): Promise<Consentimento | null> {
-  if (!db) return null
-  try {
-    const q = query(collection(db, 'consentimentos'), where('agendamentoId', '==', agendamentoId))
-    const snap = await getDocs(q)
-    if (snap.empty) return null
-    const d = snap.docs[0]
-    return { id: d.id, ...d.data() } as Consentimento
-  } catch {
-    return null
-  }
+  const { data, error } = await supabaseAdmin()
+    .from('consentimentos')
+    .select('*')
+    .eq('agendamento_id', agendamentoId)
+    .maybeSingle()
+  if (error || !data) return null
+  return rowToConsentimento(data)
 }
 
 export async function criarConsentimento(params: {
@@ -101,25 +103,30 @@ export async function criarConsentimento(params: {
   dataAgendamento: string
 }): Promise<{ id: string; token: string }> {
   const token = gerarToken()
-  const ref = await addDoc(collection(db, 'consentimentos'), {
-    token,
-    agendamentoId: params.agendamentoId || null,
-    clienteNome: params.clienteNome,
-    clienteEmail: params.clienteEmail,
-    clienteTelefone: params.clienteTelefone || '',
-    servicoNome: params.servicoNome,
-    dataAgendamento: params.dataAgendamento,
-    estado: 'pendente',
-    dataLinkEnviado: serverTimestamp(),
-    criadoEm: serverTimestamp(),
-  })
-  return { id: ref.id, token }
+  const { data, error } = await supabaseAdmin()
+    .from('consentimentos')
+    .insert({
+      token,
+      agendamento_id: params.agendamentoId || null,
+      cliente_nome: params.clienteNome,
+      cliente_email: params.clienteEmail,
+      cliente_telefone: params.clienteTelefone || '',
+      servico_nome: params.servicoNome,
+      data_agendamento: params.dataAgendamento,
+      estado: 'pendente',
+      data_link_enviado: new Date().toISOString(),
+    })
+    .select('id')
+    .single()
+  if (error || !data) throw new Error(error?.message || 'Falha ao criar consentimento')
+  return { id: data.id, token }
 }
 
 export async function reenviarLinkConsentimento(id: string): Promise<void> {
-  await updateDoc(doc(db, 'consentimentos', id), {
-    dataLinkEnviado: serverTimestamp(),
-  })
+  await supabaseAdmin()
+    .from('consentimentos')
+    .update({ data_link_enviado: new Date().toISOString() })
+    .eq('id', id)
 }
 
 export async function submeterConsentimento(
@@ -131,32 +138,36 @@ export async function submeterConsentimento(
     rgpdAceite: boolean
   }
 ): Promise<{ ok: boolean; error?: string }> {
-  if (!db) return { ok: false, error: 'Base de dados indisponível' }
   if (!payload.consentimentoAceite || !payload.rgpdAceite) {
     return { ok: false, error: 'É necessário aceitar os termos.' }
   }
 
-  const q = query(collection(db, 'consentimentos'), where('token', '==', token))
-  const snap = await getDocs(q)
-  if (snap.empty) return { ok: false, error: 'Link inválido ou expirado.' }
-
-  const docSnap = snap.docs[0]
-  const cur = docSnap.data() as Consentimento
+  const sb = supabaseAdmin()
+  const { data: cur } = await sb
+    .from('consentimentos')
+    .select('id, estado')
+    .eq('token', token)
+    .maybeSingle()
+  if (!cur) return { ok: false, error: 'Link inválido ou expirado.' }
   if (cur.estado === 'submetido') {
     return { ok: false, error: 'Este consentimento já foi submetido.' }
   }
 
   const alertas = computarAlertas(payload.respostas)
 
-  await updateDoc(doc(db, 'consentimentos', docSnap.id), {
-    estado: 'submetido',
-    dataSubmissao: serverTimestamp(),
-    respostas: payload.respostas,
-    assinaturaNome: payload.assinaturaNome,
-    consentimentoAceite: true,
-    rgpdAceite: true,
-    alertas,
-  })
+  const { error } = await sb
+    .from('consentimentos')
+    .update({
+      estado: 'submetido',
+      data_submissao: new Date().toISOString(),
+      respostas: payload.respostas,
+      assinatura_nome: payload.assinaturaNome,
+      consentimento_aceite: true,
+      rgpd_aceite: true,
+      alertas,
+    })
+    .eq('id', cur.id)
+  if (error) return { ok: false, error: error.message }
 
   return { ok: true }
 }
@@ -174,12 +185,11 @@ export function computarAlertas(r: RespostasAnamnese): string[] {
 }
 
 export async function getDocPorId(id: string): Promise<Consentimento | null> {
-  if (!db) return null
-  try {
-    const snap = await getDoc(doc(db, 'consentimentos', id))
-    if (!snap.exists()) return null
-    return { id: snap.id, ...snap.data() } as Consentimento
-  } catch {
-    return null
-  }
+  const { data, error } = await supabaseAdmin()
+    .from('consentimentos')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle()
+  if (error || !data) return null
+  return rowToConsentimento(data)
 }

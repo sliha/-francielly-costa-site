@@ -4,11 +4,25 @@ import { useState, useEffect, useCallback } from 'react'
 import { Video, ExternalLink, Search } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import {
-  getTodasConsultasVirtuais,
-  atualizarEstadoConsulta,
-  type ConsultaVirtual,
-} from '@/lib/consultasVirtuais'
+import { supabase } from '@/lib/supabase/client'
+import type { ConsultaVirtual } from '@/lib/consultasVirtuais'
+
+function rowToConsulta(r: Record<string, any>): ConsultaVirtual {
+  return {
+    id: r.id,
+    clienteNome: r.cliente_nome ?? '',
+    clienteTelefone: r.cliente_telefone ?? '',
+    clienteEmail: r.cliente_email ?? '',
+    servicoInteresse: r.servico_interesse ?? '',
+    data: r.data ?? '',
+    hora: r.hora ?? '',
+    duvida: r.duvida ?? undefined,
+    meetLink: r.meet_link ?? undefined,
+    googleEventId: r.google_event_id ?? undefined,
+    estado: r.estado,
+    criadoEm: r.criado_em ?? undefined,
+  }
+}
 
 const estadoConfig: Record<string, { label: string; color: string; bg: string }> = {
   pendente: { label: 'Pendente', color: 'text-amber-400', bg: 'bg-amber-400/10' },
@@ -27,7 +41,11 @@ export default function ConsultasVirtuaisAdminPage() {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      setConsultas(await getTodasConsultasVirtuais())
+      const { data } = await supabase
+        .from('consultas_virtuais')
+        .select('*')
+        .order('data', { ascending: false })
+      setConsultas((data ?? []).map(rowToConsulta))
     } finally {
       setLoading(false)
     }
@@ -43,7 +61,8 @@ export default function ConsultasVirtuaisAdminPage() {
   const setEstado = async (id: string, estado: ConsultaVirtual['estado']) => {
     setActionId(id)
     try {
-      await atualizarEstadoConsulta(id, estado)
+      const { error } = await supabase.from('consultas_virtuais').update({ estado }).eq('id', id)
+      if (error) throw error
       await load()
     } catch {
       alert('Erro ao atualizar estado.')

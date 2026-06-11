@@ -1,12 +1,11 @@
 import { NextResponse } from 'next/server'
-import { verifyAdminRequest } from '@/lib/firebaseAdmin'
+import { verifyAdminRequest } from '@/lib/auth'
 import {
   getAgendamentoPorId,
   atualizarEstadoAgendamento,
   getSlotsDisponiveis,
 } from '@/lib/booking'
 import { upsertCalendarEventWithMetadata } from '@/lib/googleCalendar'
-import { serverTimestamp, type Timestamp } from 'firebase/firestore'
 
 export const runtime = 'nodejs'
 
@@ -108,11 +107,11 @@ export async function POST(req: Request) {
       googleEventId = newId
       await atualizarEstadoAgendamento(body.agendamentoId, agendamento.estado, {
         googleEventId: newId,
-        lastGoogleSyncAt: serverTimestamp() as unknown as Timestamp,
+        lastGoogleSyncAt: new Date().toISOString(),
       })
     } else if (newId) {
       await atualizarEstadoAgendamento(body.agendamentoId, agendamento.estado, {
-        lastGoogleSyncAt: serverTimestamp() as unknown as Timestamp,
+        lastGoogleSyncAt: new Date().toISOString(),
       })
     } else {
       warning = 'Reagendado mas falhou sincronização com Google Calendar'

@@ -3,7 +3,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { Gift, Search, ChevronRight, Copy } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { getReferenciasAgrupadas, type Referencia } from '@/lib/referencias'
+import { supabase } from '@/lib/supabase/client'
+import type { Referencia } from '@/lib/referencias'
 
 interface Grupo {
   refenteEmail: string
@@ -11,8 +12,51 @@ interface Grupo {
   codigoReferencia: string
   totalEnviadas: number
   totalConvertidas: number
-  ultimaActividade?: { toDate: () => Date } | null
+  ultimaActividade?: string | null
   referencias: Referencia[]
+}
+
+function rowToReferencia(r: Record<string, any>): Referencia {
+  return {
+    id: r.id,
+    codigoUsado: r.codigo_usado ?? '',
+    refenteEmail: r.refente_email ?? '',
+    refenteNome: r.refente_nome ?? '',
+    novoNome: r.novo_nome ?? '',
+    novoEmail: r.novo_email ?? '',
+    agendamentoId: r.agendamento_id ?? '',
+    servicoNome: r.servico_nome ?? '',
+    estado: r.estado,
+    criadoEm: r.criado_em ?? undefined,
+    convertidaEm: r.convertida_em ?? null,
+  }
+}
+
+// Agrupa referências por cliente refente (replica getReferenciasAgrupadas client-side)
+function agruparReferencias(todas: Referencia[]): Grupo[] {
+  const map = new Map<string, {
+    refenteEmail: string
+    refenteNome: string
+    codigoReferencia: string
+    referencias: Referencia[]
+  }>()
+  for (const r of todas) {
+    const chave = r.refenteEmail
+    const cur = map.get(chave) || {
+      refenteEmail: r.refenteEmail,
+      refenteNome: r.refenteNome,
+      codigoReferencia: r.codigoUsado,
+      referencias: [],
+    }
+    cur.referencias.push(r)
+    map.set(chave, cur)
+  }
+  return Array.from(map.values()).map((g) => ({
+    ...g,
+    totalEnviadas: g.referencias.length,
+    totalConvertidas: g.referencias.filter((x) => x.estado === 'convertida').length,
+    ultimaActividade: g.referencias[0]?.criadoEm ?? null,
+  })).sort((a, b) => b.totalEnviadas - a.totalEnviadas)
 }
 
 export default function ReferenciasAdminPage() {
@@ -29,8 +73,11 @@ export default function ReferenciasAdminPage() {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const dados = await getReferenciasAgrupadas()
-      setGrupos(dados as Grupo[])
+      const { data } = await supabase
+        .from('referencias')
+        .select('*')
+        .order('criado_em', { ascending: false })
+      setGrupos(agruparReferencias((data ?? []).map(rowToReferencia)))
     } finally {
       setLoading(false)
     }
@@ -147,8 +194,8 @@ export default function ReferenciasAdminPage() {
                     {g.referencias.map((r) => {
                       const dataFmt = (() => {
                         try {
-                          if (!r.criadoEm || typeof (r.criadoEm as { toDate?: () => Date }).toDate !== 'function') return '—'
-                          return format((r.criadoEm as unknown as { toDate: () => Date }).toDate(), "d MMM yyyy", { locale: ptBR })
+                          if (!r.criadoEm) return '—'
+                          return format(new Date(r.criadoEm), "d MMM yyyy", { locale: ptBR })
                         } catch { return '—' }
                       })()
                       return (

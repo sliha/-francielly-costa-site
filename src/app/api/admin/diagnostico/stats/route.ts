@@ -1,77 +1,83 @@
 import { NextResponse } from 'next/server'
-import { verifyAdminRequest, getAdminDb, getAdminInitError } from '@/lib/firebaseAdmin'
-import { Timestamp } from 'firebase-admin/firestore'
+import { verifyAdminRequest } from '@/lib/auth'
+import { supabaseAdmin } from '@/lib/supabase/admin'
+import { getSyncState } from '@/lib/googleCalendarSync'
 
 export const runtime = 'nodejs'
+
+const msFrom = (iso?: string | null) => (iso ? new Date(iso).getTime() : null)
 
 export async function GET(req: Request) {
   const auth = await verifyAdminRequest(req)
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status })
 
-  const db = getAdminDb()
-  if (!db) return NextResponse.json({ error: getAdminInitError() || 'admin-sdk' }, { status: 500 })
+  const sb = supabaseAdmin()
 
   const hoje = new Date()
   const hojeStr = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`
 
-  // Estado da sincronização
-  const syncSnap = await db.collection('settings').doc('googleCalendarSync').get()
-  const sync = syncSnap.exists ? syncSnap.data() : null
+  // Estado da sincronização (settings → googleCalendarSync, via helper)
+  const sync = await getSyncState()
 
-  // Agendamentos ativos
-  const ativos = await db.collection('agendamentos').where('data', '>=', hojeStr).get()
-  const ativosFiltrados = ativos.docs.filter((d) => {
-    const e = d.data().estado
+  // Agendamentos ativos (a partir de hoje)
+  const { data: ativosRows } = await sb
+    .from('agendamentos')
+    .select('id, cliente_nome, servico_nome, data, hora_inicio, estado, google_event_id')
+    .gte('data', hojeStr)
+  const ativosFiltrados = (ativosRows || []).filter((d) => {
+    const e = d.estado
     return e === 'pendente' || e === 'confirmado' || e === 'pago'
   })
-  const comGoogle = ativosFiltrados.filter((d) => !!d.data().googleEventId).length
+  const comGoogle = ativosFiltrados.filter((d) => !!d.google_event_id).length
   const semGoogle = ativosFiltrados.length - comGoogle
   const semGoogleList = ativosFiltrados
-    .filter((d) => !d.data().googleEventId)
+    .filter((d) => !d.google_event_id)
     .slice(0, 20)
-    .map((d) => {
-      const a = d.data()
-      return {
-        id: d.id,
-        clienteNome: a.clienteNome || '',
-        servicoNome: a.servicoNome || '',
-        data: a.data || '',
-        horaInicio: a.horaInicio || '',
-        estado: a.estado || '',
-      }
-    })
-
-  // Bloqueios externos
-  const bloqueios = await db.collection('diasBloqueados').where('data', '>=', hojeStr).get()
-  const bloqueiosExternos = bloqueios.docs.filter((d) => d.data().origem === 'google-externo').length
-
-  // Idempotência: últimos 30 dias
-  const ttlCutoff = Timestamp.fromMillis(Date.now() - 30 * 24 * 60 * 60 * 1000)
-  const procSnap = await db.collection('processedEvents').where('processedAt', '>=', ttlCutoff).get()
-  const stripeCount = procSnap.docs.filter((d) => d.data().source === 'stripe').length
-  const googleCount = procSnap.docs.filter((d) => d.data().source === 'google-calendar').length
-
-  // Alertas ativos
-  const alertasSnap = await db.collection('alertas').where('resolvido', '==', false).get()
-  const alertas = alertasSnap.docs
-    .sort((a, b) => {
-      const ta = (a.data().criadoEm as Timestamp)?.toMillis() ?? 0
-      const tb = (b.data().criadoEm as Timestamp)?.toMillis() ?? 0
-      return tb - ta
-    })
-    .slice(0, 10)
-    .map((d) => ({
-      id: d.id,
-      ...d.data(),
-      criadoEm: (d.data().criadoEm as Timestamp)?.toMillis() ?? null,
+    .map((a) => ({
+      id: a.id,
+      clienteNome: a.cliente_nome || '',
+      servicoNome: a.servico_nome || '',
+      data: a.data || '',
+      horaInicio: a.hora_inicio || '',
+      estado: a.estado || '',
     }))
 
+  // Bloqueios externos (a partir de hoje)
+  const { data: bloqueiosRows } = await sb
+    .from('dias_bloqueados')
+    .select('origem')
+    .gte('data', hojeStr)
+  const bloqueios = bloqueiosRows || []
+  const bloqueiosExternos = bloqueios.filter((d) => d.origem === 'google-externo').length
+
+  // Idempotência: últimos 30 dias
+  const ttlCutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+  const { data: procRows } = await sb
+    .from('processed_events')
+    .select('source, processed_at')
+    .gte('processed_at', ttlCutoff)
+  const proc = procRows || []
+  const stripeCount = proc.filter((d) => d.source === 'stripe').length
+  const googleCount = proc.filter((d) => d.source === 'google-calendar').length
+
+  // Alertas ativos
+  const { data: alertasRows } = await sb
+    .from('alertas')
+    .select('*')
+    .eq('resolvido', false)
+    .order('criado_em', { ascending: false })
+    .limit(10)
+  const alertas = (alertasRows || []).map((d) => ({
+    ...d,
+    criadoEm: msFrom(d.criado_em),
+  }))
+
   return NextResponse.json({
-    sync: sync
+    sync: sync && Object.keys(sync).length > 0
       ? {
           channelId: sync.channelId || null,
           channelExpiration: sync.channelExpiration || null,
-          lastSyncAt: (sync.lastSyncAt as Timestamp)?.toMillis() ?? null,
+          lastSyncAt: msFrom(sync.lastSyncAt),
           lastSyncStatus: sync.lastSyncStatus || null,
           lastError: sync.lastError || null,
           syncTokenPresent: !!sync.syncToken,
@@ -84,7 +90,7 @@ export async function GET(req: Request) {
       semGoogleList,
     },
     bloqueios: {
-      total: bloqueios.size,
+      total: bloqueios.length,
       externos: bloqueiosExternos,
     },
     idempotencia: {

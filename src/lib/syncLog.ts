@@ -1,9 +1,9 @@
+import 'server-only'
 /**
  * Log de auditoria para operações de sincronização.
- * Coleção `syncLog`, TTL 90 dias (configurar via Firebase Console).
+ * Tabela `sync_log`, TTL 90 dias (limpeza via pg_cron).
  */
-import { getAdminDb } from '@/lib/firebaseAdmin'
-import { Timestamp } from 'firebase-admin/firestore'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 
 export type SyncOperation =
   | 'create_event'
@@ -21,7 +21,6 @@ export type SyncOperation =
 export type SyncStatus = 'ok' | 'error' | 'retry' | 'skip'
 
 export interface SyncLogEntry {
-  timestamp: Timestamp
   operation: SyncOperation
   status: SyncStatus
   agendamentoId?: string
@@ -30,24 +29,26 @@ export interface SyncLogEntry {
   attempt?: number
   errorMessage?: string
   metadata?: Record<string, unknown>
-  ttlExpiresAt: Timestamp
 }
 
-const COL = 'syncLog'
 const TTL_DAYS = 90
 
-function ttlTimestamp(): Timestamp {
-  return Timestamp.fromMillis(Date.now() + TTL_DAYS * 24 * 60 * 60 * 1000)
+function ttlIso(): string {
+  return new Date(Date.now() + TTL_DAYS * 24 * 60 * 60 * 1000).toISOString()
 }
 
-export async function logSync(entry: Omit<SyncLogEntry, 'timestamp' | 'ttlExpiresAt'>): Promise<void> {
-  const db = getAdminDb()
-  if (!db) return
+export async function logSync(entry: SyncLogEntry): Promise<void> {
   try {
-    await db.collection(COL).add({
-      ...entry,
-      timestamp: Timestamp.now(),
-      ttlExpiresAt: ttlTimestamp(),
+    await supabaseAdmin().from('sync_log').insert({
+      operation: entry.operation,
+      status: entry.status,
+      agendamento_id: entry.agendamentoId ?? null,
+      google_event_id: entry.googleEventId ?? null,
+      duration_ms: entry.durationMs,
+      attempt: entry.attempt ?? null,
+      error_message: entry.errorMessage ?? null,
+      metadata: entry.metadata ?? null,
+      ttl_expires_at: ttlIso(),
     })
   } catch (err) {
     console.warn('logSync falhou:', err)
@@ -55,7 +56,7 @@ export async function logSync(entry: Omit<SyncLogEntry, 'timestamp' | 'ttlExpire
 }
 
 /**
- * Mede tempo de execução de `fn` e grava entry em syncLog automaticamente.
+ * Mede tempo de execução de `fn` e grava entry em sync_log automaticamente.
  * Em erro, grava status=error com a mensagem e re-throws.
  */
 export async function timedLog<T>(

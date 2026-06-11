@@ -4,8 +4,7 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useInView } from 'react-intersection-observer'
 import { X, ZoomIn, Play, ChevronLeft, ChevronRight } from 'lucide-react'
-import { db } from '@/lib/firebase'
-import { collection, getDocs, query, where } from 'firebase/firestore'
+import { supabase } from '@/lib/supabase/client'
 
 const categories = [
   { id: 'fiberbrows', label: 'FiberBROWS' },
@@ -32,7 +31,7 @@ interface MediaItem {
   tipo: 'antes' | 'depois'
   mediaType?: 'foto' | 'video'
   label: string
-  criadoEm?: { seconds: number } | null
+  criadoEm?: string | null
 }
 
 // Placeholder items shown when no real media is uploaded yet
@@ -52,24 +51,29 @@ export default function GaleriaPage() {
   const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.1 })
 
   useEffect(() => {
-    if (!db) { setLoading(false); return }
-    // Usar apenas where sem orderBy para evitar index composto obrigatório;
-    // ordenação feita no cliente por criadoEm descrescente.
-    const q = query(collection(db, 'galeria'), where('ativa', '==', true))
-    getDocs(q)
-      .then((snap) => {
-        const docs = snap.docs
-          .map((d) => ({ id: d.id, ...d.data() } as MediaItem))
-          .sort((a, b) => {
-            const aT = a.criadoEm?.seconds ?? 0
-            const bT = b.criadoEm?.seconds ?? 0
-            return bT - aT
-          })
-        console.log('[Galeria] documentos encontrados:', docs.length, docs.map((d) => d.url))
-        setItems(docs)
+    supabase
+      .from('galeria')
+      .select('*')
+      .eq('ativa', true)
+      .order('criado_em', { ascending: false })
+      .then(({ data, error }) => {
+        if (error) {
+          console.error('[Galeria] erro ao carregar:', error)
+        } else {
+          const docs: MediaItem[] = (data ?? []).map((d) => ({
+            id: d.id,
+            url: d.url,
+            servico: d.servico,
+            tipo: d.tipo,
+            mediaType: d.media_type ?? undefined,
+            label: d.label,
+            criadoEm: d.criado_em ?? null,
+          }))
+          console.log('[Galeria] documentos encontrados:', docs.length, docs.map((d) => d.url))
+          setItems(docs)
+        }
+        setLoading(false)
       })
-      .catch((err) => console.error('[Galeria] erro ao carregar:', err))
-      .finally(() => setLoading(false))
   }, [])
 
   const displayItems = items.length > 0 ? items : placeholders

@@ -1,94 +1,112 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { CheckCircle2, Save, Eye, EyeOff, Euro, Upload, Trash2 } from 'lucide-react'
-import { db, storage } from '@/lib/firebase'
-import { doc, getDoc, setDoc } from 'firebase/firestore'
-import { ref as storageRef, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage'
+import { CheckCircle2, Save, Eye, EyeOff, Euro, Upload, Trash2, Star } from 'lucide-react'
+import { supabase } from '@/lib/supabase/client'
+import { uploadMedia, deleteMedia } from '@/lib/upload'
+import { services as STATIC_SERVICES } from '@/data/services'
 
-const DEFAULT_SERVICOS = [
-  { id: 'fiberbrows', nome: 'FiberBROWS', preco: 'A partir de €1.000', ativo: true, destaque: true, fotoUrl: '', fotoPath: '' },
-  { id: 'microblading', nome: 'Microblading', preco: '€200 – €350', ativo: true, destaque: false, fotoUrl: '', fotoPath: '' },
-  { id: 'microshading', nome: 'Microshading', preco: '€180 – €300', ativo: true, destaque: false, fotoUrl: '', fotoPath: '' },
-  { id: 'eyeliner', nome: 'Micropigmentação Eyeliner', preco: '€150 – €250', ativo: true, destaque: false, fotoUrl: '', fotoPath: '' },
-  { id: 'labial', nome: 'Micropigmentação Labial', preco: '€200 – €350', ativo: true, destaque: false, fotoUrl: '', fotoPath: '' },
-  { id: 'tricopigmentacao', nome: 'Tricopigmentação', preco: 'A consultar', ativo: false, destaque: false, fotoUrl: '', fotoPath: '' },
-]
+interface Servico {
+  id: string
+  nome: string
+  descricao: string
+  preco: string
+  ativo: boolean
+  destaque: boolean
+  fotoUrl: string
+  fotoPath: string
+}
 
-type Servico = typeof DEFAULT_SERVICOS[0]
+// Defaults a partir dos serviços estáticos (nome + descrição curta)
+const DEFAULT_SERVICOS: Servico[] = STATIC_SERVICES.map((s) => ({
+  id: s.id,
+  nome: s.name,
+  descricao: s.shortDescription,
+  preco: s.priceRange || '',
+  ativo: true,
+  destaque: s.slug === 'fiberbrows',
+  fotoUrl: '',
+  fotoPath: '',
+}))
 
 function toast(msg: string, error = false) {
   if (typeof window === 'undefined') return
   const el = document.createElement('div')
   el.textContent = msg
-  el.style.cssText = `position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:${error ? '#EF4444' : '#10B981'};color:#fff;padding:10px 20px;border-radius:12px;font-size:14px;z-index:9999;font-family:Inter,sans-serif`
+  el.style.cssText = `position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:${error ? '#EF4444' : '#10B981'};color:#fff;padding:10px 20px;border-radius:12px;font-size:14px;z-index:9999;font-family:Inter,sans-serif;max-width:90vw;text-align:center`
   document.body.appendChild(el)
-  setTimeout(() => el.remove(), 3000)
+  setTimeout(() => el.remove(), 3500)
 }
 
 export default function ServicosAdminPage() {
   const [servicos, setServicos] = useState<Servico[]>(DEFAULT_SERVICOS)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
-  const [uploading, setUploading] = useState<Record<string, number>>({})
+  const [uploading, setUploading] = useState<Record<string, boolean>>({})
   const fileRefs = useRef<Record<string, HTMLInputElement | null>>({})
 
   useEffect(() => {
-    if (!db) return
-    getDoc(doc(db, 'settings', 'servicos')).then((snap) => {
-      if (snap.exists()) {
-        const data = snap.data()
-        if (Array.isArray(data.lista)) {
-          setServicos(data.lista.map((s: Servico) => ({ ...s, fotoUrl: s.fotoUrl || '', fotoPath: s.fotoPath || '' })))
-        }
-      }
-    }).catch(() => {})
+    supabase
+      .from('settings')
+      .select('value')
+      .eq('key', 'servicos')
+      .maybeSingle()
+      .then(({ data }) => {
+        const lista = (data?.value as { lista?: Partial<Servico>[] } | null)?.lista
+        if (!Array.isArray(lista)) return
+        // merge: DB sobre defaults estáticos (preenche nome/descrição em falta)
+        const staticById = Object.fromEntries(DEFAULT_SERVICOS.map((d) => [d.id, d]))
+        setServicos(
+          lista.map((s) => {
+            const base = staticById[s.id || ''] || ({} as Servico)
+            return {
+              id: s.id || base.id,
+              nome: s.nome ?? base.nome ?? '',
+              descricao: s.descricao ?? base.descricao ?? '',
+              preco: s.preco ?? base.preco ?? '',
+              ativo: s.ativo ?? base.ativo ?? true,
+              destaque: s.destaque ?? base.destaque ?? false,
+              fotoUrl: s.fotoUrl || '',
+              fotoPath: s.fotoPath || '',
+            }
+          })
+        )
+      })
   }, [])
 
-  const handlePrecoChange = (id: string, preco: string) => {
-    setServicos((prev) => prev.map((s) => s.id === id ? { ...s, preco } : s))
-    setSaved(false)
-  }
-
-  const toggleAtivo = (id: string) => {
-    setServicos((prev) => prev.map((s) => s.id === id ? { ...s, ativo: !s.ativo } : s))
+  const update = (id: string, patch: Partial<Servico>) => {
+    setServicos((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)))
     setSaved(false)
   }
 
   const handleFotoUpload = async (id: string, file: File) => {
-    if (!storage) return
-    setUploading((prev) => ({ ...prev, [id]: 0 }))
-    const path = `servicos/${id}/foto_${Date.now()}`
-    const sRef = storageRef(storage, path)
-    const task = uploadBytesResumable(sRef, file)
-    task.on('state_changed',
-      (snap) => setUploading((prev) => ({ ...prev, [id]: Math.round(snap.bytesTransferred / snap.totalBytes * 100) })),
-      () => { toast('Erro ao fazer upload.', true); setUploading((prev) => { const n = { ...prev }; delete n[id]; return n }) },
-      async () => {
-        const url = await getDownloadURL(task.snapshot.ref)
-        console.log('Upload URL:', url)
-        setServicos((prev) => prev.map((s) => s.id === id ? { ...s, fotoUrl: url, fotoPath: path } : s))
-        setUploading((prev) => { const n = { ...prev }; delete n[id]; return n })
-        setSaved(false)
-        toast('Foto carregada! Guarda para aplicar.')
-      }
-    )
+    setUploading((p) => ({ ...p, [id]: true }))
+    try {
+      const path = `servicos/${id}/foto_${Date.now()}`
+      const { url, path: p } = await uploadMedia(file, path)
+      update(id, { fotoUrl: url, fotoPath: p })
+      toast('Foto carregada! Guarda para aplicar.')
+    } catch (e) {
+      toast(e instanceof Error ? e.message : 'Erro ao fazer upload.', true)
+    } finally {
+      setUploading((p) => { const n = { ...p }; delete n[id]; return n })
+    }
   }
 
   const handleFotoRemove = async (id: string) => {
     const servico = servicos.find((s) => s.id === id)
-    if (!servico?.fotoPath || !storage) return
-    try {
-      await deleteObject(storageRef(storage, servico.fotoPath))
-    } catch { /* ignore if already deleted */ }
-    setServicos((prev) => prev.map((s) => s.id === id ? { ...s, fotoUrl: '', fotoPath: '' } : s))
-    setSaved(false)
+    if (servico?.fotoPath) await deleteMedia(servico.fotoPath)
+    update(id, { fotoUrl: '', fotoPath: '' })
   }
 
   const handleSave = async () => {
     setSaving(true)
     try {
-      if (db) await setDoc(doc(db, 'settings', 'servicos'), { lista: servicos }, { merge: true })
+      const { error } = await supabase.from('settings').upsert(
+        { key: 'servicos', value: { lista: servicos }, updated_at: new Date().toISOString() },
+        { onConflict: 'key' },
+      )
+      if (error) throw error
       setSaved(true)
       toast('Serviços guardados com sucesso!')
       setTimeout(() => setSaved(false), 3000)
@@ -101,10 +119,10 @@ export default function ServicosAdminPage() {
 
   return (
     <div className="min-h-screen bg-[#0F0F0F] text-white">
-      <div className="px-4 pt-5 pb-3 md:px-6 md:pt-6 flex items-center justify-between border-b border-white/5">
+      <div className="px-4 pt-5 pb-3 md:px-6 md:pt-6 flex items-center justify-between border-b border-white/5 sticky top-0 bg-[#0F0F0F] z-10">
         <div>
           <h1 className="text-white text-xl font-playfair font-semibold">Serviços & Preços</h1>
-          <p className="text-white/40 text-xs mt-0.5">Editar preços, fotos e visibilidade dos serviços</p>
+          <p className="text-white/40 text-xs mt-0.5">Editar nome, descrição, preço, foto e visibilidade</p>
         </div>
         <button onClick={handleSave} disabled={saving}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium transition-all ${
@@ -119,37 +137,66 @@ export default function ServicosAdminPage() {
 
       <div className="px-4 md:px-6 pb-8 pt-4 space-y-3">
         <p className="text-white/30 text-xs">
-          As alterações são guardadas no Firestore e exibidas no site público.
+          As alterações são guardadas na base de dados e refletidas no site público.
         </p>
 
         {servicos.map((s) => (
           <div key={s.id}
             className={`bg-[#1A1A1A] rounded-2xl p-4 border transition-colors ${
-              s.ativo ? 'border-white/5' : 'border-white/3 opacity-60'
+              s.ativo ? 'border-white/5' : 'border-white/5 opacity-60'
             }`}>
-            <div className="flex items-start justify-between gap-3 mb-3">
-              <div className="flex items-center gap-2 min-w-0">
-                {s.destaque && (
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-golden/15 text-golden font-bold flex-shrink-0">
-                    CARRO-CHEFE
-                  </span>
-                )}
-                <div className="min-w-0">
-                  <p className="text-white font-medium text-sm">{s.nome}</p>
-                  <p className="text-white/30 text-xs mt-0.5">ID: {s.id}</p>
-                </div>
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <p className="text-white/30 text-xs">ID: {s.id}</p>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <button onClick={() => update(s.id, { destaque: !s.destaque })}
+                  className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full transition-colors ${
+                    s.destaque ? 'bg-golden/15 text-golden' : 'bg-white/5 text-white/30'
+                  }`}>
+                  <Star size={11} className={s.destaque ? 'fill-golden' : ''} />
+                  {s.destaque ? 'Destaque' : 'Normal'}
+                </button>
+                <button onClick={() => update(s.id, { ativo: !s.ativo })}
+                  className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full transition-colors ${
+                    s.ativo ? 'bg-emerald-400/10 text-emerald-400' : 'bg-white/5 text-white/30'
+                  }`}>
+                  {s.ativo ? <Eye size={11} /> : <EyeOff size={11} />}
+                  {s.ativo ? 'Ativo' : 'Inativo'}
+                </button>
               </div>
-              <button onClick={() => toggleAtivo(s.id)}
-                className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full transition-colors flex-shrink-0 ${
-                  s.ativo ? 'bg-emerald-400/10 text-emerald-400' : 'bg-white/5 text-white/30'
-                }`}>
-                {s.ativo ? <Eye size={11} /> : <EyeOff size={11} />}
-                {s.ativo ? 'Ativo' : 'Inativo'}
-              </button>
             </div>
 
-            {/* Foto do serviço */}
+            {/* Nome */}
             <div className="mb-3">
+              <label className="text-white/40 text-xs mb-1 block">Nome</label>
+              <input type="text" value={s.nome}
+                onChange={(e) => update(s.id, { nome: e.target.value })}
+                placeholder="Nome do serviço"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-rose-gold/50 placeholder:text-white/20" />
+            </div>
+
+            {/* Descrição */}
+            <div className="mb-3">
+              <label className="text-white/40 text-xs mb-1 block">Descrição (cartão público)</label>
+              <textarea value={s.descricao} rows={3}
+                onChange={(e) => update(s.id, { descricao: e.target.value })}
+                placeholder="Descrição curta apresentada no cartão do serviço"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-rose-gold/50 placeholder:text-white/20 resize-y" />
+            </div>
+
+            {/* Preço */}
+            <div className="mb-3">
+              <label className="text-white/40 text-xs mb-1 block">Preço</label>
+              <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 focus-within:border-rose-gold/50 transition-colors">
+                <Euro size={13} className="text-white/30 flex-shrink-0" />
+                <input type="text" value={s.preco}
+                  onChange={(e) => update(s.id, { preco: e.target.value })}
+                  placeholder="Ex: €200 – €350 ou A partir de €1.000"
+                  className="w-full bg-transparent text-white text-sm focus:outline-none placeholder:text-white/20" />
+              </div>
+            </div>
+
+            {/* Foto */}
+            <div>
               <label className="text-white/40 text-xs mb-2 block">Foto do Serviço (homepage)</label>
               {s.fotoUrl ? (
                 <div className="relative w-full max-w-xs">
@@ -165,26 +212,16 @@ export default function ServicosAdminPage() {
                   <input type="file" accept="image/*"
                     ref={(el) => { fileRefs.current[s.id] = el }}
                     className="hidden"
-                    onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFotoUpload(s.id, f) }} />
+                    onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFotoUpload(s.id, f); e.target.value = '' }} />
                   <button onClick={() => fileRefs.current[s.id]?.click()}
-                    disabled={uploading[s.id] !== undefined}
-                    className="flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white/60 hover:text-white text-xs px-3 py-2 rounded-xl transition-colors">
-                    <Upload size={13} />
-                    {uploading[s.id] !== undefined ? `A enviar… ${uploading[s.id]}%` : 'Carregar foto'}
+                    disabled={uploading[s.id]}
+                    className="flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white/60 hover:text-white text-xs px-3 py-2 rounded-xl transition-colors disabled:opacity-50">
+                    {uploading[s.id]
+                      ? <><div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" /> A enviar…</>
+                      : <><Upload size={13} /> Carregar foto</>}
                   </button>
                 </div>
               )}
-            </div>
-
-            <div>
-              <label className="text-white/40 text-xs mb-1 block">Preço</label>
-              <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 focus-within:border-rose-gold/50 transition-colors">
-                <Euro size={13} className="text-white/30 flex-shrink-0" />
-                <input type="text" value={s.preco}
-                  onChange={(e) => handlePrecoChange(s.id, e.target.value)}
-                  placeholder="Ex: €200 – €350 ou A partir de €1.000"
-                  className="w-full bg-transparent text-white text-sm focus:outline-none placeholder:text-white/20" />
-              </div>
             </div>
           </div>
         ))}

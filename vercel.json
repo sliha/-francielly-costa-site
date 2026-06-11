@@ -1,0 +1,7 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "crons": [
+    { "path": "/api/admin/google-calendar/auto-renew", "schedule": "0 6 * * *" },
+    { "path": "/api/admin/calendar/full-reconcile", "schedule": "0 4 * * *" }
+  ]
+}

@@ -2,9 +2,8 @@
 import { useState, useRef, useEffect } from 'react'
 import { Upload, Trash2, Eye, EyeOff, ImagePlus, Filter, X, Play } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { db, storage } from '@/lib/firebase'
-import { collection, getDocs, addDoc, deleteDoc, updateDoc, doc, serverTimestamp, orderBy, query } from 'firebase/firestore'
-import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage'
+import { supabase } from '@/lib/supabase/client'
+import { uploadMedia, deleteMedia } from '@/lib/upload'
 
 interface Foto {
   id: string
@@ -51,44 +50,46 @@ export default function GaleriaPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    if (!db) { setLoading(false); return }
-    const q = query(collection(db, 'galeria'), orderBy('criadoEm', 'desc'))
-    getDocs(q).then((snap) => {
-      setFotos(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Foto)))
-    }).catch(() => {}).finally(() => setLoading(false))
+    supabase
+      .from('galeria')
+      .select('*')
+      .order('criado_em', { ascending: false })
+      .then(({ data, error }) => {
+        if (!error && data) {
+          setFotos(data.map((d) => ({
+            id: d.id,
+            servico: d.servico,
+            tipo: d.tipo,
+            mediaType: d.media_type ?? 'foto',
+            ativa: d.ativa,
+            url: d.url,
+            storagePath: d.storage_path,
+            label: d.label,
+            criadoEm: d.criado_em,
+          } as Foto)))
+        }
+        setLoading(false)
+      })
   }, [])
 
   const filteredFotos = filterServico === 'todos' ? fotos : fotos.filter((f) => f.servico === filterServico)
 
   const toggleAtiva = async (id: string, current: boolean) => {
     setFotos((prev) => prev.map((f) => (f.id === id ? { ...f, ativa: !current } : f)))
-    if (db) {
-      try { await updateDoc(doc(db, 'galeria', id), { ativa: !current }) } catch {}
-    }
+    try { await supabase.from('galeria').update({ ativa: !current }).eq('id', id) } catch {}
   }
 
   const deleteFoto = async (foto: Foto) => {
     if (!confirm('Eliminar este ficheiro?')) return
     setFotos((prev) => prev.filter((f) => f.id !== foto.id))
     try {
-      if (storage && foto.storagePath) await deleteObject(ref(storage, foto.storagePath))
-      if (db) await deleteDoc(doc(db, 'galeria', foto.id))
+      if (foto.storagePath) await deleteMedia(foto.storagePath)
+      await supabase.from('galeria').delete().eq('id', foto.id)
     } catch {}
   }
 
   const processFiles = async (files: File[]) => {
-    if (!storage) {
-      alert('❌ Firebase Storage não inicializado.\nVerifica as variáveis de ambiente NEXT_PUBLIC_FIREBASE_*')
-      console.error('[Upload] storage is null — env vars missing?')
-      return
-    }
-    if (!db) {
-      alert('❌ Firestore não inicializado.')
-      return
-    }
     setPendingFiles([])
-
-    console.log('[Upload] storage bucket:', (storage as any).app?.options?.storageBucket)
 
     for (const file of files) {
       const isVideo = file.type.startsWith('video/')
@@ -101,66 +102,66 @@ export default function GaleriaPage() {
       const uploadId = `${Date.now()}_${Math.random()}`
       const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
       const path = `media/servicos/${uploadMeta.servico}/${uploadId}_${safeName}`
-      const storageRef = ref(storage, path)
 
       console.log(`[Upload] Starting: ${file.name} → ${path} (${file.type}, ${(file.size / 1024).toFixed(0)} KB)`)
 
       setUploads((prev) => [...prev, { id: uploadId, name: file.name, progress: 0 }])
 
+      let url: string
       try {
-        const metadata = { contentType: file.type || 'application/octet-stream' }
-        const task = uploadBytesResumable(storageRef, file, metadata)
+        const r = await uploadMedia(file, path)
+        url = r.url
+      } catch (upErr) {
+        const msg = upErr instanceof Error ? upErr.message : 'Erro desconhecido'
+        console.error(`[Upload] ERRO em ${file.name}:`, upErr)
+        alert(`❌ Erro no upload de "${file.name}":\n${msg}`)
+        setUploads((prev) => prev.map((u) => (u.id === uploadId ? { ...u, error: msg } : u)))
+        setTimeout(() => setUploads((prev) => prev.filter((u) => u.id !== uploadId)), 5000)
+        continue
+      }
 
-        await new Promise<void>((resolve, reject) => {
-          task.on(
-            'state_changed',
-            (snap) => {
-              const pct = snap.totalBytes > 0
-                ? Math.round((snap.bytesTransferred / snap.totalBytes) * 100)
-                : 0
-              console.log(`[Upload] ${file.name}: ${pct}% (${snap.state})`)
-              setUploads((prev) =>
-                prev.map((u) => (u.id === uploadId ? { ...u, progress: pct } : u))
-              )
-            },
-            (err) => {
-              const msg = `${err.code}: ${err.message}`
-              console.error(`[Upload] ERRO em ${file.name}:`, err)
-              alert(`❌ Erro no upload de "${file.name}":\n${msg}\n\nVerifica:\n• Firebase Storage rules\n• Autenticação admin\n• Bucket correcto no .env`)
-              setUploads((prev) =>
-                prev.map((u) => (u.id === uploadId ? { ...u, error: msg } : u))
-              )
-              reject(err)
-            },
-            async () => {
-              console.log(`[Upload] ✅ Concluído: ${file.name}`)
-              try {
-                const url = await getDownloadURL(task.snapshot.ref)
-                console.log('Upload URL:', url)
-                const newFoto: Omit<Foto, 'id'> = {
-                  servico: uploadMeta.servico,
-                  tipo: uploadMeta.tipo,
-                  mediaType: isVideo ? 'video' : 'foto',
-                  ativa: true,
-                  url,
-                  storagePath: path,
-                  label: servicoLabels[uploadMeta.servico] ?? uploadMeta.servico,
-                  criadoEm: serverTimestamp(),
-                }
-                const docRef = await addDoc(collection(db!, 'galeria'), newFoto)
-                setFotos((prev) => [
-                  { id: docRef.id, ...newFoto, criadoEm: new Date() } as Foto,
-                  ...prev,
-                ])
-                setUploads((prev) => prev.filter((u) => u.id !== uploadId))
-                resolve()
-              } catch (firestoreErr) {
-                console.error('[Upload] Erro ao guardar no Firestore:', firestoreErr)
-                reject(firestoreErr)
-              }
-            }
+      try {
+        setUploads((prev) =>
+          prev.map((u) => (u.id === uploadId ? { ...u, progress: 100 } : u))
+        )
+
+        const id = uploadId
+        const newRow = {
+          id,
+          servico: uploadMeta.servico,
+          tipo: uploadMeta.tipo,
+          media_type: isVideo ? 'video' : 'foto',
+          ativa: true,
+          url,
+          storage_path: path,
+          label: servicoLabels[uploadMeta.servico] ?? uploadMeta.servico,
+          criado_em: new Date().toISOString(),
+        }
+        const { error: insErr } = await supabase.from('galeria').insert(newRow)
+        if (insErr) {
+          console.error('[Upload] Erro ao guardar no Supabase:', insErr)
+          alert(`❌ Erro ao guardar "${file.name}":\n${insErr.message}`)
+          setUploads((prev) =>
+            prev.map((u) => (u.id === uploadId ? { ...u, error: insErr.message } : u))
           )
-        })
+          continue
+        }
+
+        setFotos((prev) => [
+          {
+            id,
+            servico: newRow.servico,
+            tipo: newRow.tipo,
+            mediaType: isVideo ? 'video' : 'foto',
+            ativa: true,
+            url,
+            storagePath: path,
+            label: newRow.label,
+            criadoEm: newRow.criado_em,
+          } as Foto,
+          ...prev,
+        ])
+        setUploads((prev) => prev.filter((u) => u.id !== uploadId))
       } catch (err) {
         console.error('[Upload] Catch geral:', err)
         setTimeout(

@@ -1,17 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { Search, Mail, Phone, RefreshCw, CheckCircle, Circle, Trash2 } from 'lucide-react'
-import { db } from '@/lib/firebase'
-import {
-  collection,
-  getDocs,
-  updateDoc,
-  deleteDoc,
-  doc,
-  orderBy,
-  query,
-  Timestamp,
-} from 'firebase/firestore'
+import { supabase } from '@/lib/supabase/client'
 
 interface Contacto {
   id: string
@@ -21,7 +11,7 @@ interface Contacto {
   servico: string
   mensagem: string
   lido: boolean
-  criadoEm: Timestamp | null
+  criadoEm: string | null
 }
 
 export default function ContactosAdminPage() {
@@ -33,19 +23,21 @@ export default function ContactosAdminPage() {
   const carregar = async () => {
     setLoading(true)
     try {
-      const snap = await getDocs(
-        query(collection(db!, 'contactos'), orderBy('criadoEm', 'desc'))
-      )
+      const { data, error } = await supabase
+        .from('contactos')
+        .select('*')
+        .order('criado_em', { ascending: false })
+      if (error) throw error
       setContactos(
-        snap.docs.map((d) => ({
+        (data ?? []).map((d) => ({
           id: d.id,
-          nome: d.data().nome || '',
-          email: d.data().email || '',
-          telefone: d.data().telefone || '',
-          servico: d.data().servico || '',
-          mensagem: d.data().mensagem || '',
-          lido: d.data().lido ?? false,
-          criadoEm: d.data().criadoEm || null,
+          nome: d.nome || '',
+          email: d.email || '',
+          telefone: d.telefone || '',
+          servico: d.servico || '',
+          mensagem: d.mensagem || '',
+          lido: d.lido ?? false,
+          criadoEm: d.criado_em || null,
         }))
       )
     } catch (err) {
@@ -59,7 +51,8 @@ export default function ContactosAdminPage() {
 
   const marcarLido = async (id: string, lido: boolean) => {
     try {
-      await updateDoc(doc(db!, 'contactos', id), { lido })
+      const { error } = await supabase.from('contactos').update({ lido }).eq('id', id)
+      if (error) throw error
       setContactos((prev) =>
         prev.map((c) => (c.id === id ? { ...c, lido } : c))
       )
@@ -71,17 +64,18 @@ export default function ContactosAdminPage() {
   const apagar = async (id: string) => {
     if (!confirm('Apagar esta mensagem?')) return
     try {
-      await deleteDoc(doc(db!, 'contactos', id))
+      const { error } = await supabase.from('contactos').delete().eq('id', id)
+      if (error) throw error
       setContactos((prev) => prev.filter((c) => c.id !== id))
     } catch (err) {
       console.error('Erro ao apagar contacto:', err)
     }
   }
 
-  const formatData = (ts: Timestamp | null) => {
-    if (!ts) return '—'
+  const formatData = (iso: string | null) => {
+    if (!iso) return '—'
     try {
-      return ts.toDate().toLocaleDateString('pt-PT', {
+      return new Date(iso).toLocaleDateString('pt-PT', {
         day: 'numeric', month: 'short', year: 'numeric',
         hour: '2-digit', minute: '2-digit',
       })

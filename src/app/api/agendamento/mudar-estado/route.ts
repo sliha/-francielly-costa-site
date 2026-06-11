@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { verifyAdminRequest } from '@/lib/firebaseAdmin'
+import { verifyAdminRequest } from '@/lib/auth'
 import {
   getAgendamentoPorId,
   atualizarEstadoAgendamento,
@@ -9,7 +9,6 @@ import {
   upsertCalendarEventWithMetadata,
   deleteCalendarEvent,
 } from '@/lib/googleCalendar'
-import { serverTimestamp, type Timestamp } from 'firebase/firestore'
 
 export const runtime = 'nodejs'
 
@@ -86,11 +85,11 @@ export async function POST(req: Request) {
         googleEventId = newId
         await atualizarEstadoAgendamento(body.agendamentoId, body.novoEstado, {
           googleEventId: newId,
-          lastGoogleSyncAt: serverTimestamp() as unknown as Timestamp,
+          lastGoogleSyncAt: new Date().toISOString(),
         })
       } else if (newId) {
         await atualizarEstadoAgendamento(body.agendamentoId, body.novoEstado, {
-          lastGoogleSyncAt: serverTimestamp() as unknown as Timestamp,
+          lastGoogleSyncAt: new Date().toISOString(),
         })
       } else {
         warning = 'Estado atualizado mas falhou sincronização Google'

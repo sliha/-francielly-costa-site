@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/firebase'
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 
 async function notificarWaitlist(nome: string, email: string, telefone: string) {
   const resendKey = process.env.RESEND_API_KEY
@@ -62,20 +61,16 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    if (!db) {
-      return NextResponse.json(
-        { error: 'Base de dados não configurada' },
-        { status: 503 }
-      )
-    }
-
-    await addDoc(collection(db, 'fiberbrows-waitlist'), {
-      nome: nome.trim(),
-      email: email.trim().toLowerCase(),
-      telefone: telefone.trim(),
-      criadoEm: serverTimestamp(),
-      contactada: false,
-    })
+    const { error } = await supabaseAdmin()
+      .from('fiberbrows_waitlist')
+      .insert({
+        nome: nome.trim(),
+        email: email.trim().toLowerCase(),
+        telefone: telefone.trim(),
+        criado_em: new Date().toISOString(),
+        contactada: false,
+      })
+    if (error) throw new Error(error.message)
 
     // Fire and forget
     notificarWaitlist(nome.trim(), email.trim().toLowerCase(), telefone.trim()).catch(() => {})

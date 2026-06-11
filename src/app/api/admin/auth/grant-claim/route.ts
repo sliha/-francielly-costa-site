@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getAdminAuth, getAdminInitError } from '@/lib/firebaseAdmin'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 
 export const runtime = 'nodejs'
 
@@ -18,24 +18,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Authorization Bearer token em falta' }, { status: 401 })
   }
 
-  const auth = getAdminAuth()
-  if (!auth) {
-    return NextResponse.json(
-      { error: getAdminInitError() || 'firebase-admin não inicializado' },
-      { status: 500 }
-    )
+  const admin = supabaseAdmin()
+
+  const { data: userData, error: userErr } = await admin.auth.getUser(token)
+  if (userErr || !userData?.user) {
+    return NextResponse.json({ error: userErr?.message || 'Token inválido' }, { status: 401 })
   }
 
-  let decoded
-  try {
-    decoded = await auth.verifyIdToken(token)
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Token inválido'
-    return NextResponse.json({ error: msg }, { status: 401 })
-  }
-
+  const user = userData.user
+  const userEmail = (user.email || '').toLowerCase()
   const allowedEmails = getAdminEmails()
-  const userEmail = (decoded.email || '').toLowerCase()
 
   if (allowedEmails.length === 0) {
     return NextResponse.json(
@@ -51,22 +43,22 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  // Se já é admin, não faz nada
-  if (decoded.admin === true) {
-    return NextResponse.json({ ok: true, already: true, email: userEmail })
+  const { error: upsertErr } = await admin
+    .from('profiles')
+    .upsert(
+      { id: user.id, email: userEmail, role: 'admin', is_active: true },
+      { onConflict: 'id' }
+    )
+
+  if (upsertErr) {
+    return NextResponse.json({ error: upsertErr.message }, { status: 500 })
   }
 
-  try {
-    await auth.setCustomUserClaims(decoded.uid, { admin: true })
-    return NextResponse.json({
-      ok: true,
-      email: userEmail,
-      message: 'Claim admin concedida. Faz logout/login ou força refresh do token para aplicar.',
-    })
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Erro ao conceder claim'
-    return NextResponse.json({ error: msg }, { status: 500 })
-  }
+  return NextResponse.json({
+    ok: true,
+    email: userEmail,
+    message: 'Permissão admin concedida. A sessão já tem acesso às rotas /api/admin.',
+  })
 }
 
 export async function GET(req: NextRequest) {
@@ -75,20 +67,27 @@ export async function GET(req: NextRequest) {
   const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : ''
   if (!token) return NextResponse.json({ error: 'Bearer token em falta' }, { status: 401 })
 
-  const auth = getAdminAuth()
-  if (!auth) {
-    return NextResponse.json({ error: getAdminInitError() || 'admin não init' }, { status: 500 })
+  const admin = supabaseAdmin()
+
+  const { data: userData, error: userErr } = await admin.auth.getUser(token)
+  if (userErr || !userData?.user) {
+    return NextResponse.json({ error: userErr?.message || 'Token inválido' }, { status: 401 })
   }
 
-  try {
-    const decoded = await auth.verifyIdToken(token)
-    return NextResponse.json({
-      email: decoded.email,
-      uid: decoded.uid,
-      isAdmin: decoded.admin === true,
-      adminEmailsConfigured: getAdminEmails().length > 0,
-    })
-  } catch (err) {
-    return NextResponse.json({ error: err instanceof Error ? err.message : 'Token inválido' }, { status: 401 })
-  }
+  const user = userData.user
+
+  const { data: prof } = await admin
+    .from('profiles')
+    .select('role, is_active')
+    .eq('id', user.id)
+    .maybeSingle()
+
+  const isAdmin = !!prof && prof.is_active === true && prof.role === 'admin'
+
+  return NextResponse.json({
+    email: user.email,
+    uid: user.id,
+    isAdmin,
+    adminEmailsConfigured: getAdminEmails().length > 0,
+  })
 }

@@ -3,8 +3,32 @@ import { useState, useEffect, useCallback } from 'react'
 import { Shield, CheckCircle2, Clock, Search, Eye, Send, Plus, X, AlertTriangle } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { getTodosConsentimentos, type Consentimento } from '@/lib/consentimentos'
-import { getTodosAgendamentos, type Agendamento } from '@/lib/booking'
+import { supabase, getAccessToken } from '@/lib/supabase/client'
+import { rowToAgendamento } from '@/lib/mappers'
+import type { Consentimento } from '@/lib/consentimentos'
+import type { Agendamento } from '@/lib/booking'
+
+function rowToConsentimento(r: Record<string, any>): Consentimento {
+  return {
+    id: r.id,
+    token: r.token,
+    agendamentoId: r.agendamento_id ?? undefined,
+    clienteNome: r.cliente_nome ?? '',
+    clienteEmail: r.cliente_email ?? '',
+    clienteTelefone: r.cliente_telefone ?? undefined,
+    servicoNome: r.servico_nome ?? '',
+    dataAgendamento: r.data_agendamento ?? '',
+    estado: r.estado,
+    dataLinkEnviado: r.data_link_enviado ?? null,
+    dataSubmissao: r.data_submissao ?? null,
+    respostas: r.respostas ?? undefined,
+    assinaturaNome: r.assinatura_nome ?? undefined,
+    consentimentoAceite: r.consentimento_aceite ?? undefined,
+    rgpdAceite: r.rgpd_aceite ?? undefined,
+    alertas: r.alertas ?? undefined,
+    criadoEm: r.criado_em ?? undefined,
+  }
+}
 
 export default function ConsentimentosAdminPage() {
   const [busca, setBusca] = useState('')
@@ -19,8 +43,11 @@ export default function ConsentimentosAdminPage() {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const lista = await getTodosConsentimentos()
-      setConsentimentos(lista)
+      const { data } = await supabase
+        .from('consentimentos')
+        .select('*')
+        .order('criado_em', { ascending: false })
+      setConsentimentos((data ?? []).map(rowToConsentimento))
     } finally {
       setLoading(false)
     }
@@ -41,9 +68,13 @@ export default function ConsentimentosAdminPage() {
     const id = c.id || agendamento?.id || ''
     setEnviandoId(id)
     try {
+      const token = await getAccessToken()
       const res = await fetch('/api/consentimentos/enviar-link', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({
           agendamentoId: c.agendamentoId || agendamento?.id,
           clienteNome: c.clienteNome || agendamento?.clienteNome,
@@ -76,7 +107,12 @@ export default function ConsentimentosAdminPage() {
     setShowNovoModal(true)
     setCarregandoAgendamentos(true)
     try {
-      const todos = await getTodosAgendamentos()
+      const { data } = await supabase
+        .from('agendamentos')
+        .select('*')
+        .order('data', { ascending: false })
+        .order('hora_inicio')
+      const todos = (data ?? []).map(rowToAgendamento)
       const tokensEnviados = new Set(consentimentos.filter((c) => c.agendamentoId).map((c) => c.agendamentoId))
       const futuros = todos.filter((a) => {
         if (a.estado === 'cancelado' || a.estado === 'concluido') return false

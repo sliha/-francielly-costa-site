@@ -24,10 +24,8 @@ import {
   Award,
   Activity,
 } from 'lucide-react'
-import { signOut } from 'firebase/auth'
-import { auth, db } from '@/lib/firebase'
+import { supabase } from '@/lib/supabase/client'
 import { useEffect, useState } from 'react'
-import { collection, onSnapshot, query, where } from 'firebase/firestore'
 
 const navItems = [
   { href: '/admin', icon: LayoutDashboard, label: 'Dashboard', exact: true },
@@ -67,14 +65,28 @@ export default function AdminSideNav() {
   }, [])
 
   useEffect(() => {
-    if (!db) return
-    const q = query(collection(db, 'alertas'), where('resolvido', '==', false))
-    const unsub = onSnapshot(
-      q,
-      (snap) => setAlertasCount(snap.size),
-      () => setAlertasCount(0),
-    )
-    return () => unsub()
+    const fetchCount = async () => {
+      const { count, error } = await supabase
+        .from('alertas')
+        .select('*', { count: 'exact', head: true })
+        .eq('resolvido', false)
+      if (error) setAlertasCount(0)
+      else setAlertasCount(count ?? 0)
+    }
+    fetchCount()
+
+    const ch = supabase
+      .channel('sidenav-alertas')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'alertas' },
+        () => fetchCount(),
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(ch)
+    }
   }, [])
 
   const toggleDarkMode = () => {
@@ -86,7 +98,7 @@ export default function AdminSideNav() {
 
   const handleLogout = async () => {
     try {
-      await signOut(auth)
+      await supabase.auth.signOut()
       router.push('/admin/login')
     } catch {
       // Silently handle logout errors

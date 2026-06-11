@@ -7,12 +7,11 @@ import { ArrowRight, Clock, RefreshCw, Sparkles } from 'lucide-react'
 import { services } from '@/data/services'
 import { useServicosPrecos } from '@/lib/useServicosPrecos'
 import { useEffect, useState } from 'react'
-import { db } from '@/lib/firebase'
-import { doc, getDoc } from 'firebase/firestore'
+import { supabase } from '@/lib/supabase/client'
 
 const iconComponents = ['✦', '◆', '◇', '❋']
 
-interface ServicoInfo { id: string; fotoUrl?: string }
+interface ServicoInfo { id: string; fotoUrl?: string; nome?: string; descricao?: string }
 
 export default function ServicesSection() {
   const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.1 })
@@ -20,15 +19,19 @@ export default function ServicesSection() {
   const [servicosInfo, setServicosInfo] = useState<Record<string, ServicoInfo>>({})
 
   useEffect(() => {
-    if (!db) return
-    getDoc(doc(db, 'settings', 'servicos')).then((snap) => {
-      if (!snap.exists()) return
-      const lista = snap.data().lista
-      if (!Array.isArray(lista)) return
-      const map: Record<string, ServicoInfo> = {}
-      for (const s of lista) { if (s.id) map[s.id] = s }
-      setServicosInfo(map)
-    }).catch(() => {})
+    supabase
+      .from('settings')
+      .select('value')
+      .eq('key', 'servicos')
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (error || !data) return
+        const lista = data.value?.lista
+        if (!Array.isArray(lista)) return
+        const map: Record<string, ServicoInfo> = {}
+        for (const s of lista) { if (s.id) map[s.id] = s }
+        setServicosInfo(map)
+      })
   }, [])
 
   return (
@@ -121,12 +124,12 @@ export default function ServicesSection() {
 
                 {/* Title */}
                 <h3 className="font-playfair font-bold text-xl text-text-primary mb-3 group-hover:text-rose-gold transition-colors duration-300">
-                  {service.name}
+                  {servicosInfo[service.id]?.nome || service.name}
                 </h3>
 
                 {/* Description */}
                 <p className="text-text-secondary text-sm font-inter leading-relaxed mb-5 flex-1">
-                  {service.shortDescription}
+                  {servicosInfo[service.id]?.descricao || service.shortDescription}
                 </p>
 
                 {/* Meta info */}

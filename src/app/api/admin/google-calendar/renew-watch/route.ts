@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { verifyAdminRequest } from '@/lib/firebaseAdmin'
+import { verifyAdminRequest } from '@/lib/auth'
 import { renewWatchChannel } from '@/lib/googleCalendarSync'
 
 export const runtime = 'nodejs'

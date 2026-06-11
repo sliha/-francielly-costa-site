@@ -1,9 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
-import { db } from '@/lib/firebase'
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 
 export const runtime = 'nodejs'
+
+// Lê o valor da caução das definições de negócio (servidor). NUNCA confiar no valor
+// enviado pelo cliente. Fallback fixo de 30€.
+async function getCaucaoValor(): Promise<number> {
+  try {
+    const { data } = await supabaseAdmin()
+      .from('settings')
+      .select('value')
+      .eq('key', 'negocio')
+      .maybeSingle()
+    const raw = (data?.value as { caucao?: unknown } | null)?.caucao
+    const num = Number(raw)
+    if (Number.isFinite(num) && num > 0) return num
+  } catch (err) {
+    console.error('Erro ao ler caução das definições:', err)
+  }
+  return 30
+}
 
 export async function POST(req: NextRequest) {
   const secretKey = process.env.STRIPE_SECRET_KEY
@@ -24,13 +41,12 @@ export async function POST(req: NextRequest) {
       agendamentoId,
       servicoNome,
       clienteEmail,
-      caucaoValor,
       clienteNome,
       clienteTelefone,
       dataAgendamento,
     } = body
 
-    console.log('Stripe checkout payload:', { agendamentoId, servicoNome, clienteEmail, caucaoValor })
+    console.log('Stripe checkout payload:', { agendamentoId, servicoNome, clienteEmail })
 
     if (!agendamentoId || !servicoNome || !clienteEmail) {
       return NextResponse.json(
@@ -39,31 +55,33 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Guardar/actualizar dados do cliente no Firestore antes de iniciar pagamento
-    if (db) {
-      try {
-        await setDoc(
-          doc(db, 'clientes', agendamentoId),
+    // Guardar/actualizar dados do cliente antes de iniciar pagamento.
+    // A tabela clientes tem o email como chave primária.
+    try {
+      await supabaseAdmin()
+        .from('clientes')
+        .upsert(
           {
+            email: String(clienteEmail).toLowerCase(),
             nome: clienteNome || '',
-            email: clienteEmail,
             telefone: clienteTelefone || '',
-            servico: servicoNome,
-            dataAgendamento: dataAgendamento || '',
-            estado: 'pendente',
-            criadoEm: serverTimestamp(),
+            ultimo_servico: servicoNome,
+            ultimo_agendamento: dataAgendamento || null,
+            atualizado_em: new Date().toISOString(),
           },
-          { merge: true }
+          { onConflict: 'email' }
         )
-        console.log('Cliente guardado no Firestore:', agendamentoId)
-      } catch (firestoreErr) {
-        console.error('Erro ao guardar cliente no Firestore:', firestoreErr)
-        // Não bloquear o pagamento por erro de Firestore
-      }
+      console.log('Cliente guardado no Supabase:', clienteEmail)
+    } catch (dbErr) {
+      console.error('Erro ao guardar cliente:', dbErr)
+      // Não bloquear o pagamento por erro de persistência do cliente
     }
 
-    const valorCentimos = Math.round((Number(caucaoValor) || 30) * 100)
-    console.log('Valor em cêntimos:', valorCentimos)
+    // SEGURANÇA: o valor da caução vem SEMPRE do servidor (definições de negócio),
+    // nunca do payload do cliente.
+    const caucaoValor = await getCaucaoValor()
+    const valorCentimos = Math.round(caucaoValor * 100)
+    console.log('Valor em cêntimos (servidor):', valorCentimos)
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],

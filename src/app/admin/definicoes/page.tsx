@@ -5,9 +5,8 @@ import {
   Bell, BellOff, CheckCircle2, Save, Facebook, User,
   ImagePlus, Trash2, RefreshCw, AlertTriangle,
 } from 'lucide-react'
-import { db, storage, auth } from '@/lib/firebase'
-import { doc, getDoc, setDoc } from 'firebase/firestore'
-import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage'
+import { supabase, getAccessToken } from '@/lib/supabase/client'
+import { uploadMedia, deleteMedia } from '@/lib/upload'
 import { CalendarCheck, ShieldCheck } from 'lucide-react'
 
 const DEFAULT_CONFIG = {
@@ -94,9 +93,9 @@ export default function DefinicoesPage() {
   type SyncChannelState = {
     channelId?: string
     channelExpiration?: number
-    channelCreatedAt?: { seconds: number; nanoseconds: number } | null
+    channelCreatedAt?: string | null
     syncToken?: string
-    lastSyncAt?: { seconds: number; nanoseconds: number } | null
+    lastSyncAt?: string | null
     lastSyncStatus?: 'ok' | 'error' | 'full-resync-needed'
     lastError?: string
   }
@@ -111,12 +110,11 @@ export default function DefinicoesPage() {
     setCleaning(true)
     setCleanResult(null)
     try {
-      const user = auth?.currentUser
-      if (!user) {
+      const token = await getAccessToken()
+      if (!token) {
         setCleanResult({ ok: false, msg: 'Não autenticado.' })
         return
       }
-      const token = await user.getIdToken()
       const res = await fetch('/api/admin/clean-test-data', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
@@ -140,11 +138,19 @@ export default function DefinicoesPage() {
     }
   }
 
-  // Verifica claim admin no carregamento
+  // Verifica permissão admin no carregamento
   useEffect(() => {
-    if (!auth?.currentUser) return
-    auth.currentUser.getIdTokenResult().then((res) => {
-      setIsAdminClaim(res.claims.admin === true)
+    getAccessToken().then(async (token) => {
+      if (!token) { setIsAdminClaim(null); return }
+      try {
+        const res = await fetch('/api/admin/auth/grant-claim', {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        const data = await res.json()
+        setIsAdminClaim(res.ok && data.isAdmin === true)
+      } catch {
+        setIsAdminClaim(null)
+      }
     }).catch(() => setIsAdminClaim(null))
   }, [])
 
@@ -152,12 +158,11 @@ export default function DefinicoesPage() {
     setAdminGranting(true)
     setAdminStatus(null)
     try {
-      const user = auth?.currentUser
-      if (!user) {
+      const token = await getAccessToken()
+      if (!token) {
         setAdminStatus({ ok: false, msg: 'Não autenticado.' })
         return
       }
-      const token = await user.getIdToken()
       const res = await fetch('/api/admin/auth/grant-claim', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
@@ -167,14 +172,11 @@ export default function DefinicoesPage() {
         setAdminStatus({ ok: false, msg: data.error || `HTTP ${res.status}` })
         return
       }
-      // Forçar refresh do token para apanhar a nova claim
-      await user.getIdToken(true)
-      const fresh = await user.getIdTokenResult()
-      setIsAdminClaim(fresh.claims.admin === true)
+      setIsAdminClaim(true)
       setAdminStatus({
         ok: true,
         msg: data.already
-          ? 'Já era admin. Token atualizado.'
+          ? 'Já era admin.'
           : 'Admin concedido com sucesso!'
       })
     } catch (err) {
@@ -188,12 +190,11 @@ export default function DefinicoesPage() {
     setCalTesting(true)
     setCalTestResult(null)
     try {
-      const user = auth?.currentUser
-      if (!user) {
+      const token = await getAccessToken()
+      if (!token) {
         setCalTestResult({ ok: false, msg: 'Não autenticado.' })
         return
       }
-      const token = await user.getIdToken()
       const res = await fetch('/api/admin/calendar/test', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
@@ -226,12 +227,11 @@ export default function DefinicoesPage() {
     setResyncing(true)
     setResyncResult(null)
     try {
-      const user = auth?.currentUser
-      if (!user) {
+      const token = await getAccessToken()
+      if (!token) {
         setResyncResult({ ok: false, msg: 'Não autenticado.' })
         return
       }
-      const token = await user.getIdToken()
       const res = await fetch('/api/admin/calendar/resync-all', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
@@ -257,24 +257,29 @@ export default function DefinicoesPage() {
   const [homepagePhotoProgress, setHomepagePhotoProgress] = useState(0)
   const homepageFileInputRef = useRef<HTMLInputElement>(null)
 
-  // Load from Firestore on mount
+  // Load from Supabase on mount
   useEffect(() => {
-    if (!db) return
-    getDoc(doc(db, 'settings', 'negocio')).then((snap) => {
-      if (snap.exists()) setConfig({ ...DEFAULT_CONFIG, ...snap.data() } as Config)
-    }).catch(() => {})
-    getDoc(doc(db, 'settings', 'homepage-about')).then((snap) => {
-      if (snap.exists()) setHomepageAbout({ ...DEFAULT_HOMEPAGE_ABOUT, ...snap.data() } as HomepageAbout)
-    }).catch(() => {})
+    supabase.from('settings').select('value').eq('key', 'negocio').maybeSingle()
+      .then(({ data }) => {
+        if (data?.value) setConfig({ ...DEFAULT_CONFIG, ...(data.value as Partial<Config>) } as Config)
+      })
+    supabase.from('settings').select('value').eq('key', 'homepage-about').maybeSingle()
+      .then(({ data }) => {
+        if (data?.value) setHomepageAbout({ ...DEFAULT_HOMEPAGE_ABOUT, ...(data.value as Partial<HomepageAbout>) } as HomepageAbout)
+      })
   }, [])
 
   // Load Google Calendar sync state
   const loadSyncState = async () => {
-    if (!db || !auth?.currentUser) return
     setSyncStateLoading(true)
     try {
-      const snap = await getDoc(doc(db, 'settings', 'googleCalendarSync'))
-      setSyncState(snap.exists() ? (snap.data() as SyncChannelState) : {})
+      const { data, error } = await supabase
+        .from('settings')
+        .select('value')
+        .eq('key', 'googleCalendarSync')
+        .maybeSingle()
+      if (error) throw error
+      setSyncState((data?.value as SyncChannelState) ?? {})
     } catch {
       setSyncState(null)
     } finally {
@@ -293,12 +298,11 @@ export default function DefinicoesPage() {
     setSyncBusy(action)
     setSyncMsg(null)
     try {
-      const user = auth?.currentUser
-      if (!user) {
+      const token = await getAccessToken()
+      if (!token) {
         setSyncMsg({ ok: false, text: 'Não autenticado' })
         return
       }
-      const token = await user.getIdToken()
       const endpoints = {
         register: '/api/admin/google-calendar/register-watch',
         renew: '/api/admin/google-calendar/renew-watch',
@@ -337,9 +341,11 @@ export default function DefinicoesPage() {
   const handleSave = async () => {
     setSaving(true)
     try {
-      if (db) {
-        await setDoc(doc(db, 'settings', 'negocio'), config, { merge: true })
-      }
+      const { error } = await supabase.from('settings').upsert(
+        { key: 'negocio', value: config, updated_at: new Date().toISOString() },
+        { onConflict: 'key' },
+      )
+      if (error) throw error
       setSaved(true)
       toast('Definições guardadas com sucesso!')
       setTimeout(() => setSaved(false), 3000)
@@ -351,26 +357,13 @@ export default function DefinicoesPage() {
   }
 
   const handlePhotoUpload = async (file: File) => {
-    if (!storage || !db) { toast('Storage não configurado'); return }
     setLoadingPhoto(true)
     setPhotoProgress(0)
     try {
       const path = `about/foto-pessoal_${Date.now()}`
-      const storageRef = ref(storage, path)
-      const task = uploadBytesResumable(storageRef, file)
-
-      await new Promise<void>((resolve, reject) => {
-        task.on('state_changed',
-          (snap) => setPhotoProgress(Math.round(snap.bytesTransferred / snap.totalBytes * 100)),
-          reject,
-          async () => {
-            const url = await getDownloadURL(task.snapshot.ref)
-            console.log('Upload URL:', url)
-            setConfig((prev) => ({ ...prev, fotoPessoalUrl: url, fotoPessoalPath: path }))
-            resolve()
-          }
-        )
-      })
+      const { url, path: p } = await uploadMedia(file, path)
+      setPhotoProgress(100)
+      setConfig((prev) => ({ ...prev, fotoPessoalUrl: url, fotoPessoalPath: p }))
     } catch {
       toast('Erro no upload da foto.')
     } finally {
@@ -380,9 +373,9 @@ export default function DefinicoesPage() {
   }
 
   const handlePhotoDelete = async () => {
-    if (!storage || !config.fotoPessoalPath) return
+    if (!config.fotoPessoalPath) return
     try {
-      await deleteObject(ref(storage, config.fotoPessoalPath))
+      await deleteMedia(config.fotoPessoalPath)
       setConfig((prev) => ({ ...prev, fotoPessoalUrl: '', fotoPessoalPath: '' }))
     } catch {
       toast('Erro ao remover foto.')
@@ -390,26 +383,18 @@ export default function DefinicoesPage() {
   }
 
   const handleHomepagePhotoUpload = async (file: File) => {
-    if (!storage || !db) { toast('Storage não configurado'); return }
     setLoadingHomepagePhoto(true)
     setHomepagePhotoProgress(0)
     try {
       const path = `about/homepage_${Date.now()}`
-      const storageRef = ref(storage, path)
-      const task = uploadBytesResumable(storageRef, file)
-      await new Promise<void>((resolve, reject) => {
-        task.on('state_changed',
-          (snap) => setHomepagePhotoProgress(Math.round(snap.bytesTransferred / snap.totalBytes * 100)),
-          reject,
-          async () => {
-            const url = await getDownloadURL(task.snapshot.ref)
-            console.log('Upload URL:', url)
-            setHomepageAbout((prev) => ({ ...prev, fotoUrl: url, fotoPath: path }))
-            if (db) await setDoc(doc(db, 'settings', 'homepage-about'), { fotoUrl: url, fotoPath: path }, { merge: true })
-            resolve()
-          }
-        )
-      })
+      const { url, path: p } = await uploadMedia(file, path)
+      setHomepagePhotoProgress(100)
+      const next = { ...homepageAbout, fotoUrl: url, fotoPath: p }
+      setHomepageAbout(next)
+      await supabase.from('settings').upsert(
+        { key: 'homepage-about', value: next, updated_at: new Date().toISOString() },
+        { onConflict: 'key' },
+      )
     } catch {
       toast('Erro no upload da foto.')
     } finally {
@@ -419,9 +404,9 @@ export default function DefinicoesPage() {
   }
 
   const handleHomepagePhotoDelete = async () => {
-    if (!storage || !homepageAbout.fotoPath) return
+    if (!homepageAbout.fotoPath) return
     try {
-      await deleteObject(ref(storage, homepageAbout.fotoPath))
+      await deleteMedia(homepageAbout.fotoPath)
       setHomepageAbout((prev) => ({ ...prev, fotoUrl: '', fotoPath: '' }))
     } catch {
       toast('Erro ao remover foto.')
@@ -431,7 +416,11 @@ export default function DefinicoesPage() {
   const handleSaveHomepage = async () => {
     setSavingHomepage(true)
     try {
-      if (db) await setDoc(doc(db, 'settings', 'homepage-about'), homepageAbout, { merge: true })
+      const { error } = await supabase.from('settings').upsert(
+        { key: 'homepage-about', value: homepageAbout, updated_at: new Date().toISOString() },
+        { onConflict: 'key' },
+      )
+      if (error) throw error
       setSavedHomepage(true)
       toast('Secção "Sobre" guardada com sucesso!')
       setTimeout(() => setSavedHomepage(false), 3000)
@@ -761,7 +750,7 @@ export default function DefinicoesPage() {
             const dias = hasChannel ? Math.max(0, Math.floor((expiration! - now) / (24 * 60 * 60 * 1000))) : 0
             const horas = hasChannel ? Math.max(0, Math.floor(((expiration! - now) % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000))) : 0
             const estadoLabel = !hasChannel ? '🔴 Canal não registado' : expired ? '🟡 Canal expirado' : `🟢 Canal ativo (expira em ${dias}d ${horas}h)`
-            const lastSync = syncState?.lastSyncAt ? new Date(syncState.lastSyncAt.seconds * 1000) : null
+            const lastSync = syncState?.lastSyncAt ? new Date(syncState.lastSyncAt) : null
             const lastSyncStr = lastSync ? lastSync.toLocaleString('pt-PT') : '—'
             return (
               <div className="bg-white/5 border border-white/10 rounded-xl p-3 space-y-1 text-xs">

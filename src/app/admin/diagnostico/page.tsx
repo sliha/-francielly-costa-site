@@ -1,8 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import { Activity, RefreshCw, AlertTriangle, CheckCircle2, Clock, Database } from 'lucide-react'
-import { auth, db } from '@/lib/firebase'
-import { collection, query, where, onSnapshot } from 'firebase/firestore'
+import { supabase, getAccessToken } from '@/lib/supabase/client'
 
 interface Stats {
   sync: {
@@ -63,9 +62,8 @@ export default function DiagnosticoPage() {
   const [alertasReal, setAlertasReal] = useState<number>(0)
 
   const fetchWithAuth = useCallback(async (url: string, init?: RequestInit) => {
-    const user = auth?.currentUser
-    if (!user) throw new Error('Não autenticado')
-    const token = await user.getIdToken()
+    const token = await getAccessToken()
+    if (!token) throw new Error('Não autenticado')
     return fetch(url, {
       ...init,
       headers: { ...(init?.headers || {}), Authorization: `Bearer ${token}` },
@@ -100,14 +98,25 @@ export default function DiagnosticoPage() {
 
   // Real-time alertas count
   useEffect(() => {
-    if (!db) return
-    const q = query(collection(db, 'alertas'), where('resolvido', '==', false))
-    const unsub = onSnapshot(q, (snap) => setAlertasReal(snap.size), () => setAlertasReal(0))
-    return () => unsub()
+    const fetchCount = async () => {
+      const { count, error } = await supabase
+        .from('alertas')
+        .select('*', { count: 'exact', head: true })
+        .eq('resolvido', false)
+      setAlertasReal(error ? 0 : (count ?? 0))
+    }
+    fetchCount()
+
+    const ch = supabase
+      .channel('diagnostico-alertas')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'alertas' }, () => fetchCount())
+      .subscribe()
+
+    return () => { supabase.removeChannel(ch) }
   }, [])
 
   const handleReconcile = async () => {
-    if (!confirm('Executar reconciliação completa? Vai comparar Firestore com Google Calendar e resolver discrepâncias.')) return
+    if (!confirm('Executar reconciliação completa? Vai comparar a base de dados com o Google Calendar e resolver discrepâncias.')) return
     setReconciling(true)
     setReconcileResult(null)
     try {

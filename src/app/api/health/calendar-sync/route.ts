@@ -1,19 +1,12 @@
 import { NextResponse } from 'next/server'
-import { getAdminDb, getAdminInitError } from '@/lib/firebaseAdmin'
-import type { Timestamp } from 'firebase-admin/firestore'
+import { getSyncState } from '@/lib/googleCalendarSync'
 
 export const runtime = 'nodejs'
-
-interface SyncStateLite {
-  syncToken?: string
-  channelId?: string
-  channelExpiration?: number
-  lastSyncAt?: Timestamp
-}
+export const dynamic = 'force-dynamic'
 
 export async function GET() {
   const checks: Record<string, string> = {
-    firestore: 'unknown',
+    supabase: 'unknown',
     calendarApiReachable: 'skipped',
     syncTokenPresent: 'unknown',
   }
@@ -23,9 +16,12 @@ export async function GET() {
   let channelActive = false
   let channelExpiresInDays: number | null = null
 
-  const db = getAdminDb()
-  if (!db) {
-    checks.firestore = `down: ${getAdminInitError() || 'admin-sdk não inicializado'}`
+  let state: Awaited<ReturnType<typeof getSyncState>> = {}
+  try {
+    state = await getSyncState()
+    checks.supabase = 'ok'
+  } catch (err) {
+    checks.supabase = `down: ${err instanceof Error ? err.message : String(err)}`
     return NextResponse.json(
       {
         status: 'down',
@@ -38,22 +34,12 @@ export async function GET() {
       { status: 503 },
     )
   }
-  checks.firestore = 'ok'
-
-  let state: SyncStateLite = {}
-  try {
-    const snap = await db.collection('settings').doc('googleCalendarSync').get()
-    state = snap.exists ? (snap.data() as SyncStateLite) : {}
-  } catch (err) {
-    checks.firestore = `error: ${err instanceof Error ? err.message : String(err)}`
-    status = 'down'
-  }
 
   if (state.lastSyncAt) {
-    const lastMs = state.lastSyncAt.toMillis()
+    const lastMs = new Date(state.lastSyncAt).getTime()
     lastSyncAt = new Date(lastMs).toISOString()
     minutesSinceLastSync = Math.floor((Date.now() - lastMs) / 60_000)
-    if (minutesSinceLastSync > 60) status = status === 'down' ? 'down' : 'degraded'
+    if (minutesSinceLastSync > 60) status = 'degraded'
   }
 
   if (state.channelId && state.channelExpiration) {
@@ -61,7 +47,7 @@ export async function GET() {
     channelActive = state.channelExpiration > now
     channelExpiresInDays = Math.floor((state.channelExpiration - now) / (24 * 60 * 60 * 1000))
     if (!channelActive) status = 'down'
-    else if (channelExpiresInDays < 2) status = status === 'down' ? 'down' : 'degraded'
+    else if (channelExpiresInDays < 2) status = 'degraded'
   } else {
     status = 'down'
   }

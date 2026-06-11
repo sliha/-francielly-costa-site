@@ -5,8 +5,7 @@ import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { useInView } from 'react-intersection-observer'
 import { ArrowRight, CheckCircle, Award, Globe, GraduationCap } from 'lucide-react'
-import { db } from '@/lib/firebase'
-import { doc, getDoc } from 'firebase/firestore'
+import { supabase } from '@/lib/supabase/client'
 
 const credentials = [
   { icon: Award, text: 'Formação em Milão, Itália' },
@@ -27,11 +26,16 @@ export default function AboutPreviewSection() {
   const [data, setData] = useState(DEFAULTS)
 
   useEffect(() => {
-    if (!db) { console.warn('[AboutPreview] db not available'); return }
-    getDoc(doc(db, 'settings', 'homepage-about')).then((snap) => {
-      console.log('[AboutPreview] snap exists:', snap.exists(), snap.data())
-      if (snap.exists()) setData({ ...DEFAULTS, ...snap.data() } as typeof DEFAULTS)
-    }).catch((err) => console.error('[AboutPreview] Firestore error:', err))
+    supabase
+      .from('settings')
+      .select('value')
+      .eq('key', 'homepage-about')
+      .maybeSingle()
+      .then(({ data: row, error }) => {
+        if (error) { console.error('[AboutPreview] Supabase error:', error); return }
+        console.log('[AboutPreview] row:', row?.value)
+        if (row?.value) setData({ ...DEFAULTS, ...row.value } as typeof DEFAULTS)
+      })
   }, [])
 
   return (

@@ -1,21 +1,5 @@
-import { db, storage } from './firebase'
-import {
-  collection,
-  doc,
-  addDoc,
-  setDoc,
-  getDoc,
-  getDocs,
-  updateDoc,
-  query,
-  where,
-  orderBy,
-  Timestamp,
-  serverTimestamp,
-  onSnapshot,
-  type Unsubscribe,
-} from 'firebase/firestore'
-import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
+import 'server-only'
+import { supabaseAdmin } from './supabase/admin'
 
 export interface Acompanhamento {
   id?: string
@@ -25,36 +9,65 @@ export interface Acompanhamento {
   clienteTelefone?: string
   servicoNome: string
   dataProcedimento: string // 'YYYY-MM-DD'
-  codigoAcesso: string // 6 digits
+  codigoAcesso: string // 6 dígitos
   retoqueData?: string // 'YYYY-MM-DD'
   retoqueConfirmado?: boolean
-  ultimaAtividadeCliente?: Timestamp | null
-  ultimaAtividadeAdmin?: Timestamp | null
+  ultimaAtividadeCliente?: string | null
+  ultimaAtividadeAdmin?: string | null
   fechado?: boolean
-  criadoEm?: Timestamp
+  criadoEm?: string
 }
 
 export interface Mensagem {
-  id?: string
+  id?: string | number
   de: 'admin' | 'cliente'
   texto: string
-  criadoEm?: Timestamp
+  criadoEm?: string
 }
 
 export interface Foto {
-  id?: string
+  id?: string | number
   diaIdx?: number
   url: string
   storagePath: string
-  criadoEm?: Timestamp
+  criadoEm?: string
 }
 
-function gerarCodigo6(): string {
-  return String(Math.floor(100000 + Math.random() * 900000))
+export function rowToAcompanhamento(r: Record<string, any>): Acompanhamento {
+  return {
+    id: r.id,
+    agendamentoId: r.agendamento_id ?? undefined,
+    clienteNome: r.cliente_nome ?? '',
+    clienteEmail: r.cliente_email ?? '',
+    clienteTelefone: r.cliente_telefone ?? undefined,
+    servicoNome: r.servico_nome ?? '',
+    dataProcedimento: r.data_procedimento ?? '',
+    codigoAcesso: r.codigo_acesso ?? '',
+    retoqueData: r.retoque_data ?? undefined,
+    retoqueConfirmado: r.retoque_confirmado ?? undefined,
+    ultimaAtividadeCliente: r.ultima_atividade_cliente ?? null,
+    ultimaAtividadeAdmin: r.ultima_atividade_admin ?? null,
+    fechado: r.fechado ?? false,
+    criadoEm: r.criado_em ?? undefined,
+  }
 }
+
+export const rowToMensagem = (r: Record<string, any>): Mensagem => ({
+  id: r.id,
+  de: r.de,
+  texto: r.texto ?? '',
+  criadoEm: r.criado_em ?? undefined,
+})
+
+export const rowToFoto = (r: Record<string, any>): Foto => ({
+  id: r.id,
+  diaIdx: r.dia_idx ?? undefined,
+  url: r.url ?? '',
+  storagePath: r.storage_path ?? '',
+  criadoEm: r.criado_em ?? undefined,
+})
 
 export function calcularRetoqueData(dataProcedimento: string): string {
-  // 30 dias depois
   const d = new Date(dataProcedimento + 'T12:00:00')
   d.setDate(d.getDate() + 30)
   const yyyy = d.getFullYear()
@@ -64,51 +77,39 @@ export function calcularRetoqueData(dataProcedimento: string): string {
 }
 
 export async function getTodosAcompanhamentos(): Promise<Acompanhamento[]> {
-  if (!db) return []
-  try {
-    const q = query(collection(db, 'acompanhamentos'), orderBy('criadoEm', 'desc'))
-    const snap = await getDocs(q)
-    return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Acompanhamento))
-  } catch {
-    return []
-  }
+  const { data, error } = await supabaseAdmin()
+    .from('acompanhamentos')
+    .select('*')
+    .order('criado_em', { ascending: false })
+  if (error || !data) return []
+  return data.map(rowToAcompanhamento)
 }
 
 export async function getAcompanhamentoPorCodigo(codigo: string): Promise<Acompanhamento | null> {
-  if (!db) return null
-  try {
-    const q = query(collection(db, 'acompanhamentos'), where('codigoAcesso', '==', codigo))
-    const snap = await getDocs(q)
-    if (snap.empty) return null
-    const d = snap.docs[0]
-    return { id: d.id, ...d.data() } as Acompanhamento
-  } catch {
-    return null
-  }
+  const { data } = await supabaseAdmin()
+    .from('acompanhamentos')
+    .select('*')
+    .eq('codigo_acesso', codigo)
+    .maybeSingle()
+  return data ? rowToAcompanhamento(data) : null
 }
 
 export async function getAcompanhamentoPorAgendamento(agendamentoId: string): Promise<Acompanhamento | null> {
-  if (!db) return null
-  try {
-    const q = query(collection(db, 'acompanhamentos'), where('agendamentoId', '==', agendamentoId))
-    const snap = await getDocs(q)
-    if (snap.empty) return null
-    const d = snap.docs[0]
-    return { id: d.id, ...d.data() } as Acompanhamento
-  } catch {
-    return null
-  }
+  const { data } = await supabaseAdmin()
+    .from('acompanhamentos')
+    .select('*')
+    .eq('agendamento_id', agendamentoId)
+    .maybeSingle()
+  return data ? rowToAcompanhamento(data) : null
 }
 
 export async function getAcompanhamentoPorId(id: string): Promise<Acompanhamento | null> {
-  if (!db) return null
-  try {
-    const snap = await getDoc(doc(db, 'acompanhamentos', id))
-    if (!snap.exists()) return null
-    return { id: snap.id, ...snap.data() } as Acompanhamento
-  } catch {
-    return null
-  }
+  const { data } = await supabaseAdmin()
+    .from('acompanhamentos')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle()
+  return data ? rowToAcompanhamento(data) : null
 }
 
 export async function criarAcompanhamento(params: {
@@ -119,7 +120,6 @@ export async function criarAcompanhamento(params: {
   servicoNome: string
   dataProcedimento: string
 }): Promise<{ id: string; codigoAcesso: string }> {
-  // Reaproveitar se já existe para o mesmo agendamento
   if (params.agendamentoId) {
     const existente = await getAcompanhamentoPorAgendamento(params.agendamentoId)
     if (existente && existente.id) {
@@ -127,35 +127,38 @@ export async function criarAcompanhamento(params: {
     }
   }
 
-  const codigoAcesso = gerarCodigo6()
+  const codigoAcesso = String(Math.floor(100000 + Math.random() * 900000))
   const retoqueData = calcularRetoqueData(params.dataProcedimento)
 
-  const ref = await addDoc(collection(db, 'acompanhamentos'), {
-    agendamentoId: params.agendamentoId || null,
-    clienteNome: params.clienteNome,
-    clienteEmail: params.clienteEmail,
-    clienteTelefone: params.clienteTelefone || '',
-    servicoNome: params.servicoNome,
-    dataProcedimento: params.dataProcedimento,
-    codigoAcesso,
-    retoqueData,
-    retoqueConfirmado: false,
-    fechado: false,
-    criadoEm: serverTimestamp(),
-  })
+  const { data, error } = await supabaseAdmin()
+    .from('acompanhamentos')
+    .insert({
+      agendamento_id: params.agendamentoId || null,
+      cliente_nome: params.clienteNome,
+      cliente_email: params.clienteEmail,
+      cliente_telefone: params.clienteTelefone || '',
+      servico_nome: params.servicoNome,
+      data_procedimento: params.dataProcedimento,
+      codigo_acesso: codigoAcesso,
+      retoque_data: retoqueData,
+      retoque_confirmado: false,
+      fechado: false,
+    })
+    .select('id')
+    .single()
+  if (error || !data) throw new Error(error?.message || 'Falha ao criar acompanhamento')
 
-  return { id: ref.id, codigoAcesso }
+  return { id: data.id, codigoAcesso }
 }
 
 export async function confirmarRetoque(id: string, confirmado: boolean): Promise<void> {
-  await updateDoc(doc(db, 'acompanhamentos', id), { retoqueConfirmado: confirmado })
+  await supabaseAdmin().from('acompanhamentos').update({ retoque_confirmado: confirmado }).eq('id', id)
 }
 
 export async function fecharAcompanhamento(id: string): Promise<void> {
-  await updateDoc(doc(db, 'acompanhamentos', id), { fechado: true })
+  await supabaseAdmin().from('acompanhamentos').update({ fechado: true }).eq('id', id)
 }
 
-// Mensagens
 export async function adicionarMensagem(
   acompanhamentoId: string,
   de: 'admin' | 'cliente',
@@ -163,63 +166,40 @@ export async function adicionarMensagem(
 ): Promise<void> {
   const t = texto.trim()
   if (!t) return
-  await addDoc(collection(db, 'acompanhamentos', acompanhamentoId, 'mensagens'), {
-    de,
-    texto: t,
-    criadoEm: serverTimestamp(),
-  })
-  await setDoc(
-    doc(db, 'acompanhamentos', acompanhamentoId),
-    de === 'admin'
-      ? { ultimaAtividadeAdmin: serverTimestamp() }
-      : { ultimaAtividadeCliente: serverTimestamp() },
-    { merge: true }
-  )
+  const sb = supabaseAdmin()
+  await sb.from('acompanhamento_mensagens').insert({ acompanhamento_id: acompanhamentoId, de, texto: t })
+  await sb
+    .from('acompanhamentos')
+    .update(de === 'admin' ? { ultima_atividade_admin: new Date().toISOString() } : { ultima_atividade_cliente: new Date().toISOString() })
+    .eq('id', acompanhamentoId)
 }
 
-export function subscribeMensagens(
-  acompanhamentoId: string,
-  callback: (msgs: Mensagem[]) => void
-): Unsubscribe {
-  const q = query(
-    collection(db, 'acompanhamentos', acompanhamentoId, 'mensagens'),
-    orderBy('criadoEm', 'asc')
-  )
-  return onSnapshot(q, (snap) => {
-    callback(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Mensagem)))
-  })
-}
-
-// Fotos
-export async function uploadFoto(
-  acompanhamentoId: string,
-  file: File,
-  diaIdx?: number
-): Promise<Foto> {
-  if (!storage) throw new Error('Storage indisponível')
-  const path = `acompanhamentos/${acompanhamentoId}/${Date.now()}_${file.name}`
-  const ref = storageRef(storage, path)
-  await uploadBytes(ref, file)
-  const url = await getDownloadURL(ref)
-  const docRef = await addDoc(collection(db, 'acompanhamentos', acompanhamentoId, 'fotos'), {
-    diaIdx: diaIdx ?? null,
-    url,
-    storagePath: path,
-    criadoEm: serverTimestamp(),
-  })
-  return { id: docRef.id, diaIdx, url, storagePath: path }
+export async function getMensagens(acompanhamentoId: string): Promise<Mensagem[]> {
+  const { data } = await supabaseAdmin()
+    .from('acompanhamento_mensagens')
+    .select('*')
+    .eq('acompanhamento_id', acompanhamentoId)
+    .order('criado_em', { ascending: true })
+  return (data ?? []).map(rowToMensagem)
 }
 
 export async function getFotos(acompanhamentoId: string): Promise<Foto[]> {
-  if (!db) return []
-  try {
-    const q = query(
-      collection(db, 'acompanhamentos', acompanhamentoId, 'fotos'),
-      orderBy('criadoEm', 'asc')
-    )
-    const snap = await getDocs(q)
-    return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Foto))
-  } catch {
-    return []
-  }
+  const { data } = await supabaseAdmin()
+    .from('acompanhamento_fotos')
+    .select('*')
+    .eq('acompanhamento_id', acompanhamentoId)
+    .order('criado_em', { ascending: true })
+  return (data ?? []).map(rowToFoto)
+}
+
+export async function addFoto(
+  acompanhamentoId: string,
+  foto: { url: string; storagePath: string; diaIdx?: number }
+): Promise<void> {
+  await supabaseAdmin().from('acompanhamento_fotos').insert({
+    acompanhamento_id: acompanhamentoId,
+    dia_idx: foto.diaIdx ?? null,
+    url: foto.url,
+    storage_path: foto.storagePath,
+  })
 }

@@ -1,8 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { Search, UserPlus, Phone, Mail, Calendar, ChevronRight, RefreshCw, X, CheckCircle2, Clock, XCircle } from 'lucide-react'
-import { db } from '@/lib/firebase'
-import { collection, getDocs, orderBy, query, where } from 'firebase/firestore'
+import { supabase } from '@/lib/supabase/client'
 
 interface ClienteRow {
   id: string
@@ -37,16 +36,24 @@ function ClienteModal({ cliente, onClose }: { cliente: ClienteRow; onClose: () =
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!db || !cliente.email) { setLoading(false); return }
-    getDocs(
-      query(
-        collection(db, 'agendamentos'),
-        where('clienteEmail', '==', cliente.email),
-        orderBy('criadoEm', 'desc')
-      )
-    ).then((snap) => {
-      setAgendamentos(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Agendamento)))
-    }).catch(() => {}).finally(() => setLoading(false))
+    if (!cliente.email) { setLoading(false); return }
+    supabase
+      .from('agendamentos')
+      .select('*')
+      .eq('cliente_email', cliente.email)
+      .order('criado_em', { ascending: false })
+      .then(({ data }) => {
+        setAgendamentos((data ?? []).map((r) => ({
+          id: r.id,
+          servicoNome: r.servico_nome ?? '',
+          data: r.data ?? '',
+          horaInicio: r.hora_inicio ?? '',
+          estado: r.estado ?? '',
+          caucaoPaga: r.caucao_paga ?? false,
+          criadoEm: r.criado_em,
+        })))
+      }, () => {})
+      .then(() => setLoading(false))
   }, [cliente.email])
 
   const formatData = (iso: string) => {
@@ -156,21 +163,24 @@ export default function ClientesPage() {
   const carregar = async () => {
     setLoading(true)
     try {
-      const snap = await getDocs(
-        query(collection(db!, 'agendamentos'), orderBy('criadoEm', 'desc'))
-      )
+      const { data, error } = await supabase
+        .from('agendamentos')
+        .select('*')
+        .order('criado_em', { ascending: false })
+      if (error) throw error
 
       const map = new Map<string, ClienteRow>()
-      for (const d of snap.docs) {
-        const a = d.data()
-        const key = (a.clienteEmail as string).toLowerCase()
+      for (const a of data ?? []) {
+        const email = (a.cliente_email as string) || ''
+        if (!email) continue
+        const key = email.toLowerCase()
         if (!map.has(key)) {
           map.set(key, {
             id: key,
-            nome: a.clienteNome || '',
-            email: a.clienteEmail || '',
-            telefone: a.clienteTelefone || '',
-            ultimoServico: a.servicoNome || '',
+            nome: a.cliente_nome || '',
+            email: a.cliente_email || '',
+            telefone: a.cliente_telefone || '',
+            ultimoServico: a.servico_nome || '',
             ultimoAgendamento: a.data || '',
             totalAgendamentos: 1,
           })

@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { ChevronLeft, CheckCircle2, User, Phone, Mail, Scissors, Calendar, Clock, FileText, AlertTriangle } from 'lucide-react'
 import Link from 'next/link'
-import { auth } from '@/lib/firebase'
+import { getAccessToken } from '@/lib/supabase/client'
 
 const servicos = [
   { value: 'fiberbrows', label: 'FiberBROWS', valor: 1000, duracao: 'A definir', minutos: 120 },
@@ -71,12 +71,11 @@ export default function NovaMarcacaoPage() {
     setWarning('')
 
     try {
-      const user = auth?.currentUser
-      if (!user) {
+      const token = await getAccessToken()
+      if (!token) {
         setError('Sessão expirou. Por favor faz login novamente.')
         return
       }
-      const token = await user.getIdToken()
       const res = await fetch('/api/agendamento/criar-manual', {
         method: 'POST',
         headers: {

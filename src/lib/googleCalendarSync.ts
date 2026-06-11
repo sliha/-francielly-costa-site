@@ -1,15 +1,14 @@
+import 'server-only'
 import { google, calendar_v3 } from 'googleapis'
 import crypto from 'node:crypto'
-import { Timestamp, FieldValue, type Firestore } from 'firebase-admin/firestore'
-import { getAdminDb, getAdminInitError } from '@/lib/firebaseAdmin'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 import { getProcessed, markProcessed, makeKey } from '@/lib/idempotency'
 import { withRetry } from '@/lib/retry'
 import { logSync } from '@/lib/syncLog'
 import { emitirAlerta, notificarAdminsPorEmail } from '@/lib/alertas'
 
 const SCOPES = ['https://www.googleapis.com/auth/calendar']
-const SYNC_DOC = 'googleCalendarSync'
-const SETTINGS_COL = 'settings'
+const SYNC_KEY = 'googleCalendarSync'
 const WEBHOOK_PATH = '/api/google-calendar/webhook'
 const WEBHOOK_BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://franciellycosta.pt'
 const CHANNEL_TTL_MS = 7 * 24 * 60 * 60 * 1000 // 7 dias (max Google)
@@ -20,8 +19,8 @@ export interface GoogleCalendarSyncState {
   channelId?: string
   channelResourceId?: string
   channelExpiration?: number
-  channelCreatedAt?: Timestamp
-  lastSyncAt?: Timestamp
+  channelCreatedAt?: string
+  lastSyncAt?: string
   lastSyncStatus?: 'ok' | 'error' | 'full-resync-needed'
   lastError?: string
   metadata?: Record<string, unknown>
@@ -67,42 +66,55 @@ export function verifyChannelToken(channelId: string, token: string): boolean {
   return crypto.timingSafeEqual(a, b)
 }
 
-async function getSyncState(db: Firestore): Promise<GoogleCalendarSyncState> {
-  const snap = await db.collection(SETTINGS_COL).doc(SYNC_DOC).get()
-  if (!snap.exists) return {}
-  return snap.data() as GoogleCalendarSyncState
+// ───────────── Estado de sync (tabela settings, jsonb) ─────────────
+export async function getSyncState(): Promise<GoogleCalendarSyncState> {
+  const { data } = await supabaseAdmin()
+    .from('settings')
+    .select('value')
+    .eq('key', SYNC_KEY)
+    .maybeSingle()
+  return (data?.value as GoogleCalendarSyncState) || {}
 }
 
-async function setSyncState(db: Firestore, patch: Partial<GoogleCalendarSyncState>): Promise<void> {
-  await db.collection(SETTINGS_COL).doc(SYNC_DOC).set(patch, { merge: true })
+// patch com valor `undefined` remove a chave
+async function setSyncState(patch: Partial<Record<keyof GoogleCalendarSyncState, unknown>>): Promise<void> {
+  const cur = await getSyncState()
+  const next: Record<string, unknown> = { ...cur }
+  for (const [k, v] of Object.entries(patch)) {
+    if (v === undefined) delete next[k]
+    else next[k] = v
+  }
+  await supabaseAdmin()
+    .from('settings')
+    .upsert({ key: SYNC_KEY, value: next, updated_at: new Date().toISOString() }, { onConflict: 'key' })
 }
 
-async function clearChannelFields(db: Firestore): Promise<void> {
-  await db.collection(SETTINGS_COL).doc(SYNC_DOC).set(
-    {
-      channelId: FieldValue.delete(),
-      channelResourceId: FieldValue.delete(),
-      channelExpiration: FieldValue.delete(),
-      channelCreatedAt: FieldValue.delete(),
-    },
-    { merge: true },
-  )
+async function clearChannelFields(): Promise<void> {
+  await setSyncState({
+    channelId: undefined,
+    channelResourceId: undefined,
+    channelExpiration: undefined,
+    channelCreatedAt: undefined,
+  })
 }
+
+const nowIso = () => new Date().toISOString()
 
 /**
- * Faz um full sync inicial (lista tudo paginado) e devolve o `nextSyncToken`.
- * Usado depois de registar canal ou quando o token expira (410 Gone).
+ * Full sync inicial (lista tudo paginado) e devolve o `nextSyncToken`.
  */
 async function fullSync(
   client: calendar_v3.Calendar,
   calendarId: string,
 ): Promise<{ syncToken?: string; processed: number; errors: string[] }> {
-  const db = getAdminDb()
-  if (!db) return { processed: 0, errors: [getAdminInitError() || 'admin-sdk não inicializado'] }
   const errors: string[] = []
   let pageToken: string | undefined
   let syncToken: string | undefined
   let processed = 0
+  // Limita o full sync a eventos recentes/futuros (evita percorrer anos de histórico,
+  // que faria a função serverless exceder o tempo-limite). Cobre alterações dos últimos
+  // 7 dias em diante — suficiente para slots/bloqueios; o nextSyncToken respeita esta janela.
+  const timeMin = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
   do {
     try {
       const res = await withRetry(
@@ -111,6 +123,7 @@ async function fullSync(
             calendarId,
             singleEvents: true,
             showDeleted: true,
+            timeMin,
             pageToken,
             maxResults: 250,
           }),
@@ -119,7 +132,7 @@ async function fullSync(
       const items = res.data.items || []
       for (const event of items) {
         try {
-          await applyEventToFirestore(db, event)
+          await applyEventToDb(event)
           processed++
         } catch (err) {
           errors.push(`event ${event.id}: ${err instanceof Error ? err.message : String(err)}`)
@@ -143,12 +156,10 @@ export async function registerWatchChannel(): Promise<{
 }> {
   const cli = getCalendarClient()
   if ('error' in cli) return { ok: false, error: cli.error }
-  const db = getAdminDb()
-  if (!db) return { ok: false, error: getAdminInitError() || 'admin-sdk não inicializado' }
 
   // Parar canal antigo (best-effort)
   try {
-    const prev = await getSyncState(db)
+    const prev = await getSyncState()
     if (prev.channelId && prev.channelResourceId) {
       try {
         await cli.client.channels.stop({
@@ -195,21 +206,21 @@ export async function registerWatchChannel(): Promise<{
   const channelResourceId = response.resourceId || undefined
   const channelExpiration = response.expiration ? Number(response.expiration) : expiration
 
-  await setSyncState(db, {
+  await setSyncState({
     channelId,
     channelResourceId,
     channelExpiration,
-    channelCreatedAt: Timestamp.now(),
+    channelCreatedAt: nowIso(),
   })
 
   // Full sync inicial para obter syncToken
   try {
     const sync = await fullSync(cli.client, cli.calendarId)
-    await setSyncState(db, {
+    await setSyncState({
       syncToken: sync.syncToken,
-      lastSyncAt: Timestamp.now(),
+      lastSyncAt: nowIso(),
       lastSyncStatus: sync.errors.length === 0 ? 'ok' : 'error',
-      lastError: sync.errors.slice(0, 5).join(' | ') || FieldValue.delete() as unknown as string,
+      lastError: sync.errors.slice(0, 5).join(' | ') || undefined,
     })
   } catch (err) {
     console.error('Full sync inicial falhou:', err)
@@ -228,12 +239,10 @@ export async function registerWatchChannel(): Promise<{
 export async function stopWatchChannel(): Promise<{ ok: boolean; error?: string }> {
   const cli = getCalendarClient()
   if ('error' in cli) return { ok: false, error: cli.error }
-  const db = getAdminDb()
-  if (!db) return { ok: false, error: getAdminInitError() || 'admin-sdk não inicializado' }
 
-  const state = await getSyncState(db)
+  const state = await getSyncState()
   if (!state.channelId || !state.channelResourceId) {
-    await clearChannelFields(db)
+    await clearChannelFields()
     return { ok: true }
   }
 
@@ -246,17 +255,15 @@ export async function stopWatchChannel(): Promise<{ ok: boolean; error?: string 
       { label: 'stopWatchChannel.channels.stop' },
     )
   } catch (err) {
-    // Mesmo que o stop falhe, limpamos local — o canal expirará sozinho.
     console.warn('channels.stop falhou:', err)
   }
 
-  await clearChannelFields(db)
+  await clearChannelFields()
   await logSync({ operation: 'stop_watch', status: 'ok', durationMs: 0 })
   return { ok: true }
 }
 
 export async function renewWatchChannel(): Promise<{ ok: boolean; error?: string }> {
-  // Stop + register (mantém syncToken)
   await stopWatchChannel()
   const r = await registerWatchChannel()
   if (!r.ok) return { ok: false, error: r.error }
@@ -270,10 +277,8 @@ export async function processCalendarChanges(): Promise<{ processed: number; err
     await logSync({ operation: 'webhook_google', status: 'error', durationMs: 0, errorMessage: cli.error })
     return { processed: 0, errors: [cli.error] }
   }
-  const db = getAdminDb()
-  if (!db) return { processed: 0, errors: [getAdminInitError() || 'admin-sdk não inicializado'] }
 
-  const state = await getSyncState(db)
+  const state = await getSyncState()
   const errors: string[] = []
   let processed = 0
   let nextSyncToken: string | undefined
@@ -282,11 +287,11 @@ export async function processCalendarChanges(): Promise<{ processed: number; err
   // Sem syncToken → full sync
   if (!state.syncToken) {
     const sync = await fullSync(cli.client, cli.calendarId)
-    await setSyncState(db, {
+    await setSyncState({
       syncToken: sync.syncToken,
-      lastSyncAt: Timestamp.now(),
+      lastSyncAt: nowIso(),
       lastSyncStatus: sync.errors.length === 0 ? 'ok' : 'error',
-      lastError: sync.errors.slice(0, 5).join(' | ') || FieldValue.delete() as unknown as string,
+      lastError: sync.errors.slice(0, 5).join(' | ') || undefined,
     })
     return { processed: sync.processed, errors: sync.errors }
   }
@@ -308,7 +313,7 @@ export async function processCalendarChanges(): Promise<{ processed: number; err
       const items = res.data.items || []
       for (const event of items) {
         try {
-          await applyEventToFirestore(db, event)
+          await applyEventToDb(event)
           processed++
         } catch (err) {
           errors.push(`event ${event.id}: ${err instanceof Error ? err.message : String(err)}`)
@@ -320,11 +325,11 @@ export async function processCalendarChanges(): Promise<{ processed: number; err
       const status = (err as { code?: number; status?: number })?.code ?? (err as { status?: number })?.status
       if (status === 410) {
         // Token expirou — full re-sync
-        await setSyncState(db, { syncToken: FieldValue.delete() as unknown as string })
+        await setSyncState({ syncToken: undefined })
         const sync = await fullSync(cli.client, cli.calendarId)
-        await setSyncState(db, {
+        await setSyncState({
           syncToken: sync.syncToken,
-          lastSyncAt: Timestamp.now(),
+          lastSyncAt: nowIso(),
           lastSyncStatus: 'full-resync-needed',
           lastError: 'Token expirou; full resync executado',
         })
@@ -333,19 +338,17 @@ export async function processCalendarChanges(): Promise<{ processed: number; err
       errors.push(`list: ${err instanceof Error ? err.message : String(err)}`)
       break
     }
-    // Para a próxima página, o syncToken não é usado — só o pageToken
     currentSyncToken = undefined
   } while (pageToken)
 
-  // Contador de falhas consecutivas para alerta
   const prevFails = (state.metadata as { failureStreak?: number } | undefined)?.failureStreak ?? 0
   const newStreak = errors.length === 0 ? 0 : prevFails + 1
 
-  await setSyncState(db, {
+  await setSyncState({
     syncToken: nextSyncToken || state.syncToken,
-    lastSyncAt: Timestamp.now(),
+    lastSyncAt: nowIso(),
     lastSyncStatus: errors.length === 0 ? 'ok' : 'error',
-    lastError: errors.slice(0, 5).join(' | ') || FieldValue.delete() as unknown as string,
+    lastError: errors.slice(0, 5).join(' | ') || undefined,
     metadata: { failureStreak: newStreak },
   })
 
@@ -357,7 +360,6 @@ export async function processCalendarChanges(): Promise<{ processed: number; err
     ...(errors.length > 0 ? { errorMessage: errors.slice(0, 3).join(' | ') } : {}),
   })
 
-  // Alerta após 3 falhas consecutivas
   if (newStreak >= 3) {
     const mensagem = `Sincronização Google → Site falhou ${newStreak} vezes consecutivas. Último erro: ${errors[0] || 'desconhecido'}`
     const res = await emitirAlerta({
@@ -377,13 +379,8 @@ export async function processCalendarChanges(): Promise<{ processed: number; err
   return { processed, errors }
 }
 
-/**
- * Apaga o syncToken para forçar full re-sync na próxima chamada a processCalendarChanges.
- */
 export async function forceFullResync(): Promise<{ ok: boolean; processed: number; errors: string[] }> {
-  const db = getAdminDb()
-  if (!db) return { ok: false, processed: 0, errors: [getAdminInitError() || 'admin-sdk não inicializado'] }
-  await setSyncState(db, { syncToken: FieldValue.delete() as unknown as string })
+  await setSyncState({ syncToken: undefined })
   const r = await processCalendarChanges()
   return { ok: r.errors.length === 0, processed: r.processed, errors: r.errors }
 }
@@ -397,7 +394,7 @@ function isAllDay(event: calendar_v3.Schema$Event): boolean {
 }
 
 function dataDoEvento(event: calendar_v3.Schema$Event): string {
-  if (event.start?.date) return event.start.date // YYYY-MM-DD
+  if (event.start?.date) return event.start.date
   if (event.start?.dateTime) return event.start.dateTime.slice(0, 10)
   return ''
 }
@@ -412,14 +409,15 @@ function horaFimDoEvento(event: calendar_v3.Schema$Event): string {
   return ''
 }
 
-/**
- * Aplica um evento (criado/atualizado/cancelado no Google) ao Firestore.
- * Idempotente.
- */
-async function applyEventToFirestore(db: Firestore, event: calendar_v3.Schema$Event): Promise<void> {
-  if (!event.id) return
+const msFrom = (iso?: string | null) => (iso ? new Date(iso).getTime() : 0)
 
-  // Idempotência: já processámos este event.id + version?
+/**
+ * Aplica um evento (criado/atualizado/cancelado no Google) ao Supabase. Idempotente.
+ */
+async function applyEventToDb(event: calendar_v3.Schema$Event): Promise<void> {
+  if (!event.id) return
+  const sb = supabaseAdmin()
+
   const idKey = makeKey('google-calendar', event.id, event.updated || event.etag || '')
   const prior = await getProcessed(idKey)
   if (prior?.result === 'ok') return
@@ -429,57 +427,54 @@ async function applyEventToFirestore(db: Firestore, event: calendar_v3.Schema$Ev
   const fcBlockDocId = event.extendedProperties?.private?.fcBlockDocId
   const eventUpdated = event.updated ? new Date(event.updated).getTime() : 0
 
-  // Helper para gravar idempotência ao final
   const ok = () => markProcessed(idKey, 'google-calendar', 'ok').catch(() => {})
 
-  // ── CASO 1: evento cancelado ────────────────────────────────────────────────
+  // ── CASO 1: evento cancelado ──
   if (event.status === 'cancelled') {
     if (fcAgendamentoId) {
-      const ref = db.collection('agendamentos').doc(fcAgendamentoId)
-      const snap = await ref.get()
-      if (snap.exists) {
-        const cur = snap.data() || {}
-        if (cur.lastGoogleSyncAt) {
-          const lastMs = (cur.lastGoogleSyncAt as Timestamp).toMillis()
-          if (eventUpdated && eventUpdated - lastMs <= ECHO_TOLERANCE_MS) {
-            await ok()
-            return
-          }
+      const { data: cur } = await sb
+        .from('agendamentos')
+        .select('estado, last_google_sync_at')
+        .eq('id', fcAgendamentoId)
+        .maybeSingle()
+      if (cur) {
+        const lastMs = msFrom(cur.last_google_sync_at)
+        if (lastMs && eventUpdated && eventUpdated - lastMs <= ECHO_TOLERANCE_MS) {
+          await ok()
+          return
         }
         if (cur.estado !== 'cancelado') {
-          await ref.update({ estado: 'cancelado', lastGoogleSyncAt: Timestamp.now() })
+          await sb
+            .from('agendamentos')
+            .update({ estado: 'cancelado', last_google_sync_at: nowIso() })
+            .eq('id', fcAgendamentoId)
         }
       }
       await ok()
       return
     }
     if (fcBlockDocId) {
-      try {
-        await db.collection('diasBloqueados').doc(fcBlockDocId).delete()
-      } catch { /* ignored */ }
+      await sb.from('dias_bloqueados').delete().eq('id', fcBlockDocId)
       await ok()
       return
     }
     const extId = externalBlockDocId(event.id)
-    const extSnap = await db.collection('diasBloqueados').doc(extId).get()
-    if (extSnap.exists) {
-      await db.collection('diasBloqueados').doc(extId).delete()
-    }
+    await sb.from('dias_bloqueados').delete().eq('id', extId)
     await ok()
     return
   }
 
-  // ── CASO 2: agendamento nosso ───────────────────────────────────────────────
+  // ── CASO 2: agendamento nosso ──
   if (fcType === 'agendamento' && fcAgendamentoId) {
-    const ref = db.collection('agendamentos').doc(fcAgendamentoId)
-    const snap = await ref.get()
-    if (!snap.exists) { await ok(); return }
-    const cur = snap.data() || {}
+    const { data: cur } = await sb
+      .from('agendamentos')
+      .select('data, hora_inicio, hora_fim, last_google_sync_at')
+      .eq('id', fcAgendamentoId)
+      .maybeSingle()
+    if (!cur) { await ok(); return }
 
-    if (cur.lastGoogleSyncAt) {
-      const lastMs = (cur.lastGoogleSyncAt as Timestamp).toMillis()
-      if (eventUpdated && eventUpdated - lastMs <= ECHO_TOLERANCE_MS) { await ok(); return }
-    }
+    const lastMs = msFrom(cur.last_google_sync_at)
+    if (lastMs && eventUpdated && eventUpdated - lastMs <= ECHO_TOLERANCE_MS) { await ok(); return }
 
     const novaData = dataDoEvento(event)
     const novaHoraInicio = horaDoEvento(event)
@@ -487,32 +482,34 @@ async function applyEventToFirestore(db: Firestore, event: calendar_v3.Schema$Ev
 
     const patch: Record<string, unknown> = {}
     if (novaData && novaData !== cur.data) patch.data = novaData
-    if (novaHoraInicio && novaHoraInicio !== cur.horaInicio) patch.horaInicio = novaHoraInicio
-    if (novaHoraFim && novaHoraFim !== cur.horaFim) patch.horaFim = novaHoraFim
+    if (novaHoraInicio && novaHoraInicio !== cur.hora_inicio) patch.hora_inicio = novaHoraInicio
+    if (novaHoraFim && novaHoraFim !== cur.hora_fim) patch.hora_fim = novaHoraFim
 
     if (Object.keys(patch).length > 0) {
-      patch.lastGoogleSyncAt = Timestamp.now()
-      await ref.update(patch)
+      patch.last_google_sync_at = nowIso()
+      await sb.from('agendamentos').update(patch).eq('id', fcAgendamentoId)
     }
     await ok()
     return
   }
 
-  // ── CASO 3: bloqueio criado por nós (atualizado no Google) ─────────────────
+  // ── CASO 3: bloqueio criado por nós (atualizado no Google) ──
   if (fcType === 'block' && fcBlockDocId) {
-    const ref = db.collection('diasBloqueados').doc(fcBlockDocId)
-    const snap = await ref.get()
-    if (!snap.exists) { await ok(); return }
-    const cur = snap.data() || {}
+    const { data: cur } = await sb
+      .from('dias_bloqueados')
+      .select('data')
+      .eq('id', fcBlockDocId)
+      .maybeSingle()
+    if (!cur) { await ok(); return }
     const novaData = dataDoEvento(event)
     if (novaData && novaData !== cur.data) {
-      await ref.update({ data: novaData })
+      await sb.from('dias_bloqueados').update({ data: novaData }).eq('id', fcBlockDocId)
     }
     await ok()
     return
   }
 
-  // ── CASO 4: evento criado externamente no Google ────────────────────────────
+  // ── CASO 4: evento criado externamente no Google ──
   const extId = externalBlockDocId(event.id)
   const data = dataDoEvento(event)
   if (!data) { await ok(); return }
@@ -521,18 +518,19 @@ async function applyEventToFirestore(db: Firestore, event: calendar_v3.Schema$Ev
   const horaInicio = horaDoEvento(event)
   const motivo = event.summary || 'Evento externo no Google Calendar'
 
-  await db.collection('diasBloqueados').doc(extId).set(
+  await sb.from('dias_bloqueados').upsert(
     {
+      id: extId,
       data,
       motivo,
-      bloqueioTotal: allDay,
-      horasBloqueadas: allDay ? [] : (horaInicio ? [horaInicio] : []),
+      bloqueio_total: allDay,
+      horas_bloqueadas: allDay ? [] : (horaInicio ? [horaInicio] : []),
       origem: 'google-externo',
-      googleEventId: event.id,
-      googleEventUpdated: event.updated || null,
-      atualizadoEm: Timestamp.now(),
+      google_event_id: event.id,
+      google_event_updated: event.updated || null,
+      atualizado_em: nowIso(),
     },
-    { merge: true },
+    { onConflict: 'id' },
   )
   await ok()
 }
