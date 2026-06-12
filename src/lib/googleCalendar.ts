@@ -23,7 +23,7 @@ export type EstadoAgendamento = NonNullable<AgendamentoCalendar['estado']>
 function getCalendarClient(): { client: calendar_v3.Calendar; serviceAccountEmail: string } | { error: string } {
   const raw = process.env.GOOGLE_SERVICE_ACCOUNT_KEY
   if (!raw) {
-    return { error: 'GOOGLE_SERVICE_ACCOUNT_KEY não está presente em process.env (verifica apphosting.yaml + IAM da service account no secret)' }
+    return { error: 'GOOGLE_SERVICE_ACCOUNT_KEY não está presente em process.env (verifica as Environment Variables na Vercel + IAM da service account)' }
   }
   if (raw.length < 50) {
     return { error: `GOOGLE_SERVICE_ACCOUNT_KEY parece truncada (length=${raw.length})` }
@@ -499,7 +499,7 @@ export async function diagnosticarCalendar(): Promise<DiagnosticoCalendar> {
   const calendarId = process.env.GOOGLE_CALENDAR_ID
   if (!calendarId) {
     out.checks.calendarId = { ok: false }
-    out.hint = 'GOOGLE_CALENDAR_ID em falta em apphosting.yaml'
+    out.hint = 'GOOGLE_CALENDAR_ID em falta nas Environment Variables da Vercel'
     return out
   }
   out.checks.calendarId = { ok: true, value: calendarId }

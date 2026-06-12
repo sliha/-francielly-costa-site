@@ -14,6 +14,12 @@ Dica: `grep "^## \[" log.md | tail -5` mostra as 5 últimas entradas.
 
 ---
 
+## [2026-06-12] decisão | Limpeza dos ficheiros legados do Firebase
+Removidos do repo (build verificado): `firebase.json`, `firestore.rules`, `storage.rules`,
+`apphosting.yaml`, `dataconnect/`, e o domínio `firebasestorage` do `next.config.mjs`.
+Dicas em `googleCalendar.ts` atualizadas para a Vercel. `_migration/` (gitignored, export do
+Firestore) mantido no disco como backup. Detalhe em [[migracao-firebase-supabase]].
+
 ## [2026-06-12] decisão | Wiki criado
 Camada de conhecimento llm-wiki inicializada para o site Francielly Costa, com as
 convenções Obsidian (wikilinks, properties, callouts). Páginas-núcleo criadas:

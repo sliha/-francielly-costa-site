@@ -12,18 +12,21 @@ O projeto nasceu em **Firebase** (Firestore + Storage + App Hosting) e migrou pa
 **Vercel + Supabase**. A app em produção já corre **inteiramente em Supabase**; restam
 apenas ficheiros legados na raiz, ainda não removidos.
 
-## Ficheiros/pastas legados (candidatos a limpeza)
-- `firebase.json`, `firestore.rules`, `storage.rules` — regras Firebase (não usadas).
-- `apphosting.yaml` — Firebase App Hosting (substituído por Vercel).
+## Limpeza dos legados (feita 2026-06-12)
+Removidos do repositório após verificação (sem deps/imports Firebase; 0 imagens vivas a apontar
+para `firebasestorage` na BD ou no código; build OK):
+- `firebase.json`, `firestore.rules`, `storage.rules` — regras Firebase.
+- `apphosting.yaml` — Firebase App Hosting (substituído por Vercel). As 2 dicas em
+  `src/lib/googleCalendar.ts` que o citavam foram atualizadas para "Environment Variables da Vercel".
 - `dataconnect/` — Firebase Data Connect.
-- `_migration/` — scripts/dados da migração.
-- Em `next.config.mjs`, `firebasestorage.googleapis.com` continua nos `remotePatterns` (imagens legadas).
+- `firebasestorage.googleapis.com` retirado dos `remotePatterns` do `next.config.mjs`.
 
-> [!warning] Antes de apagar
-> Confirmar que nenhuma imagem/asset em produção ainda aponta para `firebasestorage.googleapis.com`
-> e que `_migration/` já não é necessário. Só então remover, num commit dedicado.
+> [!note] `_migration/` mantido localmente
+> A pasta `_migration/` (export do Firestore + scripts de import) está **gitignored** (nunca foi
+> commitada) — já não polui o repo. Foi **deixada no disco** como backup local; apagá-la seria
+> irreversível (o git não a recupera). Decisão de a apagar fica com o utilizador.
 
-## Já feito
+## Já feito antes
 - Dados, contas e calendário migrados; backend 100% Supabase (ver [[arquitetura-dados]]).
 - `src/lib/firebaseAdmin.ts` (shim morto) **removido** na auditoria.
 

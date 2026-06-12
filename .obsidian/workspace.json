@@ -1,0 +1,188 @@
+{
+  "main": {
+    "id": "ab5c54b4165ba2f8",
+    "type": "split",
+    "children": [
+      {
+        "id": "978d1d765f0aab22",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "287542bfb63a66ff",
+            "type": "leaf",
+            "state": {
+              "type": "pdf",
+              "state": {
+                "file": "public/ebook/ebook-a-chave-para-o-sucesso-francielly-costa.pdf"
+              },
+              "icon": "lucide-file-text",
+              "title": "ebook-a-chave-para-o-sucesso-francielly-costa"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "6c7b6de6fe612bab",
+    "type": "split",
+    "children": [
+      {
+        "id": "8ba1db4d92965b43",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "a6645831b82bede3",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Explorador de ficheiros"
+            }
+          },
+          {
+            "id": "02fc191d3fa1ec16",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Procurar"
+            }
+          },
+          {
+            "id": "3d500659bdfc0db2",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Marcadores"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "ef3772b10a34cb3f",
+    "type": "split",
+    "children": [
+      {
+        "id": "9120ca8d7b52363e",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "e2abc237a954bdf0",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "public/ebook/ebook-a-chave-para-o-sucesso-francielly-costa.pdf",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks para ebook-a-chave-para-o-sucesso-francielly-costa"
+            }
+          },
+          {
+            "id": "de99ea0fe51c9936",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "public/ebook/ebook-a-chave-para-o-sucesso-francielly-costa.pdf",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Links externos de ebook-a-chave-para-o-sucesso-francielly-costa"
+            }
+          },
+          {
+            "id": "c011b89a78b8ef59",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Etiquetas"
+            }
+          },
+          {
+            "id": "85ccbc3477592704",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "Todas as propriedades"
+            }
+          },
+          {
+            "id": "8a9b961ce0750545",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "public/ebook/ebook-a-chave-para-o-sucesso-francielly-costa.pdf",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Índice de ebook-a-chave-para-o-sucesso-francielly-costa"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Abrir Quick Switcher": false,
+      "graph:Abrir Visualização de diagrama de grafo": false,
+      "canvas:Criar novo Canvas": false,
+      "daily-notes:Abrir nota de hoje": false,
+      "templates:Inserir templates": false,
+      "command-palette:Abrir paleta de comando": false,
+      "bases:Criar nova base": false
+    }
+  },
+  "active": "287542bfb63a66ff",
+  "lastOpenFiles": [
+    "public/ebook/cover.webp"
+  ]
+}
