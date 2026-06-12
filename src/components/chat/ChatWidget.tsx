@@ -251,6 +251,10 @@ export default function ChatWidget() {
               <p className="text-center text-xs text-text-muted font-inter mt-2">
                 Sofia responde em segundos ✨
               </p>
+              <p className="text-center text-[10px] text-text-muted/70 font-inter mt-1 leading-snug">
+                Conversa processada por IA (Anthropic, EUA). Não partilhe dados de saúde.{' '}
+                <a href="/privacidade" className="underline hover:text-text-muted">Privacidade</a>
+              </p>
             </div>
           </motion.div>
         )}

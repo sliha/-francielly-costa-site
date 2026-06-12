@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { escapeHtml } from '@/lib/sanitize'
+import { rateLimit, getClientIp, tooManyRequests } from '@/lib/rateLimit'
 
-async function enviarEmailContacto(nome: string, email: string, telefone: string, servico: string, mensagem: string) {
+async function enviarEmailContacto(nomeRaw: string, emailRaw: string, telefoneRaw: string, servicoRaw: string, mensagemRaw: string) {
+  // Todo o input do utilizador é escapado antes de entrar no HTML dos emails.
+  const nome = escapeHtml(nomeRaw)
+  const email = escapeHtml(emailRaw)
+  const telefone = escapeHtml(telefoneRaw)
+  const servico = escapeHtml(servicoRaw)
+  const mensagem = escapeHtml(mensagemRaw)
   const resendKey = process.env.RESEND_API_KEY
   if (!resendKey) return
   const adminEmail = process.env.ADMIN_EMAIL || 'geral@franciellycosta.com'
@@ -53,8 +61,17 @@ async function enviarEmailContacto(nome: string, email: string, telefone: string
 }
 
 export async function POST(req: NextRequest) {
+  // Anti-spam: máx. 5 mensagens por IP a cada 15 minutos.
+  const rl = rateLimit(`contacto:${getClientIp(req)}`, 5, 15 * 60 * 1000)
+  if (!rl.ok) return tooManyRequests(rl.retryAfterSeconds)
+
   try {
-    const { name, email, phone, service, message } = await req.json()
+    const body = await req.json()
+    const name = String(body?.name ?? '').trim().slice(0, 120)
+    const email = String(body?.email ?? '').trim().toLowerCase().slice(0, 254)
+    const phone = String(body?.phone ?? '').trim().slice(0, 30)
+    const service = String(body?.service ?? '').trim().slice(0, 80)
+    const message = String(body?.message ?? '').trim().slice(0, 3000)
 
     if (!name || !email) {
       return NextResponse.json({ error: 'Nome e email são obrigatórios' }, { status: 400 })

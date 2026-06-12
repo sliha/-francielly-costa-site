@@ -61,7 +61,15 @@ const nextConfig = {
           { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
           { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
+          // O site não usa getUserMedia/geolocalização/pagamentos embebidos
+          // (a câmara do simulador usa <input capture>, que não depende disto).
+          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), payment=()' },
         ],
+      },
+      {
+        // Área de gestão e rotas privadas: nunca indexar.
+        source: '/(admin|acompanhamento|consentimento)/:path*',
+        headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }],
       },
     ]
   },

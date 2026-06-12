@@ -87,6 +87,50 @@ export async function getClientePorCodigoReferencia(codigo: string): Promise<{
   return { email: String(data.email || ''), nome: String(data.nome || '') }
 }
 
+// Resumo do programa de referências para um cliente (pela página pública).
+// Só devolve código se o email já pertence a um cliente (que já agendou).
+export async function getResumoReferenciasPorEmail(email: string): Promise<{
+  existe: boolean
+  codigo?: string
+  nome?: string
+  totalEnviadas: number
+  totalConvertidas: number
+  totalPendentes: number
+}> {
+  const sb = supabaseAdmin()
+  const lower = email.toLowerCase()
+
+  const { data: cliente } = await sb
+    .from('clientes')
+    .select('codigo_referencia, nome')
+    .eq('email', lower)
+    .maybeSingle()
+
+  if (!cliente) {
+    return { existe: false, totalEnviadas: 0, totalConvertidas: 0, totalPendentes: 0 }
+  }
+
+  // Garante código mesmo que o registo seja antigo e ainda não o tenha.
+  const codigo =
+    cliente.codigo_referencia ||
+    (await getOuCriarCodigoCliente(lower, String(cliente.nome || '')))
+
+  const { data: refs } = await sb
+    .from('referencias')
+    .select('estado')
+    .eq('refente_email', lower)
+
+  const lista = refs ?? []
+  return {
+    existe: true,
+    codigo,
+    nome: String(cliente.nome || ''),
+    totalEnviadas: lista.length,
+    totalConvertidas: lista.filter((r) => r.estado === 'convertida').length,
+    totalPendentes: lista.filter((r) => r.estado === 'pendente').length,
+  }
+}
+
 export async function registrarReferencia(params: {
   codigoUsado: string
   novoNome: string

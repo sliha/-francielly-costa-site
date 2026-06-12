@@ -8,23 +8,23 @@ const url = `${SITE_URL}/servicos`
 export async function generateMetadata(): Promise<Metadata> {
   const list = services.map((s) => s.name).join(', ')
   return {
-    title: 'Serviços de Dermopigmentação — Francielly Costa | Braga',
+    title: 'Serviços de Dermopigmentação em Braga',
     description: `Conheça todos os serviços de Dermopigmentação Avançada em Braga: ${list}. Especialista certificada com +8 anos de experiência.`,
     alternates: { canonical: url },
     openGraph: {
-      title: 'Serviços de Dermopigmentação — Francielly Costa | Braga',
+      title: 'Serviços de Dermopigmentação em Braga',
       description: `Microblading, micropigmentação labial, eyeliner, tricopigmentação e FiberBROWS em Braga.`,
       url,
       siteName: 'Francielly Costa',
       locale: 'pt_PT',
       type: 'website',
-      images: [{ url: '/og-image.jpg', width: 1200, height: 630, alt: 'Serviços Francielly Costa' }],
+      images: [{ url: '/og-image.png', width: 1200, height: 630, alt: 'Serviços Francielly Costa' }],
     },
     twitter: {
       card: 'summary_large_image',
       title: 'Serviços de Dermopigmentação — Francielly Costa',
       description: 'Microblading, micropigmentação labial, eyeliner, tricopigmentação e FiberBROWS em Braga.',
-      images: ['/og-image.jpg'],
+      images: ['/og-image.png'],
     },
   }
 }

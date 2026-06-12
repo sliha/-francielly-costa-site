@@ -53,7 +53,8 @@ export default function GaleriaPage() {
   useEffect(() => {
     supabase
       .from('galeria')
-      .select('*')
+      // Apenas as colunas usadas — payload menor à medida que a galeria cresce.
+      .select('id, url, servico, tipo, media_type, label, criado_em')
       .eq('ativa', true)
       .order('criado_em', { ascending: false })
       .then(({ data, error }) => {
@@ -69,7 +70,6 @@ export default function GaleriaPage() {
             label: d.label,
             criadoEm: d.criado_em ?? null,
           }))
-          console.log('[Galeria] documentos encontrados:', docs.length, docs.map((d) => d.url))
           setItems(docs)
         }
         setLoading(false)

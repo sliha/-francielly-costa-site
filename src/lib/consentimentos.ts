@@ -1,4 +1,5 @@
 import 'server-only'
+import { randomBytes } from 'crypto'
 import { supabaseAdmin } from './supabase/admin'
 
 export interface RespostasAnamnese {
@@ -55,12 +56,10 @@ function rowToConsentimento(r: Record<string, any>): Consentimento {
   }
 }
 
+// Token criptográfico (192 bits) — protege um formulário com dados de saúde,
+// por isso tem de ser imprevisível (o anterior usava Math.random, reconstruível).
 function gerarToken(): string {
-  return (
-    Math.random().toString(36).slice(2) +
-    Math.random().toString(36).slice(2) +
-    Date.now().toString(36)
-  )
+  return randomBytes(24).toString('base64url')
 }
 
 export async function getTodosConsentimentos(): Promise<Consentimento[]> {

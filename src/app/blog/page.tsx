@@ -3,12 +3,14 @@ import BlogPage from '@/components/blog/BlogPage'
 import JsonLd, { breadcrumbSchema, SITE_URL } from '@/components/JsonLd'
 import { getPublishedPosts } from '@/lib/blog'
 
-export const dynamic = 'force-dynamic'
+// ISR: o conteúdo do blog muda raramente; cache de 5 min melhora o TTFB
+// das landing pages de campanhas (Quality Score) sem atrasar publicações.
+export const revalidate = 300
 
 const url = `${SITE_URL}/blog`
 
 export const metadata: Metadata = {
-  title: 'Blog — Dicas e Novidades sobre Dermopigmentação | Francielly Costa',
+  title: 'Blog — Dicas e Novidades sobre Dermopigmentação',
   description:
     'Artigos sobre Dermopigmentação, cuidados com sobrancelhas, dicas de beleza e novidades do estúdio Francielly Costa em Braga, Portugal.',
   alternates: { canonical: url },
@@ -19,13 +21,13 @@ export const metadata: Metadata = {
     siteName: 'Francielly Costa',
     locale: 'pt_PT',
     type: 'website',
-    images: [{ url: '/og-image.jpg', width: 1200, height: 630, alt: 'Blog Francielly Costa' }],
+    images: [{ url: '/og-image.png', width: 1200, height: 630, alt: 'Blog Francielly Costa' }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Blog — Francielly Costa',
     description: 'Dicas, cuidados e novidades sobre Dermopigmentação.',
-    images: ['/og-image.jpg'],
+    images: ['/og-image.png'],
   },
 }
 

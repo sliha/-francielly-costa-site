@@ -1,16 +1,18 @@
-import Script from 'next/script'
-
 interface JsonLdProps {
   id: string
   data: Record<string, unknown> | Record<string, unknown>[]
 }
 
+/**
+ * JSON-LD como <script> simples (padrão recomendado pelo Next.js): sai no HTML
+ * renderizado no servidor, visível para crawlers sem JS (Google, Meta, validadores
+ * de anúncios). next/script com beforeInteractive não suporta inline no App Router.
+ */
 export default function JsonLd({ id, data }: JsonLdProps) {
   return (
-    <Script
+    <script
       id={id}
       type="application/ld+json"
-      strategy="beforeInteractive"
       dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
     />
   )
@@ -20,14 +22,15 @@ export const SITE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://franciellyc
 
 export const localBusinessSchema = {
   '@context': 'https://schema.org',
-  '@type': 'LocalBusiness',
+  // BeautySalon é o subtipo mais específico de LocalBusiness para este negócio.
+  '@type': 'BeautySalon',
   '@id': `${SITE_URL}/#localbusiness`,
   name: 'Francielly Costa — Dermopigmentação Avançada',
-  image: `${SITE_URL}/og-image.jpg`,
-  logo: `${SITE_URL}/og-image.jpg`,
+  image: `${SITE_URL}/og-image.png`,
+  logo: `${SITE_URL}/apple-icon.png`,
   url: SITE_URL,
   telephone: '+351917132116',
-  email: 'geral@franciellycosta.pt',
+  email: 'geral@franciellycosta.com',
   address: {
     '@type': 'PostalAddress',
     streetAddress: 'Av. Dr. António Palha 53',
@@ -48,11 +51,9 @@ export const localBusinessSchema = {
       closes: '18:00',
     },
   ],
-  aggregateRating: {
-    '@type': 'AggregateRating',
-    ratingValue: '5.0',
-    reviewCount: '2300',
-  },
+  // Nota: aggregateRating removido — o Google exige avaliações reais e visíveis
+  // na página; usar o n.º de clientes como n.º de reviews arrisca ação manual
+  // sobre os dados estruturados e reprovação de anúncios por misrepresentation.
   priceRange: '€€',
   sameAs: [
     'https://www.instagram.com/franciellycostamaster',
@@ -170,7 +171,7 @@ export function bookSchema({ name, description, url, image, pdfUrl, numberOfPage
     publisher: {
       '@type': 'Organization',
       name: 'Francielly Costa',
-      logo: { '@type': 'ImageObject', url: `${SITE_URL}/og-image.jpg` },
+      logo: { '@type': 'ImageObject', url: `${SITE_URL}/og-image.png` },
     },
     offers: {
       '@type': 'Offer',
@@ -208,7 +209,7 @@ export function articleSchema({ headline, description, url, datePublished, dateM
     mainEntityOfPage: { '@type': 'WebPage', '@id': url },
     datePublished,
     dateModified: dateModified ?? datePublished,
-    ...(image ? { image } : { image: `${SITE_URL}/og-image.jpg` }),
+    ...(image ? { image } : { image: `${SITE_URL}/og-image.png` }),
     author: {
       '@type': 'Person',
       name: 'Francielly Costa',
@@ -219,7 +220,7 @@ export function articleSchema({ headline, description, url, datePublished, dateM
       name: 'Francielly Costa',
       logo: {
         '@type': 'ImageObject',
-        url: `${SITE_URL}/og-image.jpg`,
+        url: `${SITE_URL}/og-image.png`,
       },
     },
   }

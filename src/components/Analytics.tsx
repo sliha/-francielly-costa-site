@@ -3,58 +3,51 @@
 import { useEffect, useState } from 'react'
 import Script from 'next/script'
 import { usePathname, useSearchParams } from 'next/navigation'
+import { readConsent, CONSENT_EVENT, CONSENT_STORAGE_KEY, type CookieConsent } from '@/lib/consent'
 
 const GA_ID = process.env.NEXT_PUBLIC_GA_ID || 'G-GM7S2XXBZS'
 const META_PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID || '1370527093885024'
 const GOOGLE_ADS_ID = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID || 'AW-18049747314'
-const STORAGE_KEY = 'cookie_consent'
 
-function readConsent(): boolean {
-  if (typeof window === 'undefined') return false
-  try {
-    return localStorage.getItem(STORAGE_KEY) === 'accepted'
-  } catch {
-    return false
-  }
-}
+const NO_CONSENT: CookieConsent = { analytics: false, marketing: false }
 
 export default function Analytics() {
-  const [hasConsent, setHasConsent] = useState(false)
+  const [consent, setConsent] = useState<CookieConsent>(NO_CONSENT)
   const pathname = usePathname()
   const searchParams = useSearchParams()
 
   useEffect(() => {
-    setHasConsent(readConsent())
-    const onConsent = () => setHasConsent(readConsent())
+    const sync = () => setConsent(readConsent() ?? NO_CONSENT)
+    sync()
     const onStorage = (e: StorageEvent) => {
-      if (e.key === STORAGE_KEY) setHasConsent(readConsent())
+      if (e.key === CONSENT_STORAGE_KEY) sync()
     }
-    window.addEventListener('cookie_consent_changed', onConsent)
+    window.addEventListener(CONSENT_EVENT, sync)
     window.addEventListener('storage', onStorage)
     return () => {
-      window.removeEventListener('cookie_consent_changed', onConsent)
+      window.removeEventListener(CONSENT_EVENT, sync)
       window.removeEventListener('storage', onStorage)
     }
   }, [])
 
   useEffect(() => {
-    if (!hasConsent) return
+    if (!consent.analytics && !consent.marketing) return
     const url = pathname + (searchParams?.toString() ? `?${searchParams.toString()}` : '')
-    if (typeof window.fbq === 'function') window.fbq('track', 'PageView')
-    if (typeof window.gtag === 'function') {
+    if (consent.marketing && typeof window.fbq === 'function') window.fbq('track', 'PageView')
+    if (consent.analytics && typeof window.gtag === 'function') {
       window.gtag('event', 'page_view', {
         page_path: url,
         page_location: window.location.href,
         page_title: document.title,
       })
     }
-  }, [pathname, searchParams, hasConsent])
+  }, [pathname, searchParams, consent])
 
-  if (!hasConsent) return null
+  if (!consent.analytics && !consent.marketing) return null
 
   return (
     <>
-      {GA_ID && (
+      {GA_ID && consent.analytics && (
         <>
           <Script
             id="ga-loader"
@@ -69,15 +62,24 @@ export default function Analytics() {
                 window.dataLayer = window.dataLayer || [];
                 function gtag(){dataLayer.push(arguments);}
                 window.gtag = gtag;
+                // Google Consent Mode v2 — obrigatório para anunciantes no EEE.
+                // Os scripts só montam após consentimento, por isso refletimos
+                // exatamente as categorias que o utilizador aceitou.
+                gtag('consent', 'default', {
+                  ad_storage: '${consent.marketing ? 'granted' : 'denied'}',
+                  ad_user_data: '${consent.marketing ? 'granted' : 'denied'}',
+                  ad_personalization: '${consent.marketing ? 'granted' : 'denied'}',
+                  analytics_storage: 'granted'
+                });
                 gtag('js', new Date());
                 gtag('config', '${GA_ID}', { anonymize_ip: true, send_page_view: true });
-                gtag('config', '${GOOGLE_ADS_ID}');
+                ${consent.marketing ? `gtag('config', '${GOOGLE_ADS_ID}');` : ''}
               `,
             }}
           />
         </>
       )}
-      {META_PIXEL_ID && (
+      {META_PIXEL_ID && consent.marketing && (
         <>
           <Script
             id="meta-pixel"

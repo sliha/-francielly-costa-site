@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import {
   Calendar,
@@ -12,43 +12,22 @@ import {
   CheckCircle2,
   AlertCircle,
 } from 'lucide-react'
+import { startOfMonth, endOfMonth, isWithinInterval, parseISO } from 'date-fns'
+import { supabase } from '@/lib/supabase/client'
+import { rowToAgendamento } from '@/lib/mappers'
+import type { Agendamento } from '@/lib/booking'
+import { useServicosPrecos } from '@/lib/useServicosPrecos'
 
-// TODO: Replace with Firestore query — collection('marcacoes').where('data', '==', today)
-const mockToday = [
-  {
-    id: '1',
-    clienteNome: 'Ana Silva',
-    servicoNome: 'Microblading',
-    horaInicio: '10:00',
-    estado: 'confirmado',
-  },
-  {
-    id: '2',
-    clienteNome: 'Marta Santos',
-    servicoNome: 'Micropigmentação Labial',
-    horaInicio: '14:30',
-    estado: 'pendente',
-  },
-  {
-    id: '3',
-    clienteNome: 'Joana Ferreira',
-    servicoNome: 'Microshading',
-    horaInicio: '16:00',
-    estado: 'confirmado',
-  },
-]
-
-// TODO: Replace with Firestore aggregation queries
-const mockStats = {
-  marcacoesHoje: 3,
-  pendentes: 1,
-  receitaEstimada: 410,
-  totalMes: 24,
+function parsePreco(p?: string): number {
+  if (!p) return 0
+  const match = p.replace(',', '.').match(/[\d.]+/)
+  return match ? Number(match[0]) : 0
 }
 
 const estadoConfig: Record<string, { label: string; color: string; bg: string }> = {
   confirmado: { label: 'Confirmado', color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
   pendente: { label: 'Pendente', color: 'text-amber-400', bg: 'bg-amber-400/10' },
+  pendente_pagamento: { label: 'Aguarda pagamento', color: 'text-amber-400', bg: 'bg-amber-400/10' },
   pago: { label: 'Pago', color: 'text-sky-400', bg: 'bg-sky-400/10' },
   concluido: { label: 'Concluído', color: 'text-white/40', bg: 'bg-white/5' },
   cancelado: { label: 'Cancelado', color: 'text-red-400', bg: 'bg-red-400/10' },
@@ -69,8 +48,52 @@ function getTodayFormatted(): string {
   })
 }
 
+function todayISO(): string {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 export default function AdminDashboard() {
-  const [_refreshing] = useState(false)
+  const [agendamentos, setAgendamentos] = useState<Agendamento[]>([])
+  const [loading, setLoading] = useState(true)
+  const precos = useServicosPrecos()
+
+  useEffect(() => {
+    supabase
+      .from('agendamentos')
+      .select('*')
+      .order('hora_inicio')
+      .then(({ data, error }) => {
+        if (!error && data) setAgendamentos(data.map(rowToAgendamento))
+        setLoading(false)
+      })
+  }, [])
+
+  const hoje = todayISO()
+  const stats = useMemo(() => {
+    const ativos = agendamentos.filter((a) => a.estado !== 'cancelado')
+    const deHoje = ativos
+      .filter((a) => a.data === hoje)
+      .sort((a, b) => (a.horaInicio || '').localeCompare(b.horaInicio || ''))
+    const pendentes = ativos.filter(
+      (a) => a.estado === 'pendente' || a.estado === 'pendente_pagamento'
+    ).length
+    const receitaHoje = deHoje.reduce((sum, a) => sum + parsePreco(precos[a.servicoId]), 0)
+
+    const now = new Date()
+    const inicioMes = startOfMonth(now)
+    const fimMes = endOfMonth(now)
+    const totalMes = ativos.filter((a) => {
+      if (!a.data) return false
+      try {
+        return isWithinInterval(parseISO(a.data), { start: inicioMes, end: fimMes })
+      } catch {
+        return false
+      }
+    }).length
+
+    return { deHoje, pendentes, receitaHoje, totalMes }
+  }, [agendamentos, precos, hoje])
 
   return (
     <div className="min-h-screen bg-[#0F0F0F] text-white">
@@ -99,28 +122,28 @@ export default function AdminDashboard() {
           <StatCard
             icon={<Calendar size={20} className="text-rose-gold" />}
             label="Marcações Hoje"
-            value={mockStats.marcacoesHoje.toString()}
+            value={loading ? '—' : stats.deHoje.length.toString()}
             sub="agendadas"
             accent="rose"
           />
           <StatCard
             icon={<AlertCircle size={20} className="text-amber-400" />}
             label="Pendentes"
-            value={mockStats.pendentes.toString()}
+            value={loading ? '—' : stats.pendentes.toString()}
             sub="a confirmar"
             accent="amber"
           />
           <StatCard
             icon={<Euro size={20} className="text-emerald-400" />}
             label="Receita Est."
-            value={`€${mockStats.receitaEstimada}`}
+            value={loading ? '—' : `€${stats.receitaHoje}`}
             sub="hoje"
             accent="emerald"
           />
           <StatCard
             icon={<TrendingUp size={20} className="text-golden" />}
             label="Total Mês"
-            value={mockStats.totalMes.toString()}
+            value={loading ? '—' : stats.totalMes.toString()}
             sub="marcações"
             accent="golden"
           />
@@ -141,19 +164,23 @@ export default function AdminDashboard() {
             </Link>
           </div>
 
-          {mockToday.length === 0 ? (
+          {loading ? (
+            <div className="bg-[#1A1A1A] rounded-2xl p-8 text-center border border-white/5">
+              <div className="w-6 h-6 border-2 border-rose-gold border-t-transparent rounded-full animate-spin mx-auto" />
+            </div>
+          ) : stats.deHoje.length === 0 ? (
             <div className="bg-[#1A1A1A] rounded-2xl p-8 text-center border border-white/5">
               <Calendar size={32} className="text-white/20 mx-auto mb-2" />
               <p className="text-white/40 text-sm">Sem marcações para hoje</p>
             </div>
           ) : (
             <div className="space-y-2">
-              {mockToday.map((booking) => {
+              {stats.deHoje.map((booking) => {
                 const status = estadoConfig[booking.estado] ?? estadoConfig.pendente
                 return (
                   <Link
                     key={booking.id}
-                    href={`/admin/agenda?id=${booking.id}`}
+                    href="/admin/agenda"
                     className="flex items-center gap-4 bg-[#1A1A1A] hover:bg-[#222222] rounded-2xl px-4 py-3.5 border border-white/5 hover:border-white/10 transition-all group"
                   >
                     {/* Time */}
@@ -221,27 +248,17 @@ export default function AdminDashboard() {
           </div>
         </section>
 
-        {/* Summary card */}
-        <section className="bg-gradient-to-br from-rose-gold/10 to-golden/5 rounded-2xl p-5 border border-rose-gold/20">
-          <div className="flex items-center gap-2 mb-3">
+        {/* Link para relatório completo */}
+        <Link
+          href="/admin/relatorio"
+          className="flex items-center justify-between bg-gradient-to-br from-rose-gold/10 to-golden/5 rounded-2xl p-5 border border-rose-gold/20 hover:border-rose-gold/40 transition-colors group"
+        >
+          <div className="flex items-center gap-2">
             <CheckCircle2 size={16} className="text-rose-gold" />
-            <h3 className="text-white font-medium text-sm">Resumo do Mês</h3>
+            <h3 className="text-white font-medium text-sm">Ver relatório completo do mês</h3>
           </div>
-          <div className="grid grid-cols-3 gap-4 text-center">
-            <div>
-              <p className="text-2xl font-playfair font-semibold text-white">24</p>
-              <p className="text-white/40 text-xs mt-0.5">Marcações</p>
-            </div>
-            <div>
-              <p className="text-2xl font-playfair font-semibold text-golden">€3.2k</p>
-              <p className="text-white/40 text-xs mt-0.5">Receita</p>
-            </div>
-            <div>
-              <p className="text-2xl font-playfair font-semibold text-emerald-400">96%</p>
-              <p className="text-white/40 text-xs mt-0.5">Concluídas</p>
-            </div>
-          </div>
-        </section>
+          <ChevronRight size={16} className="text-white/30 group-hover:text-rose-gold transition-colors" />
+        </Link>
       </div>
     </div>
   )

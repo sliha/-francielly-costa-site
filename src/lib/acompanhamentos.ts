@@ -1,5 +1,21 @@
 import 'server-only'
+import { randomInt } from 'crypto'
 import { supabaseAdmin } from './supabase/admin'
+
+/** Bucket privado onde ficam as fotos de acompanhamento (dados de saúde). */
+export const ACOMP_BUCKET = 'acompanhamentos'
+
+/**
+ * Código de acesso seguro: 12 caracteres de um alfabeto sem ambíguos (A-Z, 2-9
+ * exceto I/O/0/1), gerado com CSPRNG (~61 bits de entropia). Substitui os
+ * antigos 6 dígitos de Math.random, que eram enumeráveis (900 mil combinações).
+ */
+const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+export function gerarCodigoAcesso(): string {
+  let out = ''
+  for (let i = 0; i < 12; i++) out += CODE_ALPHABET[randomInt(CODE_ALPHABET.length)]
+  return out
+}
 
 export interface Acompanhamento {
   id?: string
@@ -127,7 +143,7 @@ export async function criarAcompanhamento(params: {
     }
   }
 
-  const codigoAcesso = String(Math.floor(100000 + Math.random() * 900000))
+  const codigoAcesso = gerarCodigoAcesso()
   const retoqueData = calcularRetoqueData(params.dataProcedimento)
 
   const { data, error } = await supabaseAdmin()
@@ -202,4 +218,23 @@ export async function addFoto(
     url: foto.url,
     storage_path: foto.storagePath,
   })
+}
+
+/**
+ * Resolve URLs de visualização das fotos:
+ * - fotos novas (url vazio) vivem no bucket PRIVADO → signed URL com expiração;
+ * - fotos antigas mantêm o URL público guardado (bucket 'media', legado).
+ */
+export async function resolverFotosUrls(fotos: Foto[]): Promise<Foto[]> {
+  const sb = supabaseAdmin()
+  return Promise.all(
+    fotos.map(async (f) => {
+      if (f.url) return f
+      if (!f.storagePath) return f
+      const { data } = await sb.storage
+        .from(ACOMP_BUCKET)
+        .createSignedUrl(f.storagePath, 60 * 60) // 1 hora
+      return { ...f, url: data?.signedUrl || '' }
+    })
+  )
 }

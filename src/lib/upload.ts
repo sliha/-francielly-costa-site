@@ -45,7 +45,11 @@ export async function compressImage(file: File, maxDim = 1600, quality = 0.82): 
  * Evita o problema de o Storage não aceitar o JWT ES256 do utilizador e
  * o limite de body das funções serverless. Devolve { url, path }.
  */
-export async function uploadMedia(file: File, path: string): Promise<{ url: string; path: string }> {
+export async function uploadMedia(
+  file: File,
+  path: string,
+  bucket: 'media' | 'acompanhamentos' = 'media'
+): Promise<{ url: string; path: string }> {
   const optimized = await compressImage(file)
 
   const token = await getAccessToken()
@@ -54,7 +58,7 @@ export async function uploadMedia(file: File, path: string): Promise<{ url: stri
   const res = await fetch('/api/admin/upload-url', {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ path }),
+    body: JSON.stringify({ path, bucket }),
   })
   if (!res.ok) {
     const e = await res.json().catch(() => ({}))
@@ -62,22 +66,44 @@ export async function uploadMedia(file: File, path: string): Promise<{ url: stri
   }
   const { token: uploadToken, path: finalPath, publicUrl } = await res.json()
 
-  const { error } = await supabase.storage.from('media').uploadToSignedUrl(finalPath, uploadToken, optimized, {
+  const { error } = await supabase.storage.from(bucket).uploadToSignedUrl(finalPath, uploadToken, optimized, {
     contentType: optimized.type || undefined,
   })
   if (error) throw new Error(error.message)
 
-  return { url: publicUrl as string, path: finalPath as string }
+  // Buckets privados devolvem publicUrl vazio — a leitura usa signed URLs.
+  return { url: (publicUrl as string) || '', path: finalPath as string }
 }
 
-/** Remove um ficheiro do Storage 'media' (via servidor/service_role). */
-export async function deleteMedia(path: string): Promise<void> {
+/** Gera signed READ URLs para ficheiros de buckets privados (admin). */
+export async function getSignedUrls(
+  paths: string[],
+  bucket: 'acompanhamentos' = 'acompanhamentos'
+): Promise<Record<string, string>> {
+  if (paths.length === 0) return {}
+  const token = await getAccessToken()
+  if (!token) return {}
+  const res = await fetch('/api/admin/upload-url', {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ paths, bucket }),
+  })
+  if (!res.ok) return {}
+  const { urls } = await res.json().catch(() => ({ urls: {} }))
+  return urls || {}
+}
+
+/** Remove um ficheiro do Storage (via servidor/service_role). */
+export async function deleteMedia(
+  path: string,
+  bucket: 'media' | 'acompanhamentos' = 'media'
+): Promise<void> {
   if (!path) return
   const token = await getAccessToken()
   if (!token) return
   await fetch('/api/admin/upload-url', {
     method: 'DELETE',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ path }),
+    body: JSON.stringify({ path, bucket }),
   }).catch(() => {})
 }

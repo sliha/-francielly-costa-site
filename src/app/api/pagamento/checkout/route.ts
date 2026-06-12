@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { getAgendamentoPorId } from '@/lib/booking'
 
 export const runtime = 'nodejs'
 
@@ -24,7 +25,6 @@ async function getCaucaoValor(): Promise<number> {
 
 export async function POST(req: NextRequest) {
   const secretKey = process.env.STRIPE_SECRET_KEY
-  console.log('STRIPE_SECRET_KEY exists:', !!secretKey)
 
   if (!secretKey) {
     console.error('STRIPE_SECRET_KEY não está configurada no ambiente de runtime')
@@ -36,68 +36,45 @@ export async function POST(req: NextRequest) {
   })
 
   try {
-    const body = await req.json()
-    const {
-      agendamentoId,
-      servicoNome,
-      clienteEmail,
-      clienteNome,
-      clienteTelefone,
-      dataAgendamento,
-    } = body
+    const body = await req.json().catch(() => ({}))
+    const agendamentoId = typeof body?.agendamentoId === 'string' ? body.agendamentoId : ''
 
-    console.log('Stripe checkout payload:', { agendamentoId, servicoNome, clienteEmail })
+    if (!agendamentoId) {
+      return NextResponse.json({ error: 'agendamentoId em falta' }, { status: 400 })
+    }
 
-    if (!agendamentoId || !servicoNome || !clienteEmail) {
+    // SEGURANÇA: todos os dados (cliente, serviço, valor) vêm do registo no servidor.
+    // O payload do cliente nunca é usado para escrever na BD nem para definir valores.
+    const agendamento = await getAgendamentoPorId(agendamentoId)
+    if (!agendamento) {
+      return NextResponse.json({ error: 'Marcação não encontrada' }, { status: 404 })
+    }
+
+    // Só faz sentido pagar caução de marcações ainda por confirmar.
+    if (agendamento.estado !== 'pendente_pagamento' && agendamento.estado !== 'pendente') {
       return NextResponse.json(
-        { error: 'Campos obrigatórios em falta: agendamentoId, servicoNome e clienteEmail' },
-        { status: 400 }
+        { error: 'Esta marcação já não aguarda pagamento de caução.' },
+        { status: 409 }
       )
     }
 
-    // Guardar/actualizar dados do cliente antes de iniciar pagamento.
-    // A tabela clientes tem o email como chave primária.
-    try {
-      await supabaseAdmin()
-        .from('clientes')
-        .upsert(
-          {
-            email: String(clienteEmail).toLowerCase(),
-            nome: clienteNome || '',
-            telefone: clienteTelefone || '',
-            ultimo_servico: servicoNome,
-            ultimo_agendamento: dataAgendamento || null,
-            atualizado_em: new Date().toISOString(),
-          },
-          { onConflict: 'email' }
-        )
-      console.log('Cliente guardado no Supabase:', clienteEmail)
-    } catch (dbErr) {
-      console.error('Erro ao guardar cliente:', dbErr)
-      // Não bloquear o pagamento por erro de persistência do cliente
-    }
-
-    // SEGURANÇA: o valor da caução vem SEMPRE do servidor (definições de negócio),
-    // nunca do payload do cliente.
     const caucaoValor = await getCaucaoValor()
     const valorCentimos = Math.round(caucaoValor * 100)
-    console.log('Valor em cêntimos (servidor):', valorCentimos)
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
-      customer_email: clienteEmail,
-      // receipt_email é configurado via payment_intent_data para envio automático
+      customer_email: agendamento.clienteEmail,
       payment_intent_data: {
-        receipt_email: clienteEmail,
+        receipt_email: agendamento.clienteEmail,
       },
       line_items: [
         {
           price_data: {
             currency: 'eur',
             product_data: {
-              name: `Caução de Reserva — ${servicoNome}`,
+              name: `Caução de Reserva — ${agendamento.servicoNome || 'Procedimento'}`,
               description:
-                'Valor descontado no procedimento. Não reembolsável em caso de falta sem aviso prévio de 24h.',
+                'Valor descontado no procedimento. Não reembolsável em caso de cancelamento com menos de 48h de antecedência ou falta sem aviso.',
             },
             unit_amount: valorCentimos,
           },
@@ -105,13 +82,13 @@ export async function POST(req: NextRequest) {
         },
       ],
       mode: 'payment',
-      success_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://franciellycosta.pt'}/agendamento/confirmado?session_id={CHECKOUT_SESSION_ID}&id=${agendamentoId}`,
+      success_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://franciellycosta.pt'}/agendamento/confirmado?session_id={CHECKOUT_SESSION_ID}&id=${encodeURIComponent(agendamentoId)}`,
       cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://franciellycosta.pt'}/agendamento/cancelado`,
       metadata: { agendamentoId },
       locale: 'pt',
     })
 
-    console.log('Stripe session criada com sucesso:', session.id, '| URL:', session.url ? 'OK' : 'NULA')
+    console.log('Stripe session criada:', session.id)
     return NextResponse.json({ url: session.url })
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err)

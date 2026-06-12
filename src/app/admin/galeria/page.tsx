@@ -75,17 +75,31 @@ export default function GaleriaPage() {
   const filteredFotos = filterServico === 'todos' ? fotos : fotos.filter((f) => f.servico === filterServico)
 
   const toggleAtiva = async (id: string, current: boolean) => {
+    // Update otimista; em caso de erro, reverter e avisar.
     setFotos((prev) => prev.map((f) => (f.id === id ? { ...f, ativa: !current } : f)))
-    try { await supabase.from('galeria').update({ ativa: !current }).eq('id', id) } catch {}
+    const { error } = await supabase.from('galeria').update({ ativa: !current }).eq('id', id)
+    if (error) {
+      setFotos((prev) => prev.map((f) => (f.id === id ? { ...f, ativa: current } : f)))
+      alert('Não foi possível atualizar a visibilidade. Tente novamente.')
+    }
   }
 
   const deleteFoto = async (foto: Foto) => {
     if (!confirm('Eliminar este ficheiro?')) return
+    // Apagar primeiro a linha da BD (com verificação); só depois o ficheiro.
+    const { error } = await supabase.from('galeria').delete().eq('id', foto.id)
+    if (error) {
+      alert('Não foi possível eliminar o ficheiro. Tente novamente.')
+      return
+    }
     setFotos((prev) => prev.filter((f) => f.id !== foto.id))
-    try {
-      if (foto.storagePath) await deleteMedia(foto.storagePath)
-      await supabase.from('galeria').delete().eq('id', foto.id)
-    } catch {}
+    if (foto.storagePath) {
+      try {
+        await deleteMedia(foto.storagePath)
+      } catch (err) {
+        console.error('Linha apagada mas falha ao remover o ficheiro do storage:', err)
+      }
+    }
   }
 
   const processFiles = async (files: File[]) => {

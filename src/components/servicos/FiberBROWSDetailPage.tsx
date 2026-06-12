@@ -97,6 +97,11 @@ function WaitlistForm() {
       >
         {status === 'loading' ? 'A registar...' : 'Quero Ser Notificada'}
       </button>
+      <p className="text-white/30 text-xs text-center font-inter leading-relaxed">
+        Ao inscrever-se, aceita ser contactada sobre a disponibilidade da FiberBROWS.
+        Pode pedir a remoção da lista a qualquer momento.{' '}
+        <a href="/privacidade" className="underline hover:text-white/60">Política de Privacidade</a>
+      </p>
       {status === 'error' && (
         <p className="text-red-400 text-sm text-center font-inter">Ocorreu um erro. Por favor, tente novamente.</p>
       )}

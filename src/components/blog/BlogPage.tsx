@@ -116,8 +116,7 @@ export default function BlogPage({ posts }: { posts: BlogPost[] }) {
               <Link href={`/blog/${featured.slug}`} className="block bg-white rounded-3xl overflow-hidden shadow-card hover:shadow-card-hover transition-all duration-300 group grid grid-cols-1 md:grid-cols-2">
                 <div className={`relative min-h-[280px] flex items-center justify-center bg-gradient-to-br ${fallbackGradients[0]}`}>
                   {featured.coverUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={featured.coverUrl} alt={featured.title} className="absolute inset-0 w-full h-full object-cover" />
+                    <Image src={featured.coverUrl} alt={featured.title} fill priority sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" />
                   ) : (
                     <div className="text-center px-8 relative z-10">
                       <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold font-inter mb-4 ${categoryColors[featured.category] ?? 'bg-white/20 text-white'}`}>
@@ -154,8 +153,7 @@ export default function BlogPage({ posts }: { posts: BlogPost[] }) {
                 <Link href={`/blog/${post.slug}`} className="block">
                   <div className={`relative h-48 flex items-center justify-center bg-gradient-to-br ${fallbackGradients[(i + 1) % fallbackGradients.length]}`}>
                     {post.coverUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={post.coverUrl} alt={post.title} className="absolute inset-0 w-full h-full object-cover" />
+                      <Image src={post.coverUrl} alt={post.title} fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover" />
                     ) : (
                       <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold font-inter bg-white/20 text-white backdrop-blur-sm relative z-10">
                         <Tag className="w-3 h-3" /> {post.category}
