@@ -39,3 +39,7 @@ firebase-debug.log
 
 # migration artifacts (contêm dados/segredos — nunca commitar)
 _migration/
+
+# Obsidian: manter config do vault, ignorar estado de UI local (volátil)
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
