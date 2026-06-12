@@ -79,6 +79,20 @@ export default function GaleriaPage() {
   const displayItems = items.length > 0 ? items : placeholders
   const isPlaceholder = items.length === 0
 
+  // Só mostra separadores de categorias que realmente têm media — evita abrir
+  // (ou ficar preso) num separador vazio, que fazia a galeria parecer apagada.
+  const presentes = new Set(displayItems.map((item) => item.servico))
+  const visibleCategories = categories.filter((c) => presentes.has(c.id))
+
+  // Quando os itens carregam, salta para o primeiro separador com conteúdo.
+  useEffect(() => {
+    if (!presentes.has(activeCategory)) {
+      const primeira = visibleCategories[0]
+      if (primeira) setActiveCategory(primeira.id)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items])
+
   const filtered = displayItems.filter((item) => item.servico === activeCategory)
 
   const photos = filtered.filter((i) => i.mediaType !== 'video')
@@ -131,7 +145,7 @@ export default function GaleriaPage() {
             transition={{ duration: 0.6 }}
             className="flex flex-wrap items-center justify-center gap-2 mb-12"
           >
-            {categories.map((cat) => (
+            {visibleCategories.map((cat) => (
               <button
                 key={cat.id}
                 onClick={() => setActiveCategory(cat.id)}
