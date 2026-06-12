@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { verifyAdminRequest } from '@/lib/auth'
-import { criarAgendamento, atualizarEstadoAgendamento, upsertCliente, type Agendamento } from '@/lib/booking'
+import { criarAgendamento, atualizarEstadoAgendamento, upsertCliente, getSlotsDisponiveis, type Agendamento } from '@/lib/booking'
 import { createCalendarEvent } from '@/lib/googleCalendar'
 
 export const runtime = 'nodejs'
@@ -46,8 +46,27 @@ export async function POST(req: Request) {
     )
   }
 
-  const horaFim = body.horaFim || calcularHoraFim(body.horaInicio, body.duracaoMinutos ?? 90)
+  const duracaoMin = body.duracaoMinutos ?? 90
+  const horaFim = body.horaFim || calcularHoraFim(body.horaInicio, duracaoMin)
   const estado: Agendamento['estado'] = body.estado || 'confirmado'
+
+  // Validar conflito de horário / dia bloqueado (a menos que seja cancelado).
+  // Sem isto, a admin podia sobrepor duas clientes no mesmo horário sem aviso.
+  if (estado !== 'cancelado' && !body.horaFim) {
+    try {
+      const slots = await getSlotsDisponiveis(body.data, duracaoMin)
+      const slot = slots.find((s) => s.hora === body.horaInicio)
+      if (!slot || !slot.disponivel) {
+        return NextResponse.json(
+          { error: 'Conflito: esse horário já está ocupado ou bloqueado. Escolha outra hora.' },
+          { status: 409 },
+        )
+      }
+    } catch (err) {
+      console.error('Falha ao validar disponibilidade (criar-manual):', err)
+      // Não bloqueia a criação manual se a verificação falhar tecnicamente.
+    }
+  }
 
   let agendamentoId: string
   try {

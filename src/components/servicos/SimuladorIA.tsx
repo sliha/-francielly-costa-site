@@ -11,6 +11,7 @@ export default function SimuladorIA({ servicoNome }: SimuladorIAProps) {
   const [foto, setFoto] = useState<string | null>(null)
   const [analisando, setAnalisando] = useState(false)
   const [resultado, setResultado] = useState<string | null>(null)
+  const [consentiu, setConsentiu] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const handleFoto = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -45,6 +46,7 @@ export default function SimuladorIA({ servicoNome }: SimuladorIAProps) {
   const reset = () => {
     setFoto(null)
     setResultado(null)
+    setConsentiu(false)
   }
 
   if (!aberto) {
@@ -110,8 +112,10 @@ export default function SimuladorIA({ servicoNome }: SimuladorIAProps) {
                 <span className="text-white/60 text-sm">Galeria</span>
               </button>
             </div>
-            <p className="text-white/20 text-xs text-center mt-3">
-              A foto não é guardada. Análise gerada instantaneamente.
+            <p className="text-white/30 text-xs text-center mt-3 leading-relaxed">
+              A foto é enviada de forma segura para um serviço de IA (Anthropic, EUA) apenas para
+              gerar a análise — não é guardada por nós nem usada para outro fim.{' '}
+              <a href="/privacidade" className="underline hover:text-white/60">Política de Privacidade</a>
             </p>
           </div>
         )}
@@ -133,17 +137,32 @@ export default function SimuladorIA({ servicoNome }: SimuladorIAProps) {
                 <p className="text-white/30 text-xs">Isto pode demorar alguns segundos</p>
               </div>
             ) : (
-              <div className="flex gap-3">
-                <button onClick={reset} className="flex-1 bg-white/5 text-white/60 py-3 rounded-xl text-sm hover:bg-white/10 transition-colors">
-                  Trocar Foto
-                </button>
-                <button
-                  onClick={analisar}
-                  className="flex-1 bg-rose-gold text-white py-3 rounded-xl text-sm font-medium hover:bg-rose-gold-dark transition-colors flex items-center justify-center gap-2"
-                >
-                  <Sparkles size={14} />
-                  Analisar
-                </button>
+              <div>
+                <label className="flex items-start gap-2 text-left mb-4 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={consentiu}
+                    onChange={(e) => setConsentiu(e.target.checked)}
+                    className="mt-0.5 accent-rose-gold w-4 h-4 flex-shrink-0"
+                  />
+                  <span className="text-white/50 text-xs leading-relaxed">
+                    Autorizo o envio da minha fotografia para análise por IA (Anthropic, EUA),
+                    apenas para gerar esta simulação. A foto não é guardada.
+                  </span>
+                </label>
+                <div className="flex gap-3">
+                  <button onClick={reset} className="flex-1 bg-white/5 text-white/60 py-3 rounded-xl text-sm hover:bg-white/10 transition-colors">
+                    Trocar Foto
+                  </button>
+                  <button
+                    onClick={analisar}
+                    disabled={!consentiu}
+                    className="flex-1 bg-rose-gold text-white py-3 rounded-xl text-sm font-medium hover:bg-rose-gold-dark transition-colors flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <Sparkles size={14} />
+                    Analisar
+                  </button>
+                </div>
               </div>
             )}
           </div>

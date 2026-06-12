@@ -4,7 +4,8 @@ import BlogPostPage from '@/components/blog/BlogPostPage'
 import { getPostBySlug } from '@/lib/blog'
 import JsonLd, { articleSchema, breadcrumbSchema, SITE_URL } from '@/components/JsonLd'
 
-export const dynamic = 'force-dynamic'
+// ISR: cache de 5 min — artigos carregam instantaneamente e a BD descansa.
+export const revalidate = 300
 
 interface Props { params: { slug: string } }
 
@@ -25,13 +26,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       type: 'article',
       publishedTime: article.date,
       authors: ['Francielly Costa'],
-      images: [{ url: article.coverUrl || '/og-image.jpg', width: 1200, height: 630, alt: article.title }],
+      images: [{ url: article.coverUrl || '/og-image.png', width: 1200, height: 630, alt: article.title }],
     },
     twitter: {
       card: 'summary_large_image',
       title: article.title,
       description: article.excerpt,
-      images: [article.coverUrl || '/og-image.jpg'],
+      images: [article.coverUrl || '/og-image.png'],
     },
   }
 }

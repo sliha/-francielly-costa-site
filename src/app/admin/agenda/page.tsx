@@ -19,6 +19,7 @@ interface MarcacaoView extends Agendamento {
 const estadoConfig: Record<string, { label: string; color: string; bg: string; dot: string }> = {
   confirmado: { label: 'Confirmado', color: 'text-emerald-400', bg: 'bg-emerald-400/10', dot: 'bg-emerald-400' },
   pendente: { label: 'Pendente', color: 'text-amber-400', bg: 'bg-amber-400/10', dot: 'bg-amber-400' },
+  pendente_pagamento: { label: 'Aguarda pagamento', color: 'text-orange-400', bg: 'bg-orange-400/10', dot: 'bg-orange-400' },
   pago: { label: 'Pago', color: 'text-sky-400', bg: 'bg-sky-400/10', dot: 'bg-sky-400' },
   concluido: { label: 'Concluído', color: 'text-white/40', bg: 'bg-white/5', dot: 'bg-white/30' },
   cancelado: { label: 'Cancelado', color: 'text-red-400', bg: 'bg-red-400/10', dot: 'bg-red-400' },
@@ -33,7 +34,7 @@ interface DiaBloqueado {
   origem?: 'manual' | 'google-externo'
 }
 
-const allEstados = ['todos', 'confirmado', 'pendente', 'pago', 'concluido', 'cancelado']
+const allEstados = ['todos', 'confirmado', 'pendente_pagamento', 'pendente', 'pago', 'concluido', 'cancelado']
 
 const allHours = Array.from({ length: 17 }, (_, i) => {
   const h = 9 + Math.floor(i / 2)
@@ -63,6 +64,7 @@ export default function AgendaPage() {
   const [reagendarId, setReagendarId] = useState<string | null>(null)
   const [reagendarData, setReagendarData] = useState('')
   const [reagendarHora, setReagendarHora] = useState('')
+  const [reagendarDuracao, setReagendarDuracao] = useState(90)
   const [reagendarSlots, setReagendarSlots] = useState<Array<{ hora: string; disponivel: boolean }>>([])
   const [reagendarLoading, setReagendarLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -200,18 +202,28 @@ export default function AgendaPage() {
     setReagendarId(booking.id!)
     setReagendarData(booking.data)
     setReagendarHora(booking.horaInicio)
+    // Duração real da marcação (horaFim − horaInicio) para a grelha de slots não
+    // mostrar horas que o servidor depois rejeita por falta de tempo.
+    let dur = 90
+    if (booking.horaInicio && booking.horaFim) {
+      const [hi, mi] = booking.horaInicio.split(':').map(Number)
+      const [hf, mf] = booking.horaFim.split(':').map(Number)
+      const diff = hf * 60 + mf - (hi * 60 + mi)
+      if (diff > 0) dur = diff
+    }
+    setReagendarDuracao(dur)
     setReagendarSlots([])
   }
 
   useEffect(() => {
     if (!reagendarId || !reagendarData) return
     setReagendarLoading(true)
-    fetch(`/api/slots?data=${reagendarData}&duracao=90`)
+    fetch(`/api/slots?data=${reagendarData}&duracao=${reagendarDuracao}`)
       .then((r) => r.json())
       .then((d) => setReagendarSlots(d.slots || []))
       .catch(() => setReagendarSlots([]))
       .finally(() => setReagendarLoading(false))
-  }, [reagendarId, reagendarData])
+  }, [reagendarId, reagendarData, reagendarDuracao])
 
   const handleReagendar = async () => {
     if (!reagendarId || !reagendarData || !reagendarHora) return

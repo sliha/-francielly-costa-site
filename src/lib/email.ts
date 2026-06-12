@@ -1,3 +1,5 @@
+import { escapeHtml } from './sanitize'
+
 export interface BookingData {
   id: string
   clienteNome: string
@@ -59,12 +61,12 @@ export async function sendBookingConfirmation(booking: BookingData): Promise<voi
           <h1 style="color: #B76E79; font-size: 28px; margin: 0;">Francielly Costa</h1>
           <p style="color: #C9A96E; margin: 4px 0 0; font-size: 14px;">Dermopigmentação Avançada</p>
         </div>
-        <h2 style="color: #333; font-size: 20px;">Olá ${booking.clienteNome}!</h2>
+        <h2 style="color: #333; font-size: 20px;">Olá ${escapeHtml(booking.clienteNome)}!</h2>
         <p style="color: #555; line-height: 1.6;">
           A sua marcação foi recebida com sucesso. Em breve entraremos em contacto para confirmar.
         </p>
         <div style="background: white; border-left: 4px solid #B76E79; padding: 20px; margin: 24px 0; border-radius: 4px;">
-          <p style="margin: 0 0 8px;"><strong>Serviço:</strong> ${booking.servicoNome}</p>
+          <p style="margin: 0 0 8px;"><strong>Serviço:</strong> ${escapeHtml(booking.servicoNome)}</p>
           <p style="margin: 0 0 8px;"><strong>Data:</strong> ${dataFormatada}</p>
           <p style="margin: 0;"><strong>Hora:</strong> ${booking.horaInicio}</p>
         </div>
@@ -89,8 +91,8 @@ export async function sendBookingConfirmation(booking: BookingData): Promise<voi
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #1A1A1A; color: white; padding: 40px; border-radius: 12px;">
         <h2 style="color: #B76E79;">Nova Marcação Recebida!</h2>
         <div style="background: #2A2A2A; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          <p><strong style="color: #C9A96E;">Cliente:</strong> ${booking.clienteNome}</p>
-          <p><strong style="color: #C9A96E;">Serviço:</strong> ${booking.servicoNome}</p>
+          <p><strong style="color: #C9A96E;">Cliente:</strong> ${escapeHtml(booking.clienteNome)}</p>
+          <p><strong style="color: #C9A96E;">Serviço:</strong> ${escapeHtml(booking.servicoNome)}</p>
           <p><strong style="color: #C9A96E;">Data:</strong> ${dataFormatada}</p>
           <p><strong style="color: #C9A96E;">Hora:</strong> ${booking.horaInicio}</p>
         </div>
@@ -118,12 +120,12 @@ export async function sendReminderEmail(booking: BookingData): Promise<void> {
     html: `
       <div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto; background: #FDF8F5; padding: 40px;">
         <h1 style="color: #B76E79; text-align: center;">Francielly Costa</h1>
-        <h2 style="color: #333;">Olá ${booking.clienteNome}!</h2>
+        <h2 style="color: #333;">Olá ${escapeHtml(booking.clienteNome)}!</h2>
         <p style="color: #555; line-height: 1.6;">
           Este é um lembrete da sua marcação <strong>amanhã</strong>:
         </p>
         <div style="background: white; border-left: 4px solid #B76E79; padding: 20px; margin: 24px 0; border-radius: 4px;">
-          <p style="margin: 0 0 8px;"><strong>Serviço:</strong> ${booking.servicoNome}</p>
+          <p style="margin: 0 0 8px;"><strong>Serviço:</strong> ${escapeHtml(booking.servicoNome)}</p>
           <p style="margin: 0 0 8px;"><strong>Data:</strong> ${dataFormatada}</p>
           <p style="margin: 0;"><strong>Hora:</strong> ${booking.horaInicio}</p>
         </div>

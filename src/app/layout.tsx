@@ -6,18 +6,20 @@ import PublicShell from '@/components/layout/PublicShell'
 import JsonLd, { localBusinessSchema, SITE_URL } from '@/components/JsonLd'
 import Analytics from '@/components/Analytics'
 
+// Apenas os pesos realmente usados no código — menos ficheiros woff2 no
+// primeiro carregamento mobile (800/900/300 não aparecem em nenhuma classe).
 const playfair = Playfair_Display({
   subsets: ['latin'],
   variable: '--font-playfair',
   display: 'swap',
-  weight: ['400', '500', '600', '700', '800', '900'],
+  weight: ['400', '500', '600', '700'],
 })
 
 const inter = Inter({
   subsets: ['latin'],
   variable: '--font-inter',
   display: 'swap',
-  weight: ['300', '400', '500', '600', '700'],
+  weight: ['400', '500', '600', '700'],
 })
 
 export const metadata: Metadata = {
@@ -49,12 +51,8 @@ export const metadata: Metadata = {
     address: false,
     telephone: false,
   },
-  alternates: {
-    canonical: '/',
-    languages: {
-      'pt-PT': SITE_URL,
-    },
-  },
+  // Nota: o canonical é definido por página (alternates.canonical em cada page.tsx).
+  // Definir aqui um canonical global faria todas as páginas apontar para a homepage.
   openGraph: {
     type: 'website',
     locale: 'pt_PT',
@@ -65,7 +63,7 @@ export const metadata: Metadata = {
       'Especialista com +8 anos de experiência e +2300 clientes. Microblading, micropigmentação labial, eyeliner, tricopigmentação e FiberBROWS em Braga.',
     images: [
       {
-        url: '/og-image.jpg',
+        url: '/og-image.png',
         width: 1200,
         height: 630,
         alt: 'Francielly Costa — Dermopigmentação Avançada em Braga',
@@ -77,7 +75,7 @@ export const metadata: Metadata = {
     title: 'Francielly Costa — Dermopigmentação Avançada em Braga',
     description:
       'Especialista com +8 anos de experiência e +2300 clientes em Braga, Portugal.',
-    images: ['/og-image.jpg'],
+    images: ['/og-image.png'],
   },
   robots: {
     index: true,
@@ -89,9 +87,6 @@ export const metadata: Metadata = {
       'max-image-preview': 'large',
       'max-snippet': -1,
     },
-  },
-  verification: {
-    google: 'PLACEHOLDER_VERIFICATION_CODE',
   },
   category: 'beauty',
 }
@@ -111,7 +106,6 @@ export default function RootLayout({
   return (
     <html lang="pt-PT" className={`${playfair.variable} ${inter.variable}`}>
       <head>
-        <link rel="canonical" href={SITE_URL} />
         <script dangerouslySetInnerHTML={{ __html: `window.addEventListener('error',function(e){if(e.message&&(e.message.includes('ChunkLoadError')||e.message.includes('Loading chunk'))){window.location.reload();}});` }} />
       </head>
       <body className="bg-cream font-inter text-text-primary antialiased">

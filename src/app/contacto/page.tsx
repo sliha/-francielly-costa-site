@@ -5,7 +5,7 @@ import JsonLd, { breadcrumbSchema, SITE_URL } from '@/components/JsonLd'
 const url = `${SITE_URL}/contacto`
 
 export const metadata: Metadata = {
-  title: 'Contacto e Localização — Francielly Costa | Braga',
+  title: 'Contacto e Localização em Braga',
   description:
     'Entre em contacto e agende a sua consulta de Dermopigmentação em Braga. Av. Dr. António Palha 53. Telefone, WhatsApp ou formulário online.',
   alternates: { canonical: url },
@@ -16,13 +16,13 @@ export const metadata: Metadata = {
     siteName: 'Francielly Costa',
     locale: 'pt_PT',
     type: 'website',
-    images: [{ url: '/og-image.jpg', width: 1200, height: 630, alt: 'Contacto Francielly Costa' }],
+    images: [{ url: '/og-image.png', width: 1200, height: 630, alt: 'Contacto Francielly Costa' }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Contacto — Francielly Costa',
     description: 'Marque a sua consulta em Braga.',
-    images: ['/og-image.jpg'],
+    images: ['/og-image.png'],
   },
 }
 

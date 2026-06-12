@@ -4,6 +4,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { MapPin, Phone, Mail, Clock, Facebook, Instagram } from 'lucide-react'
 import { trackContactPhone } from '@/lib/analytics'
+import { revokeConsent } from '@/lib/consent'
 
 const navLinks = [
   { href: '/', label: 'Início' },
@@ -160,8 +161,8 @@ export default function Footer() {
                   <Clock className="w-3.5 h-3.5 text-rose-gold" />
                 </div>
                 <div className="text-white/60 text-sm font-inter">
-                  <p>Segunda – Sexta: 9h–18h</p>
-                  <p>Sábado: 9h–13h</p>
+                  <p>Segunda – Sexta: 10h–18h</p>
+                  <p>Fins de semana: encerrado</p>
                 </div>
               </li>
             </ul>
@@ -176,7 +177,7 @@ export default function Footer() {
             <p className="text-white/40 text-xs font-inter text-center sm:text-left">
               © {new Date().getFullYear()} Francielly Costa. Todos os direitos reservados.
             </p>
-            <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
               <Link
                 href="/privacidade"
                 className="text-white/40 hover:text-white/70 text-xs font-inter transition-colors duration-200"
@@ -197,6 +198,25 @@ export default function Footer() {
               >
                 Termos e Condições
               </Link>
+              <span className="text-white/20">|</span>
+              <button
+                onClick={() => {
+                  revokeConsent()
+                  window.location.reload()
+                }}
+                className="text-white/40 hover:text-white/70 text-xs font-inter transition-colors duration-200"
+              >
+                Gerir Cookies
+              </button>
+              <span className="text-white/20">|</span>
+              <a
+                href="https://www.livroreclamacoes.pt"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-white/40 hover:text-white/70 text-xs font-inter transition-colors duration-200"
+              >
+                Livro de Reclamações
+              </a>
             </div>
           </div>
         </div>

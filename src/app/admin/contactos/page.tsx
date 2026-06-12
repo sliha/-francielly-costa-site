@@ -50,26 +50,24 @@ export default function ContactosAdminPage() {
   useEffect(() => { carregar() }, [])
 
   const marcarLido = async (id: string, lido: boolean) => {
-    try {
-      const { error } = await supabase.from('contactos').update({ lido }).eq('id', id)
-      if (error) throw error
-      setContactos((prev) =>
-        prev.map((c) => (c.id === id ? { ...c, lido } : c))
-      )
-    } catch (err) {
-      console.error('Erro ao atualizar contacto:', err)
+    const { error } = await supabase.from('contactos').update({ lido }).eq('id', id)
+    if (error) {
+      console.error('Erro ao atualizar contacto:', error)
+      alert('Não foi possível atualizar a mensagem. Tente novamente.')
+      return
     }
+    setContactos((prev) => prev.map((c) => (c.id === id ? { ...c, lido } : c)))
   }
 
   const apagar = async (id: string) => {
     if (!confirm('Apagar esta mensagem?')) return
-    try {
-      const { error } = await supabase.from('contactos').delete().eq('id', id)
-      if (error) throw error
-      setContactos((prev) => prev.filter((c) => c.id !== id))
-    } catch (err) {
-      console.error('Erro ao apagar contacto:', err)
+    const { error } = await supabase.from('contactos').delete().eq('id', id)
+    if (error) {
+      console.error('Erro ao apagar contacto:', error)
+      alert('Não foi possível apagar a mensagem. Tente novamente.')
+      return
     }
+    setContactos((prev) => prev.filter((c) => c.id !== id))
   }
 
   const formatData = (iso: string | null) => {

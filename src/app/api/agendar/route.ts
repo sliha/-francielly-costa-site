@@ -1,25 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { criarAgendamento, upsertCliente } from '@/lib/booking'
+import { criarAgendamento, upsertCliente, getSlotsDisponiveis } from '@/lib/booking'
 import { sendBookingConfirmation } from '@/lib/email'
 import { registrarReferencia, getOuCriarCodigoCliente } from '@/lib/referencias'
+import { getServiceById } from '@/data/services'
+import { rateLimit, getClientIp, tooManyRequests } from '@/lib/rateLimit'
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const DATA_REGEX = /^\d{4}-\d{2}-\d{2}$/
+const HORA_REGEX = /^\d{2}:\d{2}$/
+
+function minutosParaHHMM(min: number): string {
+  const h = Math.floor(min / 60)
+  const m = min % 60
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+}
 
 export async function POST(req: NextRequest) {
+  // Anti-abuso: máx. 5 marcações por IP a cada 15 minutos.
+  const rl = rateLimit(`agendar:${getClientIp(req)}`, 5, 15 * 60 * 1000)
+  if (!rl.ok) return tooManyRequests(rl.retryAfterSeconds)
+
   try {
     const body = await req.json()
-    const {
-      clienteNome,
-      clienteTelefone,
-      clienteEmail,
-      servicoId,
-      servicoNome,
-      data,
-      horaInicio,
-      horaFim,
-      notas,
-      codigoReferencia,
-    } = body
 
-    // Validate required fields
+    // Normalizar e limitar tamanhos — nunca confiar no payload do cliente.
+    const clienteNome = String(body?.clienteNome ?? '').trim().slice(0, 120)
+    const clienteTelefone = String(body?.clienteTelefone ?? '').trim().slice(0, 30)
+    const clienteEmail = String(body?.clienteEmail ?? '').trim().toLowerCase().slice(0, 254)
+    const servicoId = String(body?.servicoId ?? '').trim().slice(0, 60)
+    const data = String(body?.data ?? '').trim()
+    const horaInicio = String(body?.horaInicio ?? '').trim()
+    const notas = String(body?.notas ?? '').trim().slice(0, 1000)
+    const codigoReferencia = String(body?.codigoReferencia ?? '').trim().toUpperCase().slice(0, 20)
+
     if (!clienteNome || !clienteEmail || !servicoId || !data || !horaInicio) {
       return NextResponse.json(
         { error: 'Campos obrigatórios em falta: nome, email, serviço, data e hora são necessários' },
@@ -27,35 +40,66 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Basic email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(clienteEmail)) {
+    if (!EMAIL_REGEX.test(clienteEmail)) {
       return NextResponse.json({ error: 'Endereço de email inválido' }, { status: 400 })
     }
+    if (!DATA_REGEX.test(data) || !HORA_REGEX.test(horaInicio)) {
+      return NextResponse.json({ error: 'Data ou hora em formato inválido' }, { status: 400 })
+    }
 
-    // Validate date is not in the past
+    // O serviço (nome, duração) é resolvido no servidor — o cliente só envia o id.
+    const servico = getServiceById(servicoId)
+    if (!servico) {
+      return NextResponse.json({ error: 'Serviço desconhecido' }, { status: 400 })
+    }
+
+    // Data: futura e em dia útil (seg–sex).
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     const requestedDate = new Date(data + 'T00:00:00')
+    if (Number.isNaN(requestedDate.getTime())) {
+      return NextResponse.json({ error: 'Data inválida' }, { status: 400 })
+    }
     if (requestedDate <= today) {
       return NextResponse.json(
         { error: 'Não é possível agendar para datas passadas ou hoje' },
         { status: 400 }
       )
     }
+    const diaSemana = requestedDate.getDay()
+    if (diaSemana === 0 || diaSemana === 6) {
+      return NextResponse.json(
+        { error: 'Os agendamentos online são de segunda a sexta-feira' },
+        { status: 400 }
+      )
+    }
+
+    // Revalidar disponibilidade no servidor — evita double-booking por race
+    // condition e impede POSTs diretos com horas fora da agenda.
+    const slots = await getSlotsDisponiveis(data, servico.duracaoMinutos)
+    const slot = slots.find((s) => s.hora === horaInicio)
+    if (!slot || !slot.disponivel) {
+      return NextResponse.json(
+        { error: 'Esse horário já não está disponível. Por favor, escolha outro.' },
+        { status: 409 }
+      )
+    }
+
+    const [h, m] = horaInicio.split(':').map(Number)
+    const horaFim = minutosParaHHMM(h * 60 + m + servico.duracaoMinutos)
 
     const id = await criarAgendamento({
       clienteNome,
-      clienteTelefone: clienteTelefone || '',
+      clienteTelefone,
       clienteEmail,
-      servicoId,
-      servicoNome: servicoNome || '',
+      servicoId: servico.id,
+      servicoNome: servico.name,
       data,
       horaInicio,
-      horaFim: horaFim || '',
+      horaFim,
       estado: 'pendente_pagamento',
       caucaoPaga: false,
-      notas: notas || '',
+      notas,
       criadoPor: 'cliente',
     })
 
@@ -63,8 +107,8 @@ export async function POST(req: NextRequest) {
     upsertCliente({
       nome: clienteNome,
       email: clienteEmail,
-      telefone: clienteTelefone || '',
-      ultimoServico: servicoNome || '',
+      telefone: clienteTelefone,
+      ultimoServico: servico.name,
       ultimoAgendamentoData: data,
     }).catch((err) => console.error('Erro ao guardar cliente:', err))
 
@@ -73,7 +117,7 @@ export async function POST(req: NextRequest) {
       id,
       clienteNome,
       clienteEmail,
-      servicoNome: servicoNome || '',
+      servicoNome: servico.name,
       data,
       horaInicio,
     }).catch((err) => console.error('Erro ao enviar email de confirmação:', err))
@@ -85,13 +129,13 @@ export async function POST(req: NextRequest) {
 
     // Registrar referência se foi usado um código
     let referenciaErro: string | undefined
-    if (codigoReferencia && typeof codigoReferencia === 'string' && codigoReferencia.trim()) {
+    if (codigoReferencia) {
       const result = await registrarReferencia({
-        codigoUsado: codigoReferencia.trim().toUpperCase(),
+        codigoUsado: codigoReferencia,
         novoNome: clienteNome,
         novoEmail: clienteEmail,
         agendamentoId: id,
-        servicoNome: servicoNome || '',
+        servicoNome: servico.name,
       })
       if (!result.ok) referenciaErro = result.error
     }

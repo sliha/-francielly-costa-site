@@ -16,32 +16,32 @@ export async function generateStaticParams() {
 
 const SEO_TITLES: Record<string, { title: string; description: string }> = {
   fiberbrows: {
-    title: 'FiberBROWS em Braga — A Revolução das Sobrancelhas | Francielly Costa',
+    title: 'FiberBROWS em Braga — A Revolução das Sobrancelhas',
     description:
       'Técnica estética não cirúrgica com fios sintéticos biocompatíveis. Profundidade máxima 2mm, resultado de 6 meses. Primeira profissional certificada em Portugal.',
   },
   tricopigmentacao: {
-    title: 'Tricopigmentação em Braga — Micropigmentação Capilar | Francielly Costa',
+    title: 'Tricopigmentação em Braga — Micropigmentação Capilar',
     description:
       'Procedimento estético para calvície e cabelo ralo. Ilusão perfeita de folículos capilares. Resultado imediato, sem cirurgia, sem recuperação.',
   },
   microblading: {
-    title: 'Microblading em Braga — Sobrancelhas Naturais | Francielly Costa',
+    title: 'Microblading em Braga — Sobrancelhas Naturais',
     description:
       'Técnica de pigmentação japonesa com Tebori. Fios individualizados, sobrancelhas tridimensionais e resultados ultra-realistas em Braga.',
   },
   microshading: {
-    title: 'Microshading em Braga — Sobrancelhas Densas e Naturais | Francielly Costa',
+    title: 'Microshading em Braga — Sobrancelhas Densas e Naturais',
     description:
       'Sombreamento suave em pixel para sobrancelhas densas e definidas. Ideal para pele oleosa. Especialista certificada em Braga.',
   },
   eyeliner: {
-    title: 'Eyeliner Permanente em Braga — Delineado Duradouro | Francielly Costa',
+    title: 'Eyeliner Permanente em Braga — Delineado Duradouro',
     description:
       'Micropigmentação eyeliner ao longo da linha dos cílios. Olhar definido 24h, resistente à água. Resultado natural ou marcado.',
   },
   'micropigmentacao-labial': {
-    title: 'Micropigmentação Labial em Braga — Lábios Perfeitos | Francielly Costa',
+    title: 'Micropigmentação Labial em Braga — Lábios Perfeitos',
     description:
       'Contorno e cor perfeitos para lábios rejuvenescidos. Corrige assimetrias e uniformiza coloração. Resultado natural e duradouro.',
   },
@@ -68,13 +68,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       siteName: 'Francielly Costa',
       locale: 'pt_PT',
       type: 'website',
-      images: [{ url: '/og-image.jpg', width: 1200, height: 630, alt: title }],
+      images: [{ url: '/og-image.png', width: 1200, height: 630, alt: title }],
     },
     twitter: {
       card: 'summary_large_image',
       title,
       description,
-      images: ['/og-image.jpg'],
+      images: ['/og-image.png'],
     },
   }
 }

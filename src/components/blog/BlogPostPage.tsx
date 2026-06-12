@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { Clock, ArrowLeft, Tag, Calendar } from 'lucide-react'
 import type { BlogPost } from '@/lib/blogTypes'
@@ -105,8 +106,14 @@ export default function BlogPostPage({ article }: Props) {
       <section className="relative py-16 bg-gradient-to-br from-[#2a1a1f] to-[#1a1215] overflow-hidden">
         {article.coverUrl && (
           <>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={article.coverUrl} alt={article.title} className="absolute inset-0 w-full h-full object-cover opacity-30" />
+            <Image
+              src={article.coverUrl}
+              alt={article.title}
+              fill
+              priority
+              sizes="100vw"
+              className="object-cover opacity-30"
+            />
             <div className="absolute inset-0 bg-gradient-to-br from-[#2a1a1f]/80 to-[#1a1215]/90" />
           </>
         )}
@@ -136,8 +143,14 @@ export default function BlogPostPage({ article }: Props) {
               if (block.type === 'image' && block.url) {
                 return (
                   <figure key={idx} className="my-8">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={block.url} alt={block.legenda || article.title} className="w-full rounded-2xl shadow-card" />
+                    <Image
+                      src={block.url}
+                      alt={block.legenda || article.title}
+                      width={1200}
+                      height={800}
+                      sizes="(max-width: 768px) 100vw, 768px"
+                      className="w-full h-auto rounded-2xl shadow-card"
+                    />
                     {block.legenda && (
                       <figcaption className="mt-3 text-center text-text-muted text-sm font-inter italic">{block.legenda}</figcaption>
                     )}

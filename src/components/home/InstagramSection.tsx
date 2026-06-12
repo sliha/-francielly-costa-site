@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import Image from 'next/image'
 import { motion, useInView } from 'framer-motion'
-import { Instagram, ExternalLink, Heart } from 'lucide-react'
+import { Instagram, ExternalLink } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 
 const INSTAGRAM_URL = 'https://www.instagram.com/franciellycostamaster'
@@ -31,27 +32,6 @@ interface GaleriaItem {
   criadoEm?: string | null
 }
 
-function AnimatedCounter({ target, duration = 2000 }: { target: number; duration?: number }) {
-  const [count, setCount] = useState(0)
-  const ref = useRef<HTMLSpanElement>(null)
-  const inView = useInView(ref, { once: true })
-
-  useEffect(() => {
-    if (!inView) return
-    const start = Date.now()
-    const timer = setInterval(() => {
-      const elapsed = Date.now() - start
-      const progress = Math.min(elapsed / duration, 1)
-      const eased = 1 - Math.pow(1 - progress, 3)
-      setCount(Math.floor(eased * target))
-      if (progress >= 1) clearInterval(timer)
-    }, 16)
-    return () => clearInterval(timer)
-  }, [inView, target, duration])
-
-  return <span ref={ref}>{count.toLocaleString('pt-PT')}</span>
-}
-
 export default function InstagramSection() {
   const [photosByService, setPhotosByService] = useState<Record<string, GaleriaItem>>({})
   const [loading, setLoading] = useState(true)
@@ -63,7 +43,9 @@ export default function InstagramSection() {
       .from('galeria')
       .select('url, servico, criado_em')
       .eq('ativa', true)
+      .in('servico', servicosConfig.map((s) => s.servico))
       .order('criado_em', { ascending: false })
+      .limit(30)
       .then(({ data, error }) => {
         if (error) {
           console.error('[InstagramSection] erro:', error)
@@ -114,15 +96,17 @@ export default function InstagramSection() {
             <span className="gradient-text">Francielly</span>
           </h2>
 
-          <div className="inline-flex items-center gap-2 bg-gradient-to-r from-rose-gold/10 to-golden/10 border border-rose-gold/20 rounded-full px-5 py-2.5 mb-4">
-            <Heart size={14} className="text-rose-gold fill-rose-gold" />
+          <a
+            href={INSTAGRAM_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 bg-gradient-to-r from-rose-gold/10 to-golden/10 border border-rose-gold/20 rounded-full px-5 py-2.5 mb-4 hover:border-rose-gold/40 transition-colors"
+          >
+            <Instagram size={14} className="text-rose-gold" />
             <p className="text-text-secondary font-inter text-sm">
-              <span className="text-rose-gold font-bold text-lg">
-                <AnimatedCounter target={2847} />
-              </span>{' '}
-              pessoas seguem o trabalho da Francielly no Instagram
+              <span className="text-rose-gold font-semibold">@franciellycostamaster</span>
             </p>
-          </div>
+          </a>
 
           <p className="text-text-secondary font-inter max-w-xl mx-auto">
             Veja os resultados reais das nossas clientes e inspire-se para a sua transformação.
@@ -157,12 +141,12 @@ export default function InstagramSection() {
                   transition={{ duration: 0.5, delay: i * 0.08 }}
                   className="relative aspect-square rounded-2xl overflow-hidden cursor-pointer group"
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
+                  <Image
                     src={item.url}
-                    alt={svc.label}
-                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    loading="lazy"
+                    alt={`${svc.label} — trabalho real de Francielly Costa em Braga`}
+                    fill
+                    sizes="(max-width: 768px) 50vw, 33vw"
+                    className="object-cover transition-transform duration-500 group-hover:scale-105"
                   />
 
                   {/* Tag do serviço */}

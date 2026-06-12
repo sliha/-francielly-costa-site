@@ -5,7 +5,7 @@ import JsonLd, { breadcrumbSchema, SITE_URL } from '@/components/JsonLd'
 const url = `${SITE_URL}/galeria`
 
 export const metadata: Metadata = {
-  title: 'Galeria de Resultados — Antes e Depois | Francielly Costa Braga',
+  title: 'Galeria de Resultados — Antes e Depois',
   description:
     'Galeria de trabalhos reais — antes e depois de Microblading, Microshading, Eyeliner Permanente e Micropigmentação Labial em Braga, com mais de 2300 clientes satisfeitos.',
   alternates: { canonical: url },
@@ -16,13 +16,13 @@ export const metadata: Metadata = {
     siteName: 'Francielly Costa',
     locale: 'pt_PT',
     type: 'website',
-    images: [{ url: '/og-image.jpg', width: 1200, height: 630, alt: 'Galeria Francielly Costa' }],
+    images: [{ url: '/og-image.png', width: 1200, height: 630, alt: 'Galeria Francielly Costa' }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Galeria de Resultados — Francielly Costa',
     description: 'Antes e depois de Microblading, Eyeliner e Micropigmentação Labial.',
-    images: ['/og-image.jpg'],
+    images: ['/og-image.png'],
   },
 }
 

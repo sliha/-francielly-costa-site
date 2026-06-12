@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Video, ExternalLink, Search } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { supabase } from '@/lib/supabase/client'
+import { supabase, getAccessToken } from '@/lib/supabase/client'
 import type { ConsultaVirtual } from '@/lib/consultasVirtuais'
 
 function rowToConsulta(r: Record<string, any>): ConsultaVirtual {
@@ -61,8 +61,21 @@ export default function ConsultasVirtuaisAdminPage() {
   const setEstado = async (id: string, estado: ConsultaVirtual['estado']) => {
     setActionId(id)
     try {
-      const { error } = await supabase.from('consultas_virtuais').update({ estado }).eq('id', id)
-      if (error) throw error
+      if (estado === 'cancelada') {
+        // Cancelar via API para também remover o evento/Meet do Google Calendar.
+        const token = await getAccessToken()
+        const res = await fetch('/api/consulta-virtual/cancelar', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id }),
+        })
+        const data = await res.json()
+        if (!res.ok || !data.success) throw new Error(data.error)
+        if (data.warning) alert(data.warning)
+      } else {
+        const { error } = await supabase.from('consultas_virtuais').update({ estado }).eq('id', id)
+        if (error) throw error
+      }
       await load()
     } catch {
       alert('Erro ao atualizar estado.')

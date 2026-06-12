@@ -169,15 +169,23 @@ export default function ConsentimentoForm({ token, doc }: Props) {
 
           <Section title="3. Proteção de Dados (RGPD)">
             <p className="text-xs text-gray-600 leading-relaxed mb-3">
-              Os seus dados serão tratados de forma confidencial, exclusivamente para fins clínicos e de gestão
-              do procedimento. Pode aceder, retificar ou solicitar a eliminação dos seus dados em qualquer
-              momento contactando geral@franciellycosta.com.
+              Responsável pelo tratamento: <strong>Francielly Costa — Dermopigmentação Avançada</strong>,
+              Av. Dr. António Palha 53, 4715-091 Braga. As informações de saúde aqui recolhidas são{' '}
+              <strong>categorias especiais de dados (art. 9.º RGPD)</strong>, tratadas de forma
+              confidencial e exclusivamente para avaliar contraindicações e garantir a segurança do
+              procedimento. São conservadas durante 5 anos após o procedimento e nunca partilhadas
+              para outros fins. Pode aceder, retificar ou pedir a eliminação dos seus dados a
+              qualquer momento através de geral@franciellycosta.com. Mais informações na{' '}
+              <a href="/privacidade" target="_blank" className="text-rose-gold underline">
+                Política de Privacidade
+              </a>.
             </p>
             <label className="flex items-start gap-2 text-sm cursor-pointer">
               <input type="checkbox" checked={rgpdAceite} onChange={(e) => setRgpdAceite(e.target.checked)}
                 className="mt-1 accent-rose-gold" />
               <span className="text-gray-700">
-                Aceito o tratamento dos meus dados de acordo com o RGPD.
+                Dou o meu <strong>consentimento explícito</strong> para o tratamento dos meus dados
+                pessoais, incluindo os dados de saúde acima, para os fins descritos.
               </span>
             </label>
           </Section>

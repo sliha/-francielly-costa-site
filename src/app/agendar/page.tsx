@@ -2,8 +2,17 @@ import type { Metadata } from 'next'
 import BookingFlow from '@/components/booking/BookingFlow'
 
 export const metadata: Metadata = {
-  title: 'Agendar | Francielly Costa',
-  description: 'Agende o seu procedimento de Dermopigmentação com Francielly Costa em Braga.',
+  title: 'Agendar Online — Microblading, Lábios, Eyeliner em Braga',
+  description:
+    'Agende o seu procedimento de dermopigmentação online em menos de 2 minutos. Escolha o serviço, a data e a hora — confirmação imediata.',
+  alternates: { canonical: '/agendar' },
+  openGraph: {
+    title: 'Agendar Online — Francielly Costa, Braga',
+    description:
+      'Escolha o serviço, a data e a hora. Caução de 30€ descontada no procedimento.',
+    url: '/agendar',
+    type: 'website',
+  },
 }
 
 interface Props {

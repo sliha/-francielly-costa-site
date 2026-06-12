@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
+import { rateLimit, getClientIp, tooManyRequests } from '@/lib/rateLimit';
+
+// Limites anti-abuso: o histórico vem do cliente, por isso é truncado no servidor.
+const MAX_MESSAGES = 20;
+const MAX_MESSAGE_CHARS = 2000;
 
 const SYSTEM_PROMPT = `Tu és a Sofia, assistente virtual da Francielly Costa — Dermopigmentação Avançada, Braga, Portugal.
 PERSONALIDADE: Simpática, profissional, acolhedora. Falas em Português Europeu.
@@ -21,6 +26,15 @@ Quando a cliente quiser agendar, recolhe: nome, telefone, email, serviço preten
 NUNCA inventar informações.`;
 
 export async function POST(req: NextRequest) {
+  // Máx. 20 mensagens por IP a cada 5 minutos — trava abuso de custos de IA.
+  const rl = rateLimit(`chat:${getClientIp(req)}`, 20, 5 * 60 * 1000);
+  if (!rl.ok) {
+    return NextResponse.json(
+      { message: 'Está a enviar mensagens muito depressa. Aguarde um momento e tente novamente. 💬' },
+      { status: 429, headers: { 'Retry-After': String(rl.retryAfterSeconds) } }
+    );
+  }
+
   try {
     const apiKey = process.env.ANTHROPIC_API_KEY;
 
@@ -34,13 +48,15 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { messages } = body;
 
-    // Filtrar mensagens válidas (remover saudação inicial e vazias)
-    const chatMessages = (messages || [])
-      .filter((msg: any) => msg.content && msg.content.trim() !== '' && !msg.isGreeting)
+    // Filtrar mensagens válidas (remover saudação inicial e vazias),
+    // truncar conteúdo e manter apenas as últimas MAX_MESSAGES.
+    const chatMessages = (Array.isArray(messages) ? messages : [])
+      .filter((msg: any) => typeof msg?.content === 'string' && msg.content.trim() !== '' && !msg.isGreeting)
       .map((msg: any) => ({
         role: msg.role === 'user' ? 'user' as const : 'assistant' as const,
-        content: msg.content,
-      }));
+        content: String(msg.content).slice(0, MAX_MESSAGE_CHARS),
+      }))
+      .slice(-MAX_MESSAGES);
 
     // Garantir que começa com 'user'
     while (chatMessages.length > 0 && chatMessages[0].role === 'assistant') {

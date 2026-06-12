@@ -427,6 +427,18 @@ export default function BookingFlow({ servicoPreSelecionado, onClose }: Props) {
                 )}
                 {loading ? 'A processar...' : 'Confirmar Marcação →'}
               </button>
+              <p className="text-center text-xs text-gray-400 leading-relaxed">
+                Ao confirmar, aceita o tratamento dos seus dados para gestão da marcação, conforme
+                a{' '}
+                <a href="/privacidade" className="text-rose-gold hover:underline">
+                  Política de Privacidade
+                </a>{' '}
+                e os{' '}
+                <a href="/termos" className="text-rose-gold hover:underline">
+                  Termos e Condições
+                </a>
+                .
+              </p>
             </div>
           </motion.div>
         )}

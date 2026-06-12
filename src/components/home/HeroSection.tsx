@@ -100,12 +100,10 @@ export default function HeroSection() {
           </motion.div>
         </Link>
 
-        {/* Main heading */}
-        <motion.h1
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.3 }}
-          className="font-playfair font-bold text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl text-white leading-tight mb-4"
+        {/* Main heading — estático e visível no primeiro paint (LCP).
+            A animação é CSS puro; não depende da hidratação do JS. */}
+        <h1
+          className="animate-hero font-playfair font-bold text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl text-white leading-tight mb-4"
         >
           Dermopigmentação{' '}
           <span className="block mt-1">
@@ -119,32 +117,26 @@ export default function HeroSection() {
               Avançada
             </span>
           </span>
-        </motion.h1>
+        </h1>
 
         {/* Subtitle */}
-        <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.45 }}
-          className="text-white/70 text-base sm:text-lg md:text-xl max-w-2xl mx-auto mb-2 font-inter leading-relaxed"
+        <p
+          className="animate-hero text-white/70 text-base sm:text-lg md:text-xl max-w-2xl mx-auto mb-2 font-inter leading-relaxed"
+          style={{ animationDelay: '0.12s' }}
         >
           Arte e precisão ao serviço da sua beleza natural.
-        </motion.p>
-        <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.52 }}
-          className="text-golden/80 text-sm sm:text-base md:text-lg max-w-xl mx-auto mb-8 sm:mb-10 font-inter font-medium"
+        </p>
+        <p
+          className="animate-hero text-golden/80 text-sm sm:text-base md:text-lg max-w-xl mx-auto mb-8 sm:mb-10 font-inter font-medium"
+          style={{ animationDelay: '0.2s' }}
         >
           Primeira profissional certificada em FiberBROWS em Portugal
-        </motion.p>
+        </p>
 
         {/* CTA Buttons */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.65 }}
-          className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mb-12 sm:mb-16"
+        <div
+          className="animate-hero flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mb-12 sm:mb-16"
+          style={{ animationDelay: '0.3s' }}
         >
           <button
             onClick={scrollToFiberBROWS}
@@ -160,7 +152,7 @@ export default function HeroSection() {
             Agendar com a Sofia
             <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-200" />
           </button>
-        </motion.div>
+        </div>
 
         {/* Stats Row */}
         <motion.div

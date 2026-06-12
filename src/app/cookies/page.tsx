@@ -1,9 +1,13 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import GerirCookiesButton from '@/components/GerirCookiesButton'
 
 export const metadata: Metadata = {
-  title: 'Política de Cookies — Francielly Costa',
-  description: 'Informação sobre a utilização de cookies no site da Francielly Costa.',
+  title: 'Política de Cookies',
+  description:
+    'Informação sobre os cookies e tecnologias semelhantes utilizados no site da Francielly Costa e como gerir as suas preferências.',
+  alternates: { canonical: '/cookies' },
+  robots: { index: true, follow: true },
 }
 
 export default function CookiesPage() {
@@ -14,7 +18,7 @@ export default function CookiesPage() {
           Política de Cookies
         </h1>
         <p className="text-text-muted text-sm font-inter mb-10">
-          Última atualização: abril 2026
+          Última atualização: junho de 2026
         </p>
 
         <div className="prose prose-sm max-w-none text-text-secondary font-inter space-y-8">
@@ -23,9 +27,10 @@ export default function CookiesPage() {
               O que são cookies?
             </h2>
             <p className="leading-relaxed">
-              Os cookies são pequenos ficheiros de texto que são armazenados no seu dispositivo
-              quando visita um website. Permitem que o site memorize as suas preferências e
-              melhore a sua experiência de navegação.
+              Os cookies são pequenos ficheiros de texto armazenados no seu dispositivo quando
+              visita um website. Utilizamos também tecnologias semelhantes (como o armazenamento
+              local do navegador). Servem para o site funcionar, memorizar preferências e — apenas
+              com o seu consentimento — medir a utilização e o desempenho de campanhas.
             </p>
           </section>
 
@@ -35,25 +40,35 @@ export default function CookiesPage() {
             </h2>
             <div className="space-y-4">
               <div className="bg-white rounded-2xl p-5 border border-cream-dark">
-                <h3 className="font-semibold text-text-primary mb-1">Cookies Essenciais</h3>
+                <h3 className="font-semibold text-text-primary mb-1">
+                  Estritamente necessários <span className="text-text-muted font-normal">(sempre ativos)</span>
+                </h3>
                 <p className="text-sm leading-relaxed">
-                  Necessários para o funcionamento do site. Incluem cookies de sessão, preferências
-                  de idioma e consentimento de cookies. Não podem ser desativados.
+                  Indispensáveis ao funcionamento do site. Incluem a memorização da sua escolha de
+                  cookies (<code>cookie_consent</code>) e o histórico temporário da conversa com a
+                  assistente Sofia (guardado apenas no seu navegador, durante a sessão). Não podem
+                  ser desativados.
                 </p>
               </div>
               <div className="bg-white rounded-2xl p-5 border border-cream-dark">
-                <h3 className="font-semibold text-text-primary mb-1">Cookies de Desempenho</h3>
+                <h3 className="font-semibold text-text-primary mb-1">
+                  Estatísticas <span className="text-text-muted font-normal">(apenas com consentimento)</span>
+                </h3>
                 <p className="text-sm leading-relaxed">
-                  Ajudam-nos a compreender como os visitantes interagem com o site, permitindo-nos
-                  melhorar a experiência. Utilizamos o Google Analytics (apenas com o seu
-                  consentimento).
+                  <strong>Google Analytics</strong> (cookies <code>_ga</code>, <code>_ga_*</code>)
+                  — ajuda-nos a perceber como o site é utilizado, com IP anonimizado. Conservação
+                  até 14 meses.
                 </p>
               </div>
               <div className="bg-white rounded-2xl p-5 border border-cream-dark">
-                <h3 className="font-semibold text-text-primary mb-1">Cookies de Funcionalidade</h3>
+                <h3 className="font-semibold text-text-primary mb-1">
+                  Marketing <span className="text-text-muted font-normal">(apenas com consentimento)</span>
+                </h3>
                 <p className="text-sm leading-relaxed">
-                  Permitem que o site memorize as suas preferências (ex.: histórico de conversa
-                  com a assistente Sofia).
+                  <strong>Meta Pixel</strong> (cookie <code>_fbp</code>) e{' '}
+                  <strong>Google Ads</strong> (cookies <code>_gcl_*</code>) — medem o desempenho
+                  das nossas campanhas publicitárias. Sem o seu consentimento, estas ferramentas
+                  não são carregadas.
                 </p>
               </div>
             </div>
@@ -61,16 +76,17 @@ export default function CookiesPage() {
 
           <section>
             <h2 className="font-playfair font-semibold text-xl text-text-primary mb-3">
-              Como gerir os cookies?
+              Gerir as suas preferências
             </h2>
-            <p className="leading-relaxed">
-              Pode aceitar ou recusar cookies não essenciais através do banner que aparece quando
-              visita o site pela primeira vez. Para alterar a sua preferência, limpe os dados de
-              navegação do seu browser e volte a visitar o site.
+            <p className="leading-relaxed mb-4">
+              Pode aceitar ou recusar os cookies não essenciais no banner apresentado na primeira
+              visita — e pode <strong>alterar a sua escolha a qualquer momento</strong> com o botão
+              abaixo. Recusar cookies não afeta a navegação no site.
             </p>
-            <p className="leading-relaxed mt-3">
-              Também pode configurar o seu browser para recusar cookies. Consulte as instruções
-              do seu browser para mais informações.
+            <GerirCookiesButton />
+            <p className="leading-relaxed mt-4 text-sm">
+              Pode ainda configurar o seu navegador para bloquear ou eliminar cookies. Consulte as
+              instruções do seu navegador para mais informações.
             </p>
           </section>
 
