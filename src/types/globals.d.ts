@@ -6,5 +6,6 @@ declare global {
     fbq: (...args: unknown[]) => void
     dataLayer: unknown[]
     _fbq: unknown
+    beTracker?: { t: (opts: { hash: string }) => void }
   }
 }

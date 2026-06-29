@@ -8,6 +8,7 @@ import { readConsent, CONSENT_EVENT, CONSENT_STORAGE_KEY, type CookieConsent } f
 const GA_ID = process.env.NEXT_PUBLIC_GA_ID || 'G-GM7S2XXBZS'
 const META_PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID || '1370527093885024'
 const GOOGLE_ADS_ID = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID || 'AW-18049747314'
+const METRICOOL_HASH = process.env.NEXT_PUBLIC_METRICOOL_HASH || '103e1418e76e4353b021093bb6841c8'
 
 const NO_CONSENT: CookieConsent = { analytics: false, marketing: false }
 
@@ -110,6 +111,18 @@ export default function Analytics() {
             />
           </noscript>
         </>
+      )}
+      {METRICOOL_HASH && consent.analytics && (
+        <Script
+          id="metricool-tracker"
+          strategy="afterInteractive"
+          src="https://tracker.metricool.com/resources/be.js"
+          onLoad={() => {
+            if (typeof window.beTracker?.t === 'function') {
+              window.beTracker.t({ hash: METRICOOL_HASH })
+            }
+          }}
+        />
       )}
     </>
   )

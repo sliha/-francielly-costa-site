@@ -14,6 +14,24 @@ Dica: `grep "^## \[" log.md | tail -5` mostra as 5 últimas entradas.
 
 ---
 
+## [2026-06-29] decisão | Tracking Metricool adicionado (atrás de consentimento)
+Adicionado o tracker do Metricool (`tracker.metricool.com/resources/be.js`, hash
+`103e1418e76e4353b021093bb6841c8`) em `src/components/Analytics.tsx`, via `next/script`
+(`strategy="afterInteractive"`, `onLoad` chama `beTracker.t({hash})`). Tal como GA, Meta Pixel
+e Google Ads, só monta com `consent.analytics` ativo, para manter a postura RGPD/Consent Mode.
+Hash configurável por `NEXT_PUBLIC_METRICOOL_HASH`. Tipagem `window.beTracker` em
+`src/types/globals.d.ts`. Verificado com type-check + build de produção. Ver [[seo-analytics]].
+
+## [2026-06-19] decisão | Pasta Marketing criada (marca e Instagram)
+Criada `Marketing/` na raiz com material de marca para divulgação e rebranding do Instagram,
+a entregar ao Cowork. Quatro documentos: `README.md` (índice + incoerências a alinhar),
+`Conceito-e-Marca.md` (posicionamento, personas, identidade visual com hex reais, tom de voz,
+serviços/preços, provas sociais), `Rebranding-Instagram.md` (bio, destaques, grelha, pilares,
+hashtags, KPIs) e `Plano-de-Conteudo.md` (calendário, ideias, legendas) + `Briefing-Cowork.md`.
+Tudo extraído do site real (cores `#B76E79`/`#C9A96E`/`#FDF8F5`, fontes Playfair+Inter,
+IG `@franciellycostamaster`). Registadas incoerências do site a alinhar: stats +2300 vs +200,
+horário rodapé vs agendamento, prazo caução 24h vs 48h.
+
 ## [2026-06-12] decisão | Limpeza dos ficheiros legados do Firebase
 Removidos do repo (build verificado): `firebase.json`, `firestore.rules`, `storage.rules`,
 `apphosting.yaml`, `dataconnect/`, e o domínio `firebasestorage` do `next.config.mjs`.
