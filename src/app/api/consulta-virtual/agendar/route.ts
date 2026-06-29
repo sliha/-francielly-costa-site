@@ -25,7 +25,7 @@ async function enviarEmails(params: {
 }) {
   const resendKey = process.env.RESEND_API_KEY
   if (!resendKey) return
-  const adminEmail = process.env.ADMIN_EMAIL || 'geral@franciellycosta.com'
+  const adminEmail = process.env.ADMIN_EMAIL || 'geral@franciellycosta.pt'
 
   const dataFmt = new Date(params.data + 'T12:00:00').toLocaleDateString('pt-PT', {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
@@ -52,7 +52,7 @@ async function enviarEmails(params: {
         </a>
       </div>
       <p style="color: #999; font-size: 12px; text-align: center;">
-        Tem dúvidas? Contacte-nos: geral@franciellycosta.com · +351 913 112 232
+        Tem dúvidas? Contacte-nos: geral@franciellycosta.pt · +351 913 112 232
       </p>
     </div>
   `

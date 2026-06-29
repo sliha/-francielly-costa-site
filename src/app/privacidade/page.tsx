@@ -53,8 +53,8 @@ export default function Privacidade() {
             Av. Dr. António Palha 53, 4715-091 Braga, Portugal
             <br />
             Email:{' '}
-            <a href="mailto:geral@franciellycosta.com" className="text-rose-gold hover:underline">
-              geral@franciellycosta.com
+            <a href="mailto:geral@franciellycosta.pt" className="text-rose-gold hover:underline">
+              geral@franciellycosta.pt
             </a>{' '}
             · Telefone: +351 913 112 232
           </p>
@@ -207,8 +207,8 @@ export default function Privacidade() {
           <H2>9. Contacto</H2>
           <p>
             Para exercer os seus direitos ou esclarecer qualquer questão de privacidade:{' '}
-            <a href="mailto:geral@franciellycosta.com" className="text-rose-gold hover:underline">
-              geral@franciellycosta.com
+            <a href="mailto:geral@franciellycosta.pt" className="text-rose-gold hover:underline">
+              geral@franciellycosta.pt
             </a>
           </p>
 

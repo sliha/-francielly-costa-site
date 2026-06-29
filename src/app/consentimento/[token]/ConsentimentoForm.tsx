@@ -175,7 +175,7 @@ export default function ConsentimentoForm({ token, doc }: Props) {
               confidencial e exclusivamente para avaliar contraindicações e garantir a segurança do
               procedimento. São conservadas durante 5 anos após o procedimento e nunca partilhadas
               para outros fins. Pode aceder, retificar ou pedir a eliminação dos seus dados a
-              qualquer momento através de geral@franciellycosta.com. Mais informações na{' '}
+              qualquer momento através de geral@franciellycosta.pt. Mais informações na{' '}
               <a href="/privacidade" target="_blank" className="text-rose-gold underline">
                 Política de Privacidade
               </a>.

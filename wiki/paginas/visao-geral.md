@@ -11,7 +11,7 @@ atualizado: 2026-06-12
 **Francielly Costa** é um estúdio de **dermopigmentação avançada** em Braga, Portugal.
 Serviços: microblading, microshading, eyeliner permanente, micropigmentação labial,
 tricopigmentação e **FiberBROWS** (técnica de destaque, "primeira certificada em Portugal").
-Morada: Av. Dr. António Palha 53, 4715-091 Braga. Email: `geral@franciellycosta.com`.
+Morada: Av. Dr. António Palha 53, 4715-091 Braga. Email: `geral@franciellycosta.pt`.
 
 ## A app
 Uma aplicação [[stack-tecnica|Next.js 14]] com duas grandes superfícies:

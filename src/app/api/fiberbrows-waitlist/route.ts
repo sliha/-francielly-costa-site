@@ -9,7 +9,7 @@ async function notificarWaitlist(nomeRaw: string, emailRaw: string, telefoneRaw:
   const telefone = escapeHtml(telefoneRaw)
   const resendKey = process.env.RESEND_API_KEY
   if (!resendKey) return
-  const adminEmail = process.env.ADMIN_EMAIL || 'geral@franciellycosta.com'
+  const adminEmail = process.env.ADMIN_EMAIL || 'geral@franciellycosta.pt'
   const siteUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://franciellycosta.pt'
 
   await fetch('https://api.resend.com/emails', {
@@ -30,7 +30,7 @@ async function notificarWaitlist(nomeRaw: string, emailRaw: string, telefoneRaw:
         </div>
         <p style="color:#888;font-size:13px;">Morada: Av. Dr. António Palha 53, 4715-091 Braga</p>
         <hr style="border:1px solid #eee;margin:24px 0;">
-        <p style="color:#aaa;font-size:12px;text-align:center;">Dúvidas? geral@franciellycosta.com · +351 917 132 116</p>
+        <p style="color:#aaa;font-size:12px;text-align:center;">Dúvidas? geral@franciellycosta.pt · +351 917 132 116</p>
         <p style="color:#bbb;font-size:11px;text-align:center;margin-top:12px;">Se não quiser ser contactada sobre a FiberBROWS, responda a este email com &quot;remover&quot; e eliminaremos o seu registo da lista de espera.</p>
       </div>`,
     }),

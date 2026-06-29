@@ -12,7 +12,7 @@ async function enviarEmailContacto(nomeRaw: string, emailRaw: string, telefoneRa
   const mensagem = escapeHtml(mensagemRaw)
   const resendKey = process.env.RESEND_API_KEY
   if (!resendKey) return
-  const adminEmail = process.env.ADMIN_EMAIL || 'geral@franciellycosta.com'
+  const adminEmail = process.env.ADMIN_EMAIL || 'geral@franciellycosta.pt'
   const siteUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://franciellycosta.pt'
 
   // Confirmation to client
@@ -32,7 +32,7 @@ async function enviarEmailContacto(nomeRaw: string, emailRaw: string, telefoneRa
         <p style="color:#888;font-size:13px;">Morada: Av. Dr. António Palha 53, 4715-091 Braga</p>
         <p style="color:#888;font-size:13px;">WhatsApp: +351 917 132 116</p>
         <hr style="border:1px solid #eee;margin:24px 0;">
-        <p style="color:#aaa;font-size:12px;text-align:center;">geral@franciellycosta.com</p>
+        <p style="color:#aaa;font-size:12px;text-align:center;">geral@franciellycosta.pt</p>
       </div>`,
     }),
   }).catch(() => {})

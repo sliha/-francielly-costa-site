@@ -26,9 +26,9 @@ const contactCards = [
   {
     icon: Mail,
     title: 'Email',
-    lines: ['info@franciellycosta.com'],
+    lines: ['geral@franciellycosta.pt'],
     color: 'rose-gold',
-    action: { label: 'Enviar Email', href: 'mailto:info@franciellycosta.com' },
+    action: { label: 'Enviar Email', href: 'mailto:geral@franciellycosta.pt' },
   },
   {
     icon: Clock,

@@ -50,7 +50,7 @@ async function enviarEmailEspera(payload: {
           </p>
           <hr style="border: 1px solid #eee; margin: 24px 0;">
           <p style="color: #999; font-size: 12px; text-align: center;">
-            Em caso de dúvida: geral@franciellycosta.com · +351 917 132 116
+            Em caso de dúvida: geral@franciellycosta.pt · +351 917 132 116
           </p>
         </div>
       `,

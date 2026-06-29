@@ -30,7 +30,7 @@ export const localBusinessSchema = {
   logo: `${SITE_URL}/apple-icon.png`,
   url: SITE_URL,
   telephone: '+351917132116',
-  email: 'geral@franciellycosta.com',
+  email: 'geral@franciellycosta.pt',
   address: {
     '@type': 'PostalAddress',
     streetAddress: 'Av. Dr. António Palha 53',

@@ -19,7 +19,7 @@ SERVIÇOS:
 - Tricopigmentação: Micropigmentação capilar. 3-4 sessões. Duração 2-5 anos.
 
 LOCALIZAÇÃO: Av. Dr. António Palha 53, 4715-091 Braga. Seg-Sex 10h-18h.
-CONTACTO: +351 917 132 116 | geral@franciellycosta.com
+CONTACTO: +351 917 132 116 | geral@franciellycosta.pt
 CAUÇÃO: O agendamento requer pagamento de caução de 30€.
 MULTI-IDIOMA: Responde SEMPRE no idioma em que a cliente escreve.
 Quando a cliente quiser agendar, recolhe: nome, telefone, email, serviço pretendido, data e hora preferida.
