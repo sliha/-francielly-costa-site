@@ -249,7 +249,7 @@ Artigos com capas (geridos dinamicamente), ~5–7 min de leitura. Temas: FiberBR
 ## 14. Contacto (`/contacto`)
 
 - **Formulário**: nome*, telefone*, email*, serviço de interesse (dropdown), mensagem. Botão "Enviar Mensagem" → confirmação "Mensagem Enviada!"
-- **Cartões**: morada (link Google Maps), telefones (+351 913 112 232 · +351 917 132 116 WhatsApp), email (geral@franciellycosta.com), horário
+- **Cartões**: morada (link Google Maps), telefones (+351 913 112 232 · +351 917 132 116 WhatsApp), email (geral@franciellycosta.pt), horário
 - **Botões grandes**: WhatsApp (verde), Instagram, Facebook
 - **Mapa Google** interativo
 
@@ -302,4 +302,4 @@ Artigos com capas (geridos dinamicamente), ~5–7 min de leitura. Temas: FiberBR
 
 ---
 
-*Dossiê gerado automaticamente a partir do código-fonte. Contactos do negócio: Av. Dr. António Palha 53, 4715-091 Braga · +351 913 112 232 · WhatsApp +351 917 132 116 · geral@franciellycosta.com · www.franciellycosta.pt*
+*Dossiê gerado automaticamente a partir do código-fonte. Contactos do negócio: Av. Dr. António Palha 53, 4715-091 Braga · +351 913 112 232 · WhatsApp +351 917 132 116 · geral@franciellycosta.pt · www.franciellycosta.pt*

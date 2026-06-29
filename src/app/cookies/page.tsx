@@ -97,10 +97,10 @@ export default function CookiesPage() {
             <p className="leading-relaxed">
               Para questões sobre cookies ou privacidade, contacte-nos em{' '}
               <a
-                href="mailto:geral@franciellycosta.com"
+                href="mailto:geral@franciellycosta.pt"
                 className="text-rose-gold hover:underline"
               >
-                geral@franciellycosta.com
+                geral@franciellycosta.pt
               </a>
               .
             </p>

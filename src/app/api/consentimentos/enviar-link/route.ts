@@ -47,7 +47,7 @@ async function enviarEmailConsentimento(params: {
         </a>
       </div>
       <p style="color: #999; font-size: 12px; text-align: center; margin-top: 32px;">
-        Se tem dúvidas, contacte-nos: geral@franciellycosta.com · +351 913 112 232
+        Se tem dúvidas, contacte-nos: geral@franciellycosta.pt · +351 913 112 232
       </p>
     </div>
   `

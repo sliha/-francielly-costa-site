@@ -46,7 +46,7 @@ export async function sendBookingConfirmation(booking: BookingData): Promise<voi
   const resendKey = process.env.RESEND_API_KEY
   if (!resendKey) return
 
-  const adminEmail = process.env.ADMIN_EMAIL || 'geral@franciellycosta.com'
+  const adminEmail = process.env.ADMIN_EMAIL || 'geral@franciellycosta.pt'
   const siteUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://franciellycosta.pt'
   const dataFormatada = formatarData(booking.data)
 
@@ -76,7 +76,7 @@ export async function sendBookingConfirmation(booking: BookingData): Promise<voi
         <p style="color: #555; font-size: 14px;">Telefone: +351 913 112 232</p>
         <hr style="border: 1px solid #eee; margin: 24px 0;">
         <p style="color: #999; font-size: 12px; text-align: center;">
-          Em caso de dúvida, contacte-nos: geral@franciellycosta.com
+          Em caso de dúvida, contacte-nos: geral@franciellycosta.pt
         </p>
       </div>
     `,

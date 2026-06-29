@@ -12,7 +12,7 @@ import { CalendarCheck, ShieldCheck } from 'lucide-react'
 const DEFAULT_CONFIG = {
   morada: 'Av. Dr. António Palha 53, 4715-091 Braga, Portugal',
   telefone: '+351913112232',
-  email: 'geral@franciellycosta.com',
+  email: 'geral@franciellycosta.pt',
   horario: 'Seg–Sex: 9h–18h, Sáb: 9h–13h',
   caucao: '50',
   instagram: 'https://www.instagram.com/franciellycostamaster/',
