@@ -40,6 +40,13 @@ firebase-debug.log
 # migration artifacts (contêm dados/segredos — nunca commitar)
 _migration/
 
+# segredos e lixo do gerador de flyers (Marketing/francielly-ai)
+# credentials.json = chave privada de service account GCP — NUNCA commitar
+Marketing/francielly-ai/credentials.json
+**/credentials.json
+__pycache__/
+*.pyc
+
 # Obsidian: manter config do vault, ignorar estado de UI local (volátil)
 .obsidian/workspace.json
 .obsidian/workspace-mobile.json

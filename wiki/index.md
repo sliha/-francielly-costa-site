@@ -31,6 +31,10 @@ Convenções em [[schema]]. Histórico em [[log]].
 ## Componentes / funcionalidades com particularidades
 - [[galeria]] — galeria de antes/depois (categorias data-driven; bug corrigido)
 
+## Marketing / marca
+- `Marketing/` — material de marca para divulgação e rebranding do Instagram (Cowork):
+  conceito, posicionamento, identidade visual, tom de voz, plano de conteúdo e briefing.
+
 ## Fontes
 - [[fonte-dossie-experiencia-cliente]] — `docs/DOSSIE-EXPERIENCIA-CLIENTE.md`
 - [[fonte-seguranca-estado-2026-06]] — `docs/SEGURANCA-ESTADO-2026-06.md`

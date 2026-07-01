@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <title>Francielly Costa — Dermopigmentacao Avancada</title>
+  <meta name="hz:slide-selector" content=".flyer">
+  <meta name="hz:canvas-width" content="794">
+  <meta name="hz:canvas-height" content="1123">
+  <link rel="stylesheet" href="https://use.typekit.net/uvm4qtw.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background: #2C1F22;
+    }
+
+    .flyer {
+      position: relative;
+      width: 210mm;
+      height: 297mm;
+      overflow: hidden;
+      background: #FDF8F5;
+    }
+
+    /* ── HERO ZONE (top 58%) ── */
+    .hero {
+      position: absolute;
+      top: 0; left: 0;
+      width: 210mm;
+      height: 172mm;
+      background: linear-gradient(
+        148deg,
+        #0C0809 0%,
+        #1C0E12 20%,
+        #361A22 42%,
+        #7C3848 68%,
+        #B76E79 100%
+      );
+      overflow: hidden;
+    }
+
+    .hero-art {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+    }
+
+    .hero-fade {
+      position: absolute;
+      bottom: 0; left: 0;
+      width: 100%; height: 64mm;
+      background: linear-gradient(to top, rgba(12,8,9,0.82) 0%, transparent 100%);
+    }
+
+    .hero-studio {
+      position: absolute;
+      top: 8mm; left: 10mm;
+      font-family: 'source-sans-3', sans-serif;
+      font-size: 7pt;
+      color: rgba(253,248,245,0.38);
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+    }
+
+    .hero-tagline {
+      position: absolute;
+      bottom: 16mm;
+      left: 0; right: 0;
+      padding: 0 18mm;
+      text-align: center;
+    }
+
+    .tagline-serif {
+      display: block;
+      font-family: 'source-serif-4', serif;
+      font-style: italic;
+      font-size: 22pt;
+      color: #FDFAF8;
+      line-height: 1.38;
+      letter-spacing: 0.01em;
+    }
+
+    .tagline-sub {
+      display: block;
+      margin-top: 4.5mm;
+      font-family: 'source-sans-3', sans-serif;
+      font-size: 7pt;
+      color: rgba(253,248,245,0.58);
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+    }
+
+    /* ── GRADIENT BAR ── */
+    .bar {
+      position: absolute;
+      top: 172mm; left: 0;
+      width: 100%; height: 2.2mm;
+      background: linear-gradient(90deg, #B76E79 0%, #C9A96E 100%);
+    }
+
+    /* ── CONTENT ZONE ── */
+    .content {
+      position: absolute;
+      top: 174.2mm;
+      left: 0; right: 0; bottom: 0;
+      background: #FDF8F5;
+      padding: 8mm 14mm 6mm;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .c-brand {
+      font-family: 'source-serif-4', serif;
+      font-style: italic;
+      font-size: 22pt;
+      color: #B76E79;
+      letter-spacing: 0.06em;
+      text-align: center;
+      line-height: 1;
+    }
+
+    .c-sep {
+      display: flex;
+      align-items: center;
+      gap: 3mm;
+      margin: 4mm 0;
+    }
+    .sep-line {
+      height: 0.5mm;
+      width: 22mm;
+      background: linear-gradient(90deg, #B76E79, #C9A96E);
+      border-radius: 0.3mm;
+    }
+    .sep-gem {
+      width: 2.2mm; height: 2.2mm;
+      background: #C9A96E;
+      transform: rotate(45deg);
+      flex-shrink: 0;
+    }
+
+    .c-services {
+      text-align: center;
+      width: 100%;
+    }
+    .svc-primary {
+      font-family: 'source-sans-3', sans-serif;
+      font-size: 9.5pt;
+      font-weight: 600;
+      color: #B76E79;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      line-height: 2.1;
+    }
+    .svc-secondary {
+      font-family: 'source-sans-3', sans-serif;
+      font-size: 8.5pt;
+      color: #C9A96E;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      line-height: 2.1;
+    }
+
+    .c-sep2 {
+      display: flex;
+      align-items: center;
+      gap: 3mm;
+      margin: 3.5mm 0;
+    }
+    .sep2-line {
+      height: 0.4mm;
+      width: 38mm;
+      background: #E2D8D2;
+      border-radius: 0.3mm;
+    }
+
+    .c-creds {
+      font-family: 'source-sans-3', sans-serif;
+      font-size: 7pt;
+      color: #A09890;
+      letter-spacing: 0.08em;
+      text-align: center;
+      line-height: 1.9;
+    }
+
+    .c-cta {
+      margin: 4.5mm 0 0;
+      background: #B76E79;
+      color: #FDF8F5;
+      font-family: 'source-sans-3', sans-serif;
+      font-size: 8pt;
+      font-weight: 600;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      padding: 3.5mm 12mm;
+      border-radius: 1mm;
+      text-align: center;
+    }
+
+    .c-footer {
+      margin-top: auto;
+      text-align: center;
+      padding-bottom: 1mm;
+    }
+    .footer-logo {
+      font-family: 'source-serif-4', serif;
+      font-style: italic;
+      font-size: 9.5pt;
+      color: #B76E79;
+      letter-spacing: 0.05em;
+    }
+    .footer-contact {
+      margin-top: 1.5mm;
+      font-family: 'source-sans-3', sans-serif;
+      font-size: 6.5pt;
+      color: #A8A09A;
+      letter-spacing: 0.09em;
+    }
+  </style>
+</head>
+<body>
+
+<div class="flyer" data-canvas-width="794" data-canvas-height="1123">
+
+  <!-- HERO ZONE -->
+  <div class="hero">
+    <svg class="hero-art" viewBox="0 0 794 652" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+      <!-- Top-right decorative ring cluster -->
+      <circle cx="694" cy="82" r="98" fill="none" stroke="rgba(183,110,121,0.20)" stroke-width="1.2"/>
+      <circle cx="694" cy="82" r="70" fill="none" stroke="rgba(201,169,110,0.14)" stroke-width="0.8"/>
+      <circle cx="694" cy="82" r="5" fill="rgba(201,169,110,0.55)"/>
+      <!-- Bottom-left accent ring -->
+      <circle cx="95" cy="562" r="46" fill="none" stroke="rgba(201,169,110,0.13)" stroke-width="0.9"/>
+      <circle cx="95" cy="562" r="3" fill="rgba(201,169,110,0.45)"/>
+      <!-- Elegant brow arch curves — the brand's core artistry -->
+      <path d="M 60 450 Q 397 170 734 450" stroke="rgba(201,169,110,0.22)" stroke-width="1.3" fill="none" stroke-linecap="round"/>
+      <path d="M 120 475 Q 397 210 674 475" stroke="rgba(201,169,110,0.13)" stroke-width="0.7" fill="none" stroke-linecap="round"/>
+      <path d="M 20 490 Q 397 150 774 490" stroke="rgba(183,110,121,0.09)" stroke-width="0.6" fill="none" stroke-linecap="round"/>
+      <!-- Precision mark at arch apex -->
+      <circle cx="397" cy="170" r="2.5" fill="rgba(201,169,110,0.60)"/>
+      <circle cx="295" cy="232" r="1.5" fill="rgba(201,169,110,0.38)"/>
+      <circle cx="499" cy="232" r="1.5" fill="rgba(201,169,110,0.38)"/>
+      <!-- Subtle horizontal lines (surgical precision) -->
+      <line x1="40" y1="380" x2="240" y2="380" stroke="rgba(253,248,245,0.07)" stroke-width="0.5"/>
+      <line x1="554" y1="380" x2="754" y2="380" stroke="rgba(253,248,245,0.07)" stroke-width="0.5"/>
+      <!-- Floating gold sparkle dots -->
+      <circle cx="175" cy="118" r="1.3" fill="rgba(201,169,110,0.42)"/>
+      <circle cx="615" cy="205" r="1.3" fill="rgba(201,169,110,0.42)"/>
+      <circle cx="338" cy="75" r="1" fill="rgba(253,248,245,0.28)"/>
+      <circle cx="520" cy="145" r="1" fill="rgba(253,248,245,0.22)"/>
+      <circle cx="148" cy="298" r="1.3" fill="rgba(201,169,110,0.30)"/>
+      <circle cx="658" cy="360" r="1" fill="rgba(201,169,110,0.30)"/>
+      <circle cx="460" cy="95" r="0.9" fill="rgba(253,248,245,0.20)"/>
+      <circle cx="260" cy="350" r="1" fill="rgba(201,169,110,0.25)"/>
+    </svg>
+    <div class="hero-fade"></div>
+    <div class="hero-studio">Francielly Costa Studio</div>
+    <div class="hero-tagline">
+      <span class="tagline-serif">A beleza que ja existe em si,<br>realcada por maos certificadas.</span>
+      <span class="tagline-sub">Dermopigmentacao Avancada &middot; Braga, Portugal</span>
+    </div>
+  </div>
+
+  <!-- GRADIENT BAR -->
+  <div class="bar"></div>
+
+  <!-- CONTENT ZONE -->
+  <div class="content">
+
+    <div class="c-brand">Francielly Costa</div>
+
+    <div class="c-sep">
+      <div class="sep-line"></div>
+      <div class="sep-gem"></div>
+      <div class="sep-line"></div>
+    </div>
+
+    <div class="c-services">
+      <div class="svc-primary">FiberBROWS &mdash; 1.a Certificada em Portugal</div>
+      <div class="svc-secondary">Microblading &middot; Microshading &middot; Labios &middot; Eyeliner</div>
+      <div class="svc-secondary">Tricopigmentacao &middot; Reparacao de Cicatrizes</div>
+    </div>
+
+    <div class="c-sep2">
+      <div class="sep2-line"></div>
+      <div class="sep2-line"></div>
+    </div>
+
+    <div class="c-creds">
+      Master PMU &middot; Formacao em Milao &middot; +2 300 clientes &middot; 5.0 Google
+    </div>
+
+    <div class="c-cta">Marca a tua avaliacao &middot; franciellycosta.pt</div>
+
+    <div class="c-footer">
+      <div class="footer-logo">Francielly Costa</div>
+      <div class="footer-contact">@franciellycostamaster &middot; +351 917 132 116 &middot; Braga, Portugal</div>
+    </div>
+
+  </div>
+
+</div>
+</body>
+</html>
