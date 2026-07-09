@@ -28,12 +28,6 @@ const diferenciais = [
   },
 ]
 
-function openChat() {
-  if (typeof window !== 'undefined') {
-    window.dispatchEvent(new Event('openChat'))
-  }
-}
-
 export default function FiberBROWSSection() {
   const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.1 })
 
@@ -78,7 +72,7 @@ export default function FiberBROWSSection() {
 
           <p className="text-white/60 text-lg md:text-xl font-inter max-w-2xl mx-auto">
             Resultados naturais e imediatos.{' '}
-            <span className="text-golden/80">Disponível em breve.</span>
+            <span className="text-golden/80">Já disponível em Braga — marcações abertas.</span>
           </p>
         </motion.div>
 
@@ -117,21 +111,21 @@ export default function FiberBROWSSection() {
           className="flex flex-col sm:flex-row items-center justify-center gap-4"
         >
           <Link
-            href="/servicos/fiberbrows"
+            href="/agendar?servico=fiberbrows"
             className="group inline-flex items-center gap-2 px-8 py-4 rounded-full font-semibold font-inter text-base text-white transition-all duration-300 hover:-translate-y-1"
             style={{ background: 'linear-gradient(135deg, #C9A96E, #B76E79)', boxShadow: '0 8px 30px rgba(201,169,110,0.35)' }}
           >
-            Quero Saber Mais
+            Agendar Agora
             <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
           </Link>
 
-          <button
-            onClick={openChat}
+          <Link
+            href="/servicos/fiberbrows"
             className="group inline-flex items-center gap-2 px-8 py-4 rounded-full font-semibold font-inter text-base border border-golden/30 text-golden hover:border-golden hover:bg-golden/10 transition-all duration-300 backdrop-blur-sm"
           >
-            Falar com a Sofia
+            Saber Mais
             <Sparkles className="w-4 h-4 group-hover:scale-110 transition-transform" />
-          </button>
+          </Link>
         </motion.div>
       </div>
     </section>

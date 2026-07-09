@@ -58,8 +58,3 @@ export function trackChatInitiated(params?: { source?: string }) {
   fbq('InitiateCheckout', params)
   gtag('chat_started', { source: params?.source ?? 'sofia' })
 }
-
-export function trackWaitlistFiberbrows() {
-  fbq('Lead', { content_name: 'FiberBROWS Waitlist' })
-  gtag('waitlist_signup', { content_name: 'FiberBROWS Waitlist' })
-}

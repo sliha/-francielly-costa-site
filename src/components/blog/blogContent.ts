@@ -13,7 +13,7 @@ export const blogArticles: BlogArticle[] = [
     slug: 'fiberbrows-nova-tecnica',
     title: 'FiberBROWS: A Nova Técnica Que Está a Revolucionar as Sobrancelhas',
     excerpt:
-      'Descubra a FiberBROWS, a técnica estética inovadora com fios biocompatíveis que promete sobrancelhas naturais durante 6 meses — disponível em breve na Francielly Costa.',
+      'Descubra a FiberBROWS, a técnica estética inovadora com fios biocompatíveis que promete sobrancelhas naturais durante 6 meses — já disponível na Francielly Costa, em Braga.',
     category: 'FiberBROWS',
     readTime: '5 min',
     date: '2026-04-06',
@@ -63,11 +63,11 @@ A técnica FiberBROWS 360º conta com um **parecer jurídico assinado por especi
 
 A Francielly Costa é a **primeira profissional certificada em FiberBROWS em Portugal**, garantindo o mais alto padrão de segurança e resultado.
 
-## Quando Estará Disponível?
+## Já Disponível em Braga
 
-A FiberBROWS estará disponível a partir de **maio de 2026** no atelier da Francielly Costa em Braga. Dado o interesse crescente, as primeiras marcações estão a ser feitas através da lista de espera.
+A FiberBROWS **já está disponível** no atelier da Francielly Costa, em Braga, primeira profissional certificada nesta técnica em Portugal. As marcações estão abertas.
 
-**Entre na lista de espera** para ser uma das primeiras a beneficiar desta técnica revolucionária e garantir prioridade na marcação.
+**Agende online** em poucos minutos, escolhendo a data e a hora que preferir, e garanta a sua sessão desta técnica revolucionária.
 
 ## Investimento
 
@@ -75,7 +75,7 @@ O procedimento FiberBROWS tem um investimento de **€1.000**, que inclui a sess
 
 ---
 
-*Quer saber mais ou entrar na lista de espera? Contacte-nos através do Instagram ou WhatsApp, ou peça à Sofia (a nossa assistente virtual) para a inscrever diretamente.*
+*Quer marcar a sua FiberBROWS? Agende online, contacte-nos pelo Instagram ou WhatsApp, ou peça à Sofia (a nossa assistente virtual) para a ajudar diretamente.*
     `.trim(),
   },
   {

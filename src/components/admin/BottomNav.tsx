@@ -11,7 +11,6 @@ import {
   X,
   Users,
   MessageSquare,
-  Sparkles,
   Scissors,
   Video,
   Shield,
@@ -37,7 +36,6 @@ const tabs = [
 const maisItems = [
   { href: '/admin/clientes', icon: Users, label: 'Clientes' },
   { href: '/admin/contactos', icon: MessageSquare, label: 'Contactos' },
-  { href: '/admin/fiberbrows-waitlist', icon: Sparkles, label: 'FiberBROWS Waitlist' },
   { href: '/admin/servicos', icon: Scissors, label: 'Serviços & Preços' },
   { href: '/admin/consultas-virtuais', icon: Video, label: 'Consultas Virtuais' },
   { href: '/admin/consentimentos', icon: Shield, label: 'Consentimentos' },

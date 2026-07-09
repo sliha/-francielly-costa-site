@@ -5,173 +5,15 @@ import { motion } from 'framer-motion'
 import { useInView } from 'react-intersection-observer'
 import {
   ArrowRight, Shield, Zap, Clock, TrendingDown, CheckCircle,
-  AlertTriangle, ChevronDown, Sparkles, Star, Trophy, Plus, Minus
+  AlertTriangle, ChevronDown, Sparkles, Star, Trophy, Plus, Minus, CalendarCheck
 } from 'lucide-react'
 import Link from 'next/link'
 import ServicoMediaGaleria from '@/components/servicos/ServicoMediaGaleria'
 import { useServicosPrecos } from '@/lib/useServicosPrecos'
-import { trackWaitlistFiberbrows } from '@/lib/analytics'
-
-// ─── Countdown ───────────────────────────────────────────────────────────────
-const TARGET_DATE = new Date('2026-05-01T00:00:00')
-
-function useCountdown() {
-  const [time, setTime] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 })
-
-  useEffect(() => {
-    const tick = () => {
-      const diff = TARGET_DATE.getTime() - Date.now()
-      if (diff <= 0) { setTime({ days: 0, hours: 0, minutes: 0, seconds: 0 }); return }
-      setTime({
-        days: Math.floor(diff / 86400000),
-        hours: Math.floor((diff % 86400000) / 3600000),
-        minutes: Math.floor((diff % 3600000) / 60000),
-        seconds: Math.floor((diff % 60000) / 1000),
-      })
-    }
-    tick()
-    const id = setInterval(tick, 1000)
-    return () => clearInterval(id)
-  }, [])
-
-  return time
-}
-
-// ─── Waitlist Form ────────────────────────────────────────────────────────────
-function WaitlistForm() {
-  const [form, setForm] = useState({ nome: '', email: '', telefone: '' })
-  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setStatus('loading')
-    try {
-      const res = await fetch('/api/fiberbrows-waitlist', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
-      })
-      if (!res.ok) throw new Error()
-      setStatus('success')
-      trackWaitlistFiberbrows()
-      setForm({ nome: '', email: '', telefone: '' })
-    } catch {
-      setStatus('error')
-    }
-  }
-
-  if (status === 'success') {
-    return (
-      <div className="text-center py-8">
-        <CheckCircle className="w-14 h-14 text-golden mx-auto mb-4" />
-        <h3 className="font-playfair font-bold text-white text-2xl mb-2">Registo confirmado!</h3>
-        <p className="text-white/60 font-inter">Será das primeiras a ser contactada quando a FiberBROWS estiver disponível.</p>
-      </div>
-    )
-  }
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {[
-        { name: 'nome', label: 'Nome completo', type: 'text', placeholder: 'O seu nome' },
-        { name: 'email', label: 'Email', type: 'email', placeholder: 'O seu email' },
-        { name: 'telefone', label: 'Telefone / WhatsApp', type: 'tel', placeholder: '+351 9XX XXX XXX' },
-      ].map((field) => (
-        <div key={field.name}>
-          <label className="block text-white/60 text-sm font-inter mb-1.5">{field.label}</label>
-          <input
-            type={field.type}
-            required
-            placeholder={field.placeholder}
-            value={form[field.name as keyof typeof form]}
-            onChange={(e) => setForm((f) => ({ ...f, [field.name]: e.target.value }))}
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white font-inter text-sm placeholder:text-white/25 focus:outline-none focus:border-golden/50 transition-colors"
-          />
-        </div>
-      ))}
-      <button
-        type="submit"
-        disabled={status === 'loading'}
-        className="w-full py-4 rounded-xl font-semibold font-inter text-white transition-all duration-300 hover:-translate-y-0.5 disabled:opacity-60"
-        style={{ background: 'linear-gradient(135deg, #C9A96E, #B76E79)', boxShadow: '0 6px 24px rgba(201,169,110,0.3)' }}
-      >
-        {status === 'loading' ? 'A registar...' : 'Quero Ser Notificada'}
-      </button>
-      <p className="text-white/30 text-xs text-center font-inter leading-relaxed">
-        Ao inscrever-se, aceita ser contactada sobre a disponibilidade da FiberBROWS.
-        Pode pedir a remoção da lista a qualquer momento.{' '}
-        <a href="/privacidade" className="underline hover:text-white/60">Política de Privacidade</a>
-      </p>
-      {status === 'error' && (
-        <p className="text-red-400 text-sm text-center font-inter">Ocorreu um erro. Por favor, tente novamente.</p>
-      )}
-    </form>
-  )
-}
+import { fiberbrowsFaq } from '@/data/fiberbrowsFaq'
 
 // ─── FAQ ─────────────────────────────────────────────────────────────────────
-const faqItems = [
-  {
-    q: 'A FiberBROWS é permanente?',
-    a: 'Não. O resultado é temporário, com duração de aproximadamente 6 meses. Pode ser renovada quando a cliente desejar, mantendo sempre um resultado natural e adaptado à evolução do rosto.',
-  },
-  {
-    q: 'A FiberBROWS é um procedimento cirúrgico?',
-    a: 'Não. É uma técnica estética sem fins terapêuticos, com finalidade exclusiva de embelezamento facial. Não requer prescrição clínica, não envolve extração de folículos e não atinge estruturas profundas da pele.',
-  },
-  {
-    q: 'O fio utilizado é seguro?',
-    a: 'Sim. Trata-se de um fio estético biocompatível, produzido em laboratório com alto grau de purificação, dermatologicamente testado e com tecnologia internacional segura. É não absorvível, atóxico, estéril e de uso individual.',
-  },
-  {
-    q: 'É possível reverter?',
-    a: 'Sim. É possível fazer a reversão ou retirada do material aplicado, tranquilamente. O resultado é temporário, com duração de até 6 meses.',
-  },
-  {
-    q: 'Dói muito?',
-    a: 'O desconforto é muito inferior ao da micropigmentação ou microagulhamento. A maioria das clientes descreve o procedimento como muito suportável. Embora seja superficial, é aplicado um anestésico tópico para maior conforto.',
-  },
-  {
-    q: 'É seguro?',
-    a: 'Sim, quando executado com protocolo técnico rigoroso. O fio é estético e biocompatível com a grande maioria dos tipos de pele. Existe uma margem natural de 3–5% de sensibilidade, como acontece com qualquer material de uso estético.',
-  },
-  {
-    q: 'Posso usar henna nas sobrancelhas depois?',
-    a: 'Sim. O fio tem acabamento selado e não absorve corantes. A henna ou qualquer coloração só pigmenta os fios naturais — o adorno aplicado mantém sempre a cor original.',
-  },
-  {
-    q: 'Quem não pode fazer?',
-    a: 'Está contraindicado para pessoas com alergia conhecida a níquel ou materiais de uso estético. Recomendamos testes de tolerância prévios para clientes com histórico alérgico, gravidez, amamentação, doenças autoimunes ativas ou uso de isotretinoína.',
-  },
-  {
-    q: 'Qual a diferença para o transplante capilar?',
-    a: 'A FiberBROWS não tem fins cirúrgicos, não envolve extração de folículos, não requer anestesia geral, tem profundidade máxima de 2mm (sem agressão profunda à pele) e custa uma fração do preço dos transplantes, que variam entre €7.000 e €30.000. Não é transplante — é uma técnica estética sem finalidade terapêutica, ideal para quem quer resultado temporário.',
-  },
-  {
-    q: 'Precisa ser médico para aplicar?',
-    a: 'Não. Profissionais da estética capacitados e certificados pelo método podem aplicar. Só quem faz a formação completa recebe o selo oficial com número de registo que autoriza a aplicação.',
-  },
-  {
-    q: 'Existe parecer jurídico sobre a técnica?',
-    a: 'Sim. A técnica FiberBROWS 360º conta com um parecer jurídico assinado por especialista reconhecido, que valida a sua prática como estética e segura.',
-  },
-  {
-    q: 'Quando estará disponível?',
-    a: 'A Francielly Costa estará certificada a partir de Maio 2026, sendo uma das primeiras profissionais a oferecer este serviço em Portugal. Deixe o seu contacto na lista de espera abaixo para ser das primeiras a ser contactada.',
-  },
-  {
-    q: 'A FiberBROWS 360º é um procedimento médico?',
-    a: 'Não. A FiberBROWS 360º é uma técnica de embelezamento facial, sem fins terapêuticos ou médicos. Não requer prescrição clínica e não tem finalidade terapêutica.',
-  },
-  {
-    q: 'O que são as microfibras utilizadas?',
-    a: 'São microfibras biocompatíveis de uso estético, não absorvíveis, atóxicas, estéreis e de uso individual. São aplicadas com uma nanoagulha de calibre extremamente fino, semelhante ao calibre de insulina — não é agulha cirúrgica.',
-  },
-  {
-    q: 'O que pode reduzir a duração do resultado?',
-    a: 'Pele inflamada, profundidade incorreta na aplicação e o estilo de vida da cliente podem influenciar a duração, que é de até 6 meses.',
-  },
-]
+const faqItems = fiberbrowsFaq
 
 function FAQAccordion() {
   const [open, setOpen] = useState<number | null>(null)
@@ -217,7 +59,6 @@ function openChat() {
 export default function FiberBROWSDetailPage() {
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
-  const time = useCountdown()
   const precosFirestore = useServicosPrecos()
   const preco = precosFirestore['fiberbrows'] ?? 'A partir de €1.000'
 
@@ -275,12 +116,12 @@ export default function FiberBROWSDetailPage() {
 
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.55 }}
             className="flex flex-col sm:flex-row gap-4 justify-center">
-            <a href="#waitlist"
+            <Link href="/agendar?servico=fiberbrows"
               className="group inline-flex items-center gap-2 px-8 py-4 rounded-full font-semibold font-inter text-white transition-all hover:-translate-y-1"
               style={{ background: 'linear-gradient(135deg,#C9A96E,#B76E79)', boxShadow: '0 8px 30px rgba(201,169,110,0.35)' }}>
-              Pré-Registar Interesse
+              Agendar Agora
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </a>
+            </Link>
             <button onClick={openChat}
               className="group inline-flex items-center gap-2 px-8 py-4 rounded-full border border-golden/30 text-golden hover:border-golden hover:bg-golden/10 font-semibold font-inter transition-all backdrop-blur-sm">
               Falar com a Sofia
@@ -602,12 +443,19 @@ export default function FiberBROWSDetailPage() {
                   A técnica FiberBROWS 360º conta com um parecer jurídico de especialista reconhecido que valida a sua prática como estética e segura.
                 </p>
               </div>
-              <button onClick={openChat}
-                className="group inline-flex items-center gap-2 px-10 py-4 rounded-full font-semibold font-inter text-white text-lg transition-all hover:-translate-y-1"
-                style={{ background: 'linear-gradient(135deg, #C9A96E, #B76E79)', boxShadow: '0 8px 30px rgba(201,169,110,0.35)' }}>
-                Agende a Sua Consulta
-                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-              </button>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <Link href="/agendar?servico=fiberbrows"
+                  className="group inline-flex items-center gap-2 px-10 py-4 rounded-full font-semibold font-inter text-white text-lg transition-all hover:-translate-y-1"
+                  style={{ background: 'linear-gradient(135deg, #C9A96E, #B76E79)', boxShadow: '0 8px 30px rgba(201,169,110,0.35)' }}>
+                  Agendar Online
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </Link>
+                <button onClick={openChat}
+                  className="group inline-flex items-center gap-2 px-8 py-4 rounded-full border border-golden/30 text-golden hover:border-golden hover:bg-golden/10 font-semibold font-inter transition-all backdrop-blur-sm">
+                  Tirar Dúvidas com a Sofia
+                  <Sparkles className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                </button>
+              </div>
             </div>
           </Section>
         </div>
@@ -629,47 +477,47 @@ export default function FiberBROWSDetailPage() {
         </div>
       </section>
 
-      {/* ── COUNTDOWN + WAITLIST ─────────────────────────────────────────── */}
-      <section id="waitlist" className="py-24"
+      {/* ── CTA FINAL — MARCAÇÃO ─────────────────────────────────────────── */}
+      <section id="agendar" className="py-24"
         style={{ background: 'linear-gradient(135deg, #1a1205 0%, #0d0a00 100%)' }}>
         <div className="max-w-2xl mx-auto px-4 text-center">
           <Section>
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-golden/30 bg-golden/8 mb-8">
-              <Clock className="w-3.5 h-3.5 text-golden" />
+              <CalendarCheck className="w-3.5 h-3.5 text-golden" />
               <span className="text-golden text-xs font-bold tracking-widest uppercase font-inter">
-                Disponível a partir de Maio 2026
+                Já Disponível em Braga
               </span>
             </div>
 
             <h2 className="font-playfair font-bold text-4xl text-white mb-4">
-              Brevemente Disponível
+              Agende a Sua FiberBROWS
             </h2>
-            <p className="text-white/50 font-inter mb-12">
-              Seja das primeiras a experimentar. Deixe o seu contacto e nós avisamos quando estiver disponível.
+            <p className="text-white/50 font-inter mb-10 max-w-lg mx-auto">
+              As marcações estão abertas com a Francielly Costa, primeira profissional
+              certificada em Portugal. Escolha a data e a hora que preferir, a partir do conforto de casa.
             </p>
 
-            {/* Countdown */}
-            <div className="flex justify-center gap-4 mb-14">
-              {[
-                { label: 'dias', value: time.days },
-                { label: 'horas', value: time.hours },
-                { label: 'min', value: time.minutes },
-                { label: 'seg', value: time.seconds },
-              ].map((unit) => (
-                <div key={unit.label} className="flex flex-col items-center rounded-2xl border border-golden/20 px-5 py-4 min-w-[70px]"
-                  style={{ background: 'rgba(201,169,110,0.06)' }}>
-                  <span className="font-playfair font-bold text-3xl text-golden tabular-nums">
-                    {String(unit.value).padStart(2, '0')}
-                  </span>
-                  <span className="text-white/40 text-xs font-inter mt-1">{unit.label}</span>
-                </div>
-              ))}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
+              <Link href="/agendar?servico=fiberbrows"
+                className="group inline-flex items-center gap-2 px-10 py-4 rounded-full font-semibold font-inter text-white text-lg transition-all hover:-translate-y-1"
+                style={{ background: 'linear-gradient(135deg, #C9A96E, #B76E79)', boxShadow: '0 8px 30px rgba(201,169,110,0.35)' }}>
+                Agendar Online
+                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </Link>
+              <button onClick={openChat}
+                className="group inline-flex items-center gap-2 px-8 py-4 rounded-full border border-golden/30 text-golden hover:border-golden hover:bg-golden/10 font-semibold font-inter transition-all backdrop-blur-sm">
+                Falar com a Sofia
+                <Sparkles className="w-4 h-4 group-hover:scale-110 transition-transform" />
+              </button>
             </div>
 
-            {/* Form */}
-            <div className="rounded-2xl border border-white/8 p-8 text-left"
-              style={{ background: 'rgba(255,255,255,0.02)' }}>
-              <WaitlistForm />
+            <div className="flex flex-wrap justify-center gap-x-8 gap-y-3 text-white/40 text-sm font-inter">
+              {['Confirmação imediata', 'Segunda a sexta, 10h–18h', 'Caução descontada no procedimento'].map((t) => (
+                <span key={t} className="inline-flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-golden/70" />
+                  {t}
+                </span>
+              ))}
             </div>
           </Section>
         </div>

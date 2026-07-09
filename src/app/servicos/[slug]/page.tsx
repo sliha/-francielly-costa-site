@@ -4,7 +4,8 @@ import { services, getServiceBySlug } from '@/data/services'
 import ServiceDetailPage from '@/components/servicos/ServiceDetailPage'
 import FiberBROWSDetailPage from '@/components/servicos/FiberBROWSDetailPage'
 import TricoPigmentacaoDetailPage from '@/components/servicos/TricoPigmentacaoDetailPage'
-import JsonLd, { breadcrumbSchema, serviceSchema, SITE_URL } from '@/components/JsonLd'
+import JsonLd, { breadcrumbSchema, serviceSchema, faqSchema, SITE_URL } from '@/components/JsonLd'
+import { fiberbrowsFaq } from '@/data/fiberbrowsFaq'
 
 interface Props {
   params: { slug: string }
@@ -16,9 +17,9 @@ export async function generateStaticParams() {
 
 const SEO_TITLES: Record<string, { title: string; description: string }> = {
   fiberbrows: {
-    title: 'FiberBROWS em Braga — A Revolução das Sobrancelhas',
+    title: 'FiberBROWS em Braga — Sobrancelhas Naturais 6 Meses | Agende Online',
     description:
-      'Técnica estética não cirúrgica com fios sintéticos biocompatíveis. Profundidade máxima 2mm, resultado de 6 meses. Primeira profissional certificada em Portugal.',
+      'FiberBROWS em Braga com a Francielly Costa, primeira profissional certificada em Portugal. Técnica estética não cirúrgica com fios biocompatíveis, profundidade máxima 2mm, resultado natural de 6 meses. Marcações abertas — agende online.',
   },
   tricopigmentacao: {
     title: 'Tricopigmentação em Braga — Micropigmentação Capilar',
@@ -47,6 +48,19 @@ const SEO_TITLES: Record<string, { title: string; description: string }> = {
   },
 }
 
+const SEO_KEYWORDS: Record<string, string[]> = {
+  fiberbrows: [
+    'fiberbrows braga',
+    'fiberbrows portugal',
+    'fiberbrows 360',
+    'sobrancelhas de fio braga',
+    'sobrancelhas naturais braga',
+    'alternativa a transplante de sobrancelhas',
+    'preenchimento de sobrancelhas braga',
+    'francielly costa fiberbrows',
+  ],
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const url = `${SITE_URL}/servicos/${params.slug}`
   const seo = SEO_TITLES[params.slug]
@@ -54,12 +68,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const title = seo?.title ?? (service ? `${service.name} em Braga | Francielly Costa` : 'Serviço')
   const description = seo?.description ?? service?.shortDescription ?? ''
+  const keywords = SEO_KEYWORDS[params.slug]
 
   if (!seo && !service) return {}
 
   return {
     title,
     description,
+    ...(keywords ? { keywords } : {}),
     alternates: { canonical: url },
     openGraph: {
       title,
@@ -110,6 +126,12 @@ export default function ServicePage({ params }: Props) {
           priceRange: service?.priceRange,
         })}
       />
+      {isFiber && (
+        <JsonLd
+          id="ld-faq-fiberbrows"
+          data={faqSchema(fiberbrowsFaq.map((f) => ({ question: f.q, answer: f.a })))}
+        />
+      )}
       {isFiber ? (
         <FiberBROWSDetailPage />
       ) : isTrico ? (

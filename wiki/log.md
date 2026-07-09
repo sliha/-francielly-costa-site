@@ -14,6 +14,26 @@ Dica: `grep "^## \[" log.md | tail -5` mostra as 5 últimas entradas.
 
 ---
 
+## [2026-07-09] decisão | FiberBROWS passou de lista de espera a marcações reais
+A Francielly já trabalha com FiberBROWS, por isso o serviço deixou de ser "em breve"/waitlist
+e passou a aceitar marcações normais (o `BookingFlow` já iterava `SERVICES`, que inclui o
+fiberbrows; o backend `/api/agendar` resolve o serviço por id, sem whitelist). Mudanças:
+- `FiberBROWSDetailPage.tsx`: removidos countdown (`TARGET_DATE` 2026-05-01) e `WaitlistForm`;
+  CTAs passam a `/agendar?servico=fiberbrows` (hero, investimento, secção final `#agendar`).
+- Secção home (`FiberBROWSSection`) e blog (`blogContent`): copy "em breve / Maio 2026 / lista
+  de espera" → "já disponível em Braga / agende online".
+- `services.ts`: `duration` 'A definir' → '1h – 1h30', `duracaoMinutos` 60 → 90; "fios
+  sintéticos" → "fios estéticos" (o guia de marca no chat proíbe "sintético" para o FiberBROWS).
+- Removida a infra de waitlist: `api/fiberbrows-waitlist/route.ts`, `admin/fiberbrows-waitlist/page.tsx`,
+  links no `SideNav`/`BottomNav`, `trackWaitlistFiberbrows` em `analytics.ts`. A tabela
+  `fiberbrows_waitlist` no Supabase estava **vazia** (0 registos) — mantida no schema mas órfã
+  (pode ser dropada mais tarde; ainda é referida por `cleanTestData.ts`/`definicoes`).
+- SEO reforçado (ver [[seo-analytics]]): título/descrição com intenção de marcação, `keywords`
+  próprias, e novo JSON-LD `FAQPage` (15 perguntas) na página do serviço.
+- FAQ extraído para `src/data/fiberbrowsFaq.ts` (partilhado entre a página e o JSON-LD).
+Verificado: type-check + build de produção + testes de runtime (página 200, 3 links de marcação,
+FAQPage presente, slots de 90min OK, homepage/agendar 200, zero vestígios de waitlist).
+
 ## [2026-06-29] decisão | Tracking Metricool adicionado (atrás de consentimento)
 Adicionado o tracker do Metricool (`tracker.metricool.com/resources/be.js`, hash
 `103e1418e76e4353b021093bb6841c8`) em `src/components/Analytics.tsx`, via `next/script`

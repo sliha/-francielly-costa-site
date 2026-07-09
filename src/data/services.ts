@@ -27,19 +27,20 @@ export const SERVICES: Service[] = [
     id: 'fiberbrows',
     slug: 'fiberbrows',
     name: 'FiberBROWS',
-    shortDescription: 'Técnica não cirúrgica com fios sintéticos biocompatíveis. Sobrancelhas naturais, resultado 6 meses.',
+    shortDescription: 'Técnica não cirúrgica com fios estéticos biocompatíveis. Sobrancelhas naturais, resultado 6 meses.',
     description:
-      'Técnica estética não cirúrgica de aplicação superficial de fios sintéticos biocompatíveis nas sobrancelhas. Profundidade máxima de 2mm, dor inferior à micropigmentação, resultado duradouro de 6 meses.',
+      'Técnica estética não cirúrgica de aplicação superficial de fios estéticos biocompatíveis nas sobrancelhas. Profundidade máxima de 2mm, dor inferior à micropigmentação, resultado duradouro de 6 meses.',
     fullDescription:
-      'A FiberBROWS é uma técnica inovadora que aplica fios sintéticos biocompatíveis na pele com profundidade máxima de 2mm — mais superficial que a tatuagem, mais leve que a micropigmentação, menos invasiva que o piercing. Não é cirúrgica, não envolve extração de folículos e preserva 100% a integridade dos pelos naturais.',
+      'A FiberBROWS é uma técnica inovadora que aplica fios estéticos biocompatíveis na pele com profundidade máxima de 2mm — mais superficial que a tatuagem, mais leve que a micropigmentação, menos invasiva que o piercing. Não é cirúrgica, não envolve extração de folículos e preserva 100% a integridade dos pelos naturais.',
     icon: '◈',
-    duration: 'A definir',
-    duracaoMinutos: 60,
+    duration: '1h – 1h30',
+    duracaoMinutos: 90,
     sessions: 1,
     painLevel: 'Muito ligeiro',
     priceRange: 'A partir de €1.000',
     recovery: 'Mínimo',
     duration_result: '6 meses',
+    // Nota: 'sessions' e 'duration' abaixo alimentam o passo de marcação.
     purposes: [
       'Sobrancelhas naturais sem cirurgia',
       'Alternativa a transplante capilar',
@@ -60,7 +61,7 @@ export const SERVICES: Service[] = [
     ],
     procedure: [
       'Consulta e análise das sobrancelhas',
-      'Teste de tolerância ao fio sintético',
+      'Teste de tolerância ao fio estético',
       'Mapeamento e design',
       'Aplicação com protocolo técnico rigoroso',
       'Controlo de profundidade (máx. 2mm)',
