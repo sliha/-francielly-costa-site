@@ -73,8 +73,8 @@ export async function POST(req: NextRequest) {
     const service = String(body?.service ?? '').trim().slice(0, 80)
     const message = String(body?.message ?? '').trim().slice(0, 3000)
 
-    if (!name || !email) {
-      return NextResponse.json({ error: 'Nome e email são obrigatórios' }, { status: 400 })
+    if (!name || !email || !phone) {
+      return NextResponse.json({ error: 'Nome, email e telefone são obrigatórios' }, { status: 400 })
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/

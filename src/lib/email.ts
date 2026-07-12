@@ -23,6 +23,7 @@ async function enviarEmail(payload: {
   to: string
   subject: string
   html: string
+  reply_to?: string
 }): Promise<void> {
   const resendKey = process.env.RESEND_API_KEY
   if (!resendKey) return
@@ -40,6 +41,63 @@ async function enviarEmail(payload: {
     const err = await res.text()
     throw new Error(`Resend API error: ${res.status} — ${err}`)
   }
+}
+
+// Endereço "real" da Francielly, usado quando queremos que a cliente responda
+// diretamente para a caixa de entrada dela (ex.: pedido de confirmação de marcação).
+// Configurável por env para poder alternar sem alterar código — importante porque
+// enviar DE @franciellycosta.pt exige que esse domínio esteja verificado no Resend.
+const FRANCIELLY_FROM = process.env.CONFIRM_FROM_EMAIL || 'Francielly Costa <geral@franciellycosta.pt>'
+const FRANCIELLY_REPLY_TO = process.env.CONFIRM_REPLY_TO || 'geral@franciellycosta.pt'
+
+/**
+ * Pede à cliente que CONFIRME a marcação por resposta a este email, sem caução.
+ * Usado para recuperar marcações que ficaram pendentes por causa do pagamento.
+ * Ao contrário dos restantes envios, propaga o erro (não é fire-and-forget) para
+ * o admin ver no painel se o envio falhou.
+ */
+export async function sendPedidoConfirmacao(booking: BookingData): Promise<void> {
+  const resendKey = process.env.RESEND_API_KEY
+  if (!resendKey) throw new Error('RESEND_API_KEY não configurada no servidor')
+
+  const dataFormatada = formatarData(booking.data)
+
+  await enviarEmail({
+    from: FRANCIELLY_FROM,
+    reply_to: FRANCIELLY_REPLY_TO,
+    to: booking.clienteEmail,
+    subject: `Confirma a sua marcação de ${booking.servicoNome}?`,
+    html: `
+      <div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto; background: #FDF8F5; padding: 40px;">
+        <div style="text-align: center; margin-bottom: 32px;">
+          <h1 style="color: #B76E79; font-size: 28px; margin: 0;">Francielly Costa</h1>
+          <p style="color: #C9A96E; margin: 4px 0 0; font-size: 14px;">Dermopigmentação Avançada</p>
+        </div>
+        <h2 style="color: #333; font-size: 20px;">Olá ${escapeHtml(booking.clienteNome)}!</h2>
+        <p style="color: #555; line-height: 1.7;">
+          Recebemos o seu pedido de marcação e queremos garantir que fica tudo certo consigo.
+        </p>
+        <div style="background: white; border-left: 4px solid #B76E79; padding: 20px; margin: 24px 0; border-radius: 4px;">
+          <p style="margin: 0 0 8px;"><strong>Serviço:</strong> ${escapeHtml(booking.servicoNome)}</p>
+          <p style="margin: 0 0 8px;"><strong>Data:</strong> ${dataFormatada}</p>
+          <p style="margin: 0;"><strong>Hora:</strong> ${booking.horaInicio}</p>
+        </div>
+        <p style="color: #555; line-height: 1.7;">
+          Boa notícia: <strong>não precisa de pagar qualquer caução</strong>. Para garantir a sua
+          marcação, basta <strong>responder a este email a confirmar</strong> que quer manter este horário.
+        </p>
+        <p style="color: #555; line-height: 1.7;">
+          Se preferir outra data ou hora, responda também a dizer, que tratamos disso consigo.
+        </p>
+        <p style="color: #b45309; line-height: 1.7; font-size: 14px;">
+          <strong>Importante:</strong> sem a sua confirmação por resposta a este email, a marcação não fica garantida.
+        </p>
+        <hr style="border: 1px solid #eee; margin: 24px 0;">
+        <p style="color: #888; font-size: 13px;">Morada: Av. Dr. António Palha 53, 4715-091 Braga</p>
+        <p style="color: #888; font-size: 13px;">WhatsApp: +351 917 132 116</p>
+      </div>
+    `,
+  })
 }
 
 export async function sendBookingConfirmation(booking: BookingData): Promise<void> {

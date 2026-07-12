@@ -14,6 +14,25 @@ Dica: `grep "^## \[" log.md | tail -5` mostra as 5 últimas entradas.
 
 ---
 
+## [2026-07-12] decisão | Recuperar marcações pendentes + dados completos + campos obrigatórios
+Três melhorias no fluxo de marcações, motivadas pela 1ª marcação real de FiberBROWS
+(cliente desistiu no passo da caução):
+- **Botão "Pedir confirmação" (admin)**: novo endpoint `POST /api/admin/agendamento/pedir-confirmacao`
+  (admin-auth via `verifyAdminRequest`) + botão no cartão da agenda (estados pendente/pendente_pagamento).
+  Envia email à cliente a pedir que CONFIRME por resposta, sem caução (`sendPedidoConfirmacao` em
+  `email.ts`). Não altera estado nem cria evento no Google; a confirmação real fica manual depois da
+  resposta. Serve para recuperar quem desiste por causa do pagamento.
+  - Email sai de `geral@franciellycosta.pt` (from + reply-to), configurável por env
+    `CONFIRM_FROM_EMAIL`/`CONFIRM_REPLY_TO`. ATENÇÃO: enviar DE @franciellycosta.pt exige esse
+    domínio verificado no Resend (o resto do site envia de @franciellycosta.com). Se falhar, o
+    endpoint devolve 502 com o erro do Resend (não é silencioso) e basta pôr `CONFIRM_FROM_EMAIL`
+    a apontar para o domínio verificado.
+- **Todos os dados no cartão da agenda**: passou a mostrar email (mailto), notas/observações da
+  cliente e origem (Feito no site / Manual / Sofia), além do que já mostrava (nome, telefone, hora).
+- **Telefone obrigatório no servidor**: `/api/agendar` e `/api/contacto` passaram a exigir telefone
+  (antes só validavam nome+email/serviço). Os frontends já o exigiam; isto fecha o lado do servidor.
+Verificado: type-check + build + runtime (contacto/agendar sem telefone → 400; endpoint sem auth → 401).
+
 ## [2026-07-09] decisão | FiberBROWS passou de lista de espera a marcações reais
 A Francielly já trabalha com FiberBROWS, por isso o serviço deixou de ser "em breve"/waitlist
 e passou a aceitar marcações normais (o `BookingFlow` já iterava `SERVICES`, que inclui o

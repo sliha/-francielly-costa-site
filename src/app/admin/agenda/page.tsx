@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import {
   ChevronLeft, ChevronRight, PlusCircle, Calendar, Clock, X, Ban, CreditCard, ArrowRightLeft, Globe,
+  Mail, Phone, FileText, MailCheck, Globe2, User as UserIcon,
 } from 'lucide-react'
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, addMonths, subMonths, getDay, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -68,6 +69,7 @@ export default function AgendaPage() {
   const [reagendarSlots, setReagendarSlots] = useState<Array<{ hora: string; disponivel: boolean }>>([])
   const [reagendarLoading, setReagendarLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [pedirConfId, setPedirConfId] = useState<string | null>(null)
   const precos = useServicosPrecos()
 
   async function fetchWithAuth(url: string, init?: RequestInit): Promise<Response> {
@@ -195,6 +197,32 @@ export default function AgendaPage() {
       alert('Erro ao confirmar pagamento.')
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  const handlePedirConfirmacao = async (booking: MarcacaoView) => {
+    if (!booking.id) return
+    if (!booking.clienteEmail) {
+      alert('Esta marcação não tem email da cliente.')
+      return
+    }
+    if (!confirm(`Enviar email a ${booking.clienteNome} a pedir que confirme a marcação (sem caução)?\n\nEla terá de responder ao email a confirmar. A marcação só deve ser confirmada na agenda depois dessa resposta.`)) return
+    setPedirConfId(booking.id)
+    try {
+      const res = await fetchWithAuth('/api/admin/agendamento/pedir-confirmacao', {
+        method: 'POST',
+        body: JSON.stringify({ agendamentoId: booking.id }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.success) {
+        alert(data.error || 'Erro ao enviar o pedido de confirmação.')
+        return
+      }
+      alert(`Email enviado para ${data.email}. Assim que a cliente responder a confirmar, use o botão "Confirmar" para pôr a marcação na agenda.`)
+    } catch {
+      alert('Erro de ligação ao enviar o pedido de confirmação.')
+    } finally {
+      setPedirConfId(null)
     }
   }
 
@@ -507,13 +535,48 @@ export default function AgendaPage() {
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-3 mt-2.5 pt-2.5 border-t border-white/5">
-                      <div className="flex items-center gap-1 text-white/40 text-xs">
-                        <Clock size={11} />{booking.horaInicio}
+                    <div className="mt-2.5 pt-2.5 border-t border-white/5 space-y-1.5">
+                      {/* Hora + origem + valor */}
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-1 text-white/50 text-xs">
+                          <Clock size={11} />{booking.horaInicio}{booking.horaFim ? ` - ${booking.horaFim}` : ''}
+                        </div>
+                        <span className="flex items-center gap-1 text-[11px] text-white/40">
+                          {booking.criadoPor === 'cliente' ? (
+                            <><Globe2 size={11} /> Feito no site</>
+                          ) : booking.criadoPor === 'ia' ? (
+                            <><MailCheck size={11} /> Sofia (assistente)</>
+                          ) : (
+                            <><UserIcon size={11} /> Manual (admin)</>
+                          )}
+                        </span>
+                        {booking.valor > 0 && (
+                          <div className="ml-auto text-golden text-sm font-semibold">€{booking.valor}</div>
+                        )}
                       </div>
-                      <div className="text-white/40 text-xs">{booking.clienteTelefone}</div>
-                      {booking.valor > 0 && (
-                        <div className="ml-auto text-golden text-sm font-semibold">€{booking.valor}</div>
+
+                      {/* Dados que a cliente introduziu */}
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                        {booking.clienteTelefone && (
+                          <a href={`tel:${booking.clienteTelefone}`}
+                            className="flex items-center gap-1 text-white/50 hover:text-rose-gold text-xs transition-colors">
+                            <Phone size={11} />{booking.clienteTelefone}
+                          </a>
+                        )}
+                        {booking.clienteEmail && (
+                          <a href={`mailto:${booking.clienteEmail}`}
+                            className="flex items-center gap-1 text-white/50 hover:text-rose-gold text-xs transition-colors break-all">
+                            <Mail size={11} />{booking.clienteEmail}
+                          </a>
+                        )}
+                      </div>
+
+                      {/* Notas / observações da cliente */}
+                      {booking.notas && (
+                        <div className="flex items-start gap-1.5 text-white/50 text-xs bg-white/5 rounded-lg px-2.5 py-2">
+                          <FileText size={12} className="flex-shrink-0 mt-0.5 text-white/30" />
+                          <span className="whitespace-pre-wrap break-words">{booking.notas}</span>
+                        </div>
                       )}
                     </div>
 
@@ -535,6 +598,14 @@ export default function AgendaPage() {
                             className="text-xs bg-rose-gold/10 text-rose-gold hover:bg-rose-gold/20 rounded-lg px-3 py-1.5 transition-colors font-medium flex items-center gap-1"
                           >
                             <CreditCard size={11} /> Pagamento Manual
+                          </button>
+                          <button
+                            onClick={() => handlePedirConfirmacao(booking)}
+                            disabled={pedirConfId === booking.id || !booking.clienteEmail}
+                            title={!booking.clienteEmail ? 'Sem email da cliente' : 'Enviar email a pedir confirmação (sem caução)'}
+                            className="text-xs bg-sky-400/10 text-sky-400 hover:bg-sky-400/20 rounded-lg px-3 py-1.5 transition-colors font-medium flex items-center gap-1 disabled:opacity-50"
+                          >
+                            <MailCheck size={11} /> {pedirConfId === booking.id ? 'A enviar...' : 'Pedir confirmação'}
                           </button>
                         </>
                       )}

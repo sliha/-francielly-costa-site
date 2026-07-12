@@ -33,9 +33,9 @@ export async function POST(req: NextRequest) {
     const notas = String(body?.notas ?? '').trim().slice(0, 1000)
     const codigoReferencia = String(body?.codigoReferencia ?? '').trim().toUpperCase().slice(0, 20)
 
-    if (!clienteNome || !clienteEmail || !servicoId || !data || !horaInicio) {
+    if (!clienteNome || !clienteEmail || !clienteTelefone || !servicoId || !data || !horaInicio) {
       return NextResponse.json(
-        { error: 'Campos obrigatórios em falta: nome, email, serviço, data e hora são necessários' },
+        { error: 'Campos obrigatórios em falta: nome, email, telefone, serviço, data e hora são necessários' },
         { status: 400 }
       )
     }
