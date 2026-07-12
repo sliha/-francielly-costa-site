@@ -14,6 +14,26 @@ Dica: `grep "^## \[" log.md | tail -5` mostra as 5 últimas entradas.
 
 ---
 
+## [2026-07-12] decisão | Email a funcionar: domínio .pt verificado + diagnóstico + logo
+Fecho da configuração de email (continuação da entrada anterior).
+- **Domínio `franciellycosta.pt` verificado no Resend** e o 1º email real enviado com sucesso
+  (o pedido de confirmação à cliente Isabel). O utilizador adicionou os 3 registos DNS (DKIM
+  TXT `resend._domainkey`, SPF MX `send`, SPF TXT `send`), rodou a chave exposta e pôs uma
+  nova `RESEND_API_KEY` na Vercel.
+- **Diagnóstico Resend no painel**: `GET /api/admin/diagnostico/resend` (admin-auth) usa a
+  chave da Vercel (sem a revelar) para listar os domínios da conta e o estado de verificação.
+  UI em Admin → Diagnóstico → secção "Email (Resend)". Serve para saber se o domínio está na
+  conta certa e verificado. Foi o que destravou o problema (a chave e o domínio tinham de estar
+  na mesma conta Resend).
+- **Logo nos emails**: `public/logo/logo-francielly-branco.png` (PNG 600x228 convertido do SVG
+  branco, porque clientes de email não renderizam SVG; conversão feita com `sharp`). O cabeçalho
+  do template (`emailTemplate.ts`) passou a mostrar a logo sobre o gradiente + filete dourado/rosa.
+- **Referência de config de email** (para o futuro): remetente/reply-to controlados por env
+  `EMAIL_FROM`/`EMAIL_REPLY_TO` (default `geral@franciellycosta.pt`); a caixa real que recebe
+  respostas é `geral@franciellycosta.pt`. Todos os emails usam o layout partilhado de
+  `src/lib/emailTemplate.ts` (`emailShell` + `saudacao`/`cartaoDetalhes`/`botao`/`paragrafo`).
+Verificado: type-check + build + logo servida em produção (200 image/png) + email real entregue.
+
 ## [2026-07-12] decisão | Domínio de email .pt no Resend + templates unificados
 Configuração de email para o domínio real `franciellycosta.pt` (o `.com` que era usado
 não estava verificado no Resend, os emails falhavam em silêncio).
