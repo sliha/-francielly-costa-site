@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { Clock, Bell, X, RefreshCw, CheckCircle2, Link2, Mail } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
+import { CAUCAO_ATIVA } from '@/lib/caucao'
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://franciellycosta.pt'
 
@@ -209,7 +210,7 @@ export default function ListaEsperaAdminPage() {
           <div className="flex items-start gap-2">
             <Bell size={16} className="text-rose-gold flex-shrink-0 mt-0.5" />
             <p className="text-white/70 text-sm">
-              <span className="text-white font-medium">Fluxo:</span> Quando surgir vaga, clique em "Notificar" — o cliente recebe um email com link para agendar e pagar a caução de 30€. Sem pagamento antecipado para entrar na lista.
+              <span className="text-white font-medium">Fluxo:</span> Quando surgir vaga, clique em "Notificar" — o cliente recebe um email com link para agendar{CAUCAO_ATIVA ? ' e pagar a caução de 30€' : ''}. Sem pagamento antecipado para entrar na lista.
             </p>
           </div>
         </div>
@@ -402,7 +403,7 @@ export default function ListaEsperaAdminPage() {
                 <X size={20} />
               </button>
             </div>
-            <p className="text-white/40 text-xs mb-4">Sem pagamento antecipado — o cliente só paga a caução quando surgir vaga e clicar no link.</p>
+            <p className="text-white/40 text-xs mb-4">{CAUCAO_ATIVA ? 'Sem pagamento antecipado — o cliente só paga a caução quando surgir vaga e clicar no link.' : 'Sem pagamento antecipado — o cliente é apenas avisado quando surgir vaga.'}</p>
             <div className="space-y-3">
               <input
                 type="text" placeholder="Nome da cliente*"

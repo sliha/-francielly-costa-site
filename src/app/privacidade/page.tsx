@@ -87,8 +87,8 @@ export default function Privacidade() {
 
           <H3>d) Pagamentos</H3>
           <p>
-            Os pagamentos de caução são processados pela <strong>Stripe</strong>. Os dados do
-            cartão são introduzidos diretamente na plataforma da Stripe —{' '}
+            Caso sejam efetuados pagamentos online, são processados pela <strong>Stripe</strong>. Os dados do
+            cartão são introduzidos diretamente na plataforma da Stripe e{' '}
             <strong>nunca passam pelos nossos servidores nem são por nós armazenados</strong>.
           </p>
 

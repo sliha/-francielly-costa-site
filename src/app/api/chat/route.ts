@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { rateLimit, getClientIp, tooManyRequests } from '@/lib/rateLimit';
+import { CAUCAO_ATIVA } from '@/lib/caucao';
 
 // Limites anti-abuso: o histórico vem do cliente, por isso é truncado no servidor.
 const MAX_MESSAGES = 20;
@@ -20,7 +21,9 @@ SERVIÇOS:
 
 LOCALIZAÇÃO: Av. Dr. António Palha 53, 4715-091 Braga. Seg-Sex 10h-18h.
 CONTACTO: +351 917 132 116 | geral@franciellycosta.com
-CAUÇÃO: O agendamento requer pagamento de caução de 30€.
+${CAUCAO_ATIVA
+  ? 'CAUÇÃO: O agendamento requer pagamento de caução de 30€.'
+  : 'CAUÇÃO: De momento NÃO é cobrada qualquer caução. NUNCA peças pagamento antecipado nem menciones caução — o agendamento é feito sem qualquer pagamento.'}
 MULTI-IDIOMA: Responde SEMPRE no idioma em que a cliente escreve.
 Quando a cliente quiser agendar, recolhe: nome, telefone, email, serviço pretendido, data e hora preferida.
 NUNCA inventar informações.`;

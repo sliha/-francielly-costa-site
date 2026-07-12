@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { verifyAdminRequest } from '@/lib/auth'
+import { CAUCAO_ATIVA } from '@/lib/caucao'
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://franciellycosta.pt'
 
@@ -46,7 +47,7 @@ async function enviarEmailEspera(payload: {
             Ou copie este link: <a href="${payload.link}" style="color: #B76E79;">${payload.link}</a>
           </p>
           <p style="color: #777; font-size: 13px; line-height: 1.6;">
-            Ao clicar no link, poderá escolher a data e hora que prefere. A caução de 30€ é descontada no valor final do procedimento.
+            Ao clicar no link, poderá escolher a data e hora que prefere.${CAUCAO_ATIVA ? ' A caução de 30€ é descontada no valor final do procedimento.' : ''}
           </p>
           <hr style="border: 1px solid #eee; margin: 24px 0;">
           <p style="color: #999; font-size: 12px; text-align: center;">

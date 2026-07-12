@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Agendar Online — Francielly Costa, Braga',
     description:
-      'Escolha o serviço, a data e a hora. Caução de 30€ descontada no procedimento.',
+      'Escolha o serviço, a data e a hora. Marque o seu procedimento de dermopigmentação em poucos minutos.',
     url: '/agendar',
     type: 'website',
   },
@@ -33,11 +33,11 @@ export default async function AgendarPage({ searchParams }: Props) {
           </h1>
           {isFromWaitlist ? (
             <p className="text-text-secondary font-inter">
-              Ótima notícia! Surgiu uma vaga para si. Escolha a data e hora e pague a caução de 30€ para confirmar.
+              Ótima notícia! Surgiu uma vaga para si. Escolha a data e a hora que prefere para confirmar a sua marcação.
             </p>
           ) : (
             <p className="text-text-secondary font-inter">
-              Escolha o serviço, data e hora que prefere. A caução de 30€ é descontada no procedimento.
+              Escolha o serviço, a data e a hora que prefere. Confirmamos a sua marcação de seguida.
             </p>
           )}
         </div>

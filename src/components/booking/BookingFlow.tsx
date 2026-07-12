@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronLeft, ChevronRight, CreditCard, Check } from 'lucide-react'
 import { SERVICES } from '@/data/services'
+import { CAUCAO_ATIVA } from '@/lib/caucao'
 import { trackSchedule, trackContactWhatsapp } from '@/lib/analytics'
 import { format, addDays, isWeekend, startOfToday } from 'date-fns'
 import { pt } from 'date-fns/locale'
@@ -30,7 +31,10 @@ const STEP_CONFIG = [
   { key: 'data' as Step, emoji: '📅', label: 'Data' },
   { key: 'hora' as Step, emoji: '🕐', label: 'Hora' },
   { key: 'dados' as Step, emoji: '👤', label: 'Dados' },
-  { key: 'pagamento' as Step, emoji: '💳', label: 'Caução' },
+  // Último passo: pagamento da caução quando ativa; caso contrário, só confirmação.
+  CAUCAO_ATIVA
+    ? { key: 'pagamento' as Step, emoji: '💳', label: 'Caução' }
+    : { key: 'pagamento' as Step, emoji: '✅', label: 'Concluído' },
 ]
 
 export default function BookingFlow({ servicoPreSelecionado, onClose }: Props) {
@@ -109,6 +113,9 @@ export default function BookingFlow({ servicoPreSelecionado, onClose }: Props) {
       }
       if (json.agendamentoId) {
         setAgendamentoId(json.agendamentoId)
+        // Sem caução, a marcação fica concluída aqui — registar a conversão agora
+        // (com caução, o trackSchedule dispara no passo de pagamento).
+        if (!CAUCAO_ATIVA) trackSchedule({ service: servico?.slug })
         setStep('pagamento')
       } else {
         setErro(json.error || 'Erro ao criar marcação. Por favor, tente novamente.')
@@ -459,10 +466,17 @@ export default function BookingFlow({ servicoPreSelecionado, onClose }: Props) {
             <h2 className="font-playfair text-2xl font-semibold text-gray-800 mb-2">
               Marcação Recebida!
             </h2>
-            <p className="text-gray-500 text-sm mb-6">
-              Para confirmar a sua reserva, pedimos uma caução de{' '}
-              <strong className="text-rose-gold">€30</strong> (descontada no procedimento).
-            </p>
+            {CAUCAO_ATIVA ? (
+              <p className="text-gray-500 text-sm mb-6">
+                Para confirmar a sua reserva, pedimos uma caução de{' '}
+                <strong className="text-rose-gold">€30</strong> (descontada no procedimento).
+              </p>
+            ) : (
+              <p className="text-gray-500 text-sm mb-6">
+                Obrigada! A sua marcação ficou registada. Vamos entrar em contacto para confirmar
+                o dia e a hora consigo.
+              </p>
+            )}
 
             <div className="bg-gray-50 rounded-2xl p-4 mb-6 text-left space-y-1">
               <p className="text-sm text-gray-600">
@@ -486,28 +500,42 @@ export default function BookingFlow({ servicoPreSelecionado, onClose }: Props) {
               </p>
             </div>
 
-            <button
-              onClick={handlePagamento}
-              disabled={loading}
-              className="w-full bg-gradient-to-r from-rose-gold to-golden text-white font-semibold py-4 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2 mb-3"
-            >
-              <CreditCard size={18} />
-              {loading ? 'A redirecionar...' : 'Pagar Caução €30 →'}
-            </button>
+            {CAUCAO_ATIVA ? (
+              <>
+                <button
+                  onClick={handlePagamento}
+                  disabled={loading}
+                  className="w-full bg-gradient-to-r from-rose-gold to-golden text-white font-semibold py-4 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2 mb-3"
+                >
+                  <CreditCard size={18} />
+                  {loading ? 'A redirecionar...' : 'Pagar Caução €30 →'}
+                </button>
 
-            <p className="text-xs text-gray-400 mb-4">
-              Pagamento seguro via Stripe &middot; Cartão de crédito/débito
-            </p>
+                <p className="text-xs text-gray-400 mb-4">
+                  Pagamento seguro via Stripe &middot; Cartão de crédito/débito
+                </p>
 
-            <a
-              href="https://wa.link/kwctpf"
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => trackContactWhatsapp({ source: 'booking_flow' })}
-              className="text-sm text-gray-400 hover:text-rose-gold transition-colors underline"
-            >
-              Prefere pagar via WhatsApp?
-            </a>
+                <a
+                  href="https://wa.link/kwctpf"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => trackContactWhatsapp({ source: 'booking_flow' })}
+                  className="text-sm text-gray-400 hover:text-rose-gold transition-colors underline"
+                >
+                  Prefere pagar via WhatsApp?
+                </a>
+              </>
+            ) : (
+              <a
+                href="https://wa.me/351917132116"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => trackContactWhatsapp({ source: 'booking_flow' })}
+                className="inline-flex items-center justify-center gap-2 w-full bg-[#25D366] hover:bg-[#1da851] text-white font-semibold py-4 rounded-xl transition-colors"
+              >
+                Falar pelo WhatsApp
+              </a>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

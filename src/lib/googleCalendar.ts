@@ -1,5 +1,6 @@
 import { google, calendar_v3 } from 'googleapis'
 import { withRetry } from '@/lib/retry'
+import { CAUCAO_ATIVA } from '@/lib/caucao'
 
 const SCOPES = ['https://www.googleapis.com/auth/calendar']
 const TIMEZONE = 'Europe/Lisbon'
@@ -83,9 +84,14 @@ function montarRequestBody(agendamento: AgendamentoCalendar): calendar_v3.Schema
   const caucao = agendamento.caucaoValor ?? 30
   const prefixo = prefixoEstado(agendamento.estado)
 
+  // A linha da caução só entra na descrição do evento quando a caução está ativa.
+  const linhaCaucao = CAUCAO_ATIVA
+    ? `\nCaução: ${caucao}€${agendamento.estado === 'pago' || agendamento.estado === 'confirmado' ? ' paga' : ''}`
+    : ''
+
   const body: calendar_v3.Schema$Event = {
     summary: `${prefixo}Francielly Costa — ${agendamento.clienteNome} — ${agendamento.servicoNome}`,
-    description: `Tel: ${agendamento.clienteTelefone}\nEmail: ${agendamento.clienteEmail}\nCaução: ${caucao}€${agendamento.estado === 'pago' || agendamento.estado === 'confirmado' ? ' paga' : ''}`,
+    description: `Tel: ${agendamento.clienteTelefone}\nEmail: ${agendamento.clienteEmail}${linhaCaucao}`,
     start: {
       dateTime: `${agendamento.data}T${agendamento.horaInicio}:00`,
       timeZone: TIMEZONE,

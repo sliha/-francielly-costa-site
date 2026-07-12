@@ -52,26 +52,20 @@ export default function Termos() {
             final sempre comunicado antes do procedimento.
           </p>
 
-          <H2>2. Agendamento e Caução</H2>
+          <H2>2. Agendamento, Cancelamentos e Remarcações</H2>
           <ul className="list-disc pl-6 space-y-2">
             <li>
-              A confirmação da marcação pode exigir o pagamento de uma <strong>caução de 30 €</strong>,
-              integralmente <strong>descontada no valor do procedimento</strong>.
+              A marcação é feita online, por telefone ou presencialmente, ficando sempre
+              sujeita a confirmação de disponibilidade.
             </li>
             <li>
               Cancelamentos e remarcações devem ser comunicados com, pelo menos,{' '}
-              <strong>48 horas de antecedência</strong> — nesse caso, a caução mantém-se válida
-              para a nova data ou é devolvida, à escolha da cliente.
-            </li>
-            <li>
-              Em caso de cancelamento com menos de 48 horas de antecedência ou de não
-              comparência sem aviso, <strong>a caução não é devolvida</strong>, destinando-se a
-              compensar a reserva de agenda.
+              <strong>48 horas de antecedência</strong>, para que o horário possa ser
+              disponibilizado a outra cliente.
             </li>
             <li>
               A Prestadora reserva-se o direito de remarcar por motivos de força maior, doença ou
-              indisponibilidade, propondo nova data sem custos ou devolvendo integralmente a
-              caução.
+              indisponibilidade, propondo nova data sem custos para a cliente.
             </li>
           </ul>
 

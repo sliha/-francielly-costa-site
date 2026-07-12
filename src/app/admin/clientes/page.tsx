@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { Search, UserPlus, Phone, Mail, Calendar, ChevronRight, RefreshCw, X, CheckCircle2, Clock, XCircle } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
+import { CAUCAO_ATIVA } from '@/lib/caucao'
 
 interface ClienteRow {
   id: string
@@ -139,9 +140,11 @@ function ClienteModal({ cliente, onClose }: { cliente: ClienteRow; onClose: () =
                     </div>
                     <div className="flex items-center justify-between text-xs text-white/40">
                       <span>{formatData(ag.data)}{ag.horaInicio ? ` · ${ag.horaInicio}` : ''}</span>
-                      <span className={ag.caucaoPaga ? 'text-emerald-400' : 'text-amber-400'}>
-                        {ag.caucaoPaga ? '✓ Caução paga' : 'Caução pendente'}
-                      </span>
+                      {CAUCAO_ATIVA && (
+                        <span className={ag.caucaoPaga ? 'text-emerald-400' : 'text-amber-400'}>
+                          {ag.caucaoPaga ? '✓ Caução paga' : 'Caução pendente'}
+                        </span>
+                      )}
                     </div>
                   </div>
                 )

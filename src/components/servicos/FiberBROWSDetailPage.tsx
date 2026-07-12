@@ -512,7 +512,7 @@ export default function FiberBROWSDetailPage() {
             </div>
 
             <div className="flex flex-wrap justify-center gap-x-8 gap-y-3 text-white/40 text-sm font-inter">
-              {['Confirmação imediata', 'Segunda a sexta, 10h–18h', 'Caução descontada no procedimento'].map((t) => (
+              {['Confirmação rápida', 'Segunda a sexta, 10h às 18h', 'Marcação em poucos minutos'].map((t) => (
                 <span key={t} className="inline-flex items-center gap-2">
                   <CheckCircle className="w-4 h-4 text-golden/70" />
                   {t}

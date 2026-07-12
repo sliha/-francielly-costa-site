@@ -14,6 +14,26 @@ Dica: `grep "^## \[" log.md | tail -5` mostra as 5 últimas entradas.
 
 ---
 
+## [2026-07-12] decisão | Caução desativada (teste do site sem caução)
+A Francielly decidiu não cobrar caução durante um teste. Desativada com um interruptor
+único `CAUCAO_ATIVA` em `src/lib/caucao.ts` (a `false`). A infraestrutura de pagamento
+(Stripe, `/api/pagamento/checkout`, webhook, definição do valor no admin) fica INTACTA —
+para reativar basta pôr a flag a `true`.
+- **Fluxo de marcação** (`BookingFlow`): salta o passo de pagamento e mostra ecrã de
+  sucesso ("Vamos entrar em contacto para confirmar"); `trackSchedule` passa a disparar
+  na confirmação. `/api/agendar` cria a marcação como `pendente` (não `pendente_pagamento`).
+- **Menções públicas removidas/escondidas**: página `/agendar` (metadata + copy), passo
+  final do BookingFlow, `termos` (secção reescrita sem caução), `privacidade` (pagamentos
+  Stripe agora condicionais), prompt da Sofia (`api/chat` — instruída a nunca pedir
+  pagamento), CTA do FiberBROWS, email da lista de espera, e descrição do evento no Google
+  Calendar. Tudo atrás da flag, reversível.
+- **Admin**: escondido o selo "Caução paga/pendente" (clientes) e ajustados os textos de
+  ajuda da lista de espera enquanto a flag está off. A definição "Valor da Caução" no admin
+  mantém-se (é a opção para reativar/configurar).
+- As menções "€7.000-€30.000" são comparações de preço (transplante), não caução — mantidas.
+Verificado: type-check + build + runtime (páginas públicas sem caução; marcação de teste
+criada como `pendente` e depois apagada; barra de progresso mostra "Concluído", não "Caução").
+
 ## [2026-07-12] decisão | Recuperar marcações pendentes + dados completos + campos obrigatórios
 Três melhorias no fluxo de marcações, motivadas pela 1ª marcação real de FiberBROWS
 (cliente desistiu no passo da caução):

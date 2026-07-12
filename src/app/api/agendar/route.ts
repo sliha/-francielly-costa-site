@@ -3,6 +3,7 @@ import { criarAgendamento, upsertCliente, getSlotsDisponiveis } from '@/lib/book
 import { sendBookingConfirmation } from '@/lib/email'
 import { registrarReferencia, getOuCriarCodigoCliente } from '@/lib/referencias'
 import { getServiceById } from '@/data/services'
+import { CAUCAO_ATIVA } from '@/lib/caucao'
 import { rateLimit, getClientIp, tooManyRequests } from '@/lib/rateLimit'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -97,7 +98,9 @@ export async function POST(req: NextRequest) {
       data,
       horaInicio,
       horaFim,
-      estado: 'pendente_pagamento',
+      // Com caução, fica a aguardar pagamento; sem caução, fica pendente de
+      // confirmação pela Francielly (não há passo de pagamento).
+      estado: CAUCAO_ATIVA ? 'pendente_pagamento' : 'pendente',
       caucaoPaga: false,
       notas,
       criadoPor: 'cliente',
