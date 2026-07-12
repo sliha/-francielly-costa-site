@@ -14,6 +14,26 @@ Dica: `grep "^## \[" log.md | tail -5` mostra as 5 últimas entradas.
 
 ---
 
+## [2026-07-12] decisão | Domínio de email .pt no Resend + templates unificados
+Configuração de email para o domínio real `franciellycosta.pt` (o `.com` que era usado
+não estava verificado no Resend, os emails falhavam em silêncio).
+- **Domínio adicionado ao Resend** via API (id `e514c524-...`, região eu-west-1, estado
+  inicial `not_started`). Falta a Francielly meter os 3 registos DNS (DKIM TXT, SPF MX,
+  SPF TXT) para verificar. Depois disso, a chave dessa conta Resend tem de ficar na
+  `RESEND_API_KEY` da Vercel.
+- **Template de email unificado** em `src/lib/emailTemplate.ts`: layout de marca partilhado
+  (`emailShell` com cabeçalho gradiente rosa/dourado + rodapé de contactos), blocos
+  reutilizáveis (`saudacao`, `cartaoDetalhes`, `botao`, `paragrafo`) e `sendEmail` (envia via
+  Resend, from/reply-to configuráveis por env `EMAIL_FROM`/`EMAIL_REPLY_TO`, default
+  `geral@franciellycosta.pt`).
+- **Todos os emails migrados** para o template + `.pt`: confirmação de marcação (cliente+admin),
+  lembrete, pedido de confirmação (em `email.ts`), contacto (cliente+admin), e lista de espera.
+  Removidos os HTML inline duplicados e os remetentes `@franciellycosta.com`.
+- Segurança: a chave Resend foi partilhada em chat pelo utilizador — recomendado rodar depois
+  e guardar só na env da Vercel.
+Verificado: type-check + build + render do template (rota temporária, cabeçalho/cartão/botão/
+rodapé .pt corretos, zero `.com`).
+
 ## [2026-07-12] decisão | Caução desativada (teste do site sem caução)
 A Francielly decidiu não cobrar caução durante um teste. Desativada com um interruptor
 único `CAUCAO_ATIVA` em `src/lib/caucao.ts` (a `false`). A infraestrutura de pagamento
