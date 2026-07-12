@@ -12,6 +12,9 @@ const TELEFONE = '+351 917 132 116'
 const EMAIL_CONTACTO = 'geral@franciellycosta.pt'
 const SITE = 'https://franciellycosta.pt'
 const INSTAGRAM = 'https://www.instagram.com/franciellycostamaster/'
+// Logo branca (PNG, para compatibilidade com clientes de email que não suportam SVG),
+// servida do próprio site num URL absoluto.
+const LOGO_URL = `${SITE}/logo/logo-francielly-branco.png`
 
 // ── Cores da marca ────────────────────────────────────────────────────────────
 const ROSE = '#B76E79'
@@ -37,11 +40,11 @@ export function emailShell({
     ${preheader ? `<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:#F4ECE8;">${preheader}</div>` : ''}
     <div style="width:100%;background:#F4ECE8;padding:24px 12px;">
       <div style="max-width:600px;margin:0 auto;background:${CREAM};border-radius:16px;overflow:hidden;font-family:Georgia,'Times New Roman',serif;box-shadow:0 4px 24px rgba(183,110,121,0.12);">
-        <div style="text-align:center;padding:38px 40px 30px;background:linear-gradient(135deg,${ROSE},${GOLD});">
-          <h1 style="margin:0;color:#ffffff;font-size:26px;letter-spacing:0.5px;">Francielly Costa</h1>
-          <p style="margin:8px 0 0;color:#ffffff;opacity:0.9;font-size:12px;letter-spacing:2.5px;text-transform:uppercase;">Dermopigmentação Avançada</p>
+        <div style="text-align:center;padding:36px 40px 32px;background:linear-gradient(135deg,${ROSE},${GOLD});">
+          <img src="${LOGO_URL}" alt="Francielly Costa, Dermopigmentação Avançada" width="300" style="width:300px;max-width:80%;height:auto;border:0;display:inline-block;" />
         </div>
-        <div style="padding:36px 40px;color:${INK};font-size:15px;line-height:1.7;">
+        <div style="height:4px;background:linear-gradient(90deg,${GOLD},${ROSE},${GOLD});"></div>
+        <div style="padding:38px 40px;color:${INK};font-size:15px;line-height:1.7;">
           ${bodyHtml}
         </div>
         <div style="padding:24px 40px 34px;border-top:1px solid #ecdfd9;color:#9a8f8a;font-size:12px;line-height:1.7;text-align:center;">
