@@ -36,6 +36,16 @@ interface Stats {
   }>
 }
 
+interface ResendInfo {
+  hasKey: boolean
+  keyHint?: string
+  ok?: boolean
+  error?: string
+  total?: number
+  domains?: Array<{ name: string; status: string; region: string }>
+  franciellyPt?: { encontrado: boolean; status?: string; verificado?: boolean }
+}
+
 interface SyncLogEntry {
   id: string
   timestamp: number | null
@@ -60,6 +70,8 @@ export default function DiagnosticoPage() {
   const [reconciling, setReconciling] = useState(false)
   const [reconcileResult, setReconcileResult] = useState<string | null>(null)
   const [alertasReal, setAlertasReal] = useState<number>(0)
+  const [resendInfo, setResendInfo] = useState<ResendInfo | null>(null)
+  const [resendLoading, setResendLoading] = useState(false)
 
   const fetchWithAuth = useCallback(async (url: string, init?: RequestInit) => {
     const token = await getAccessToken()
@@ -114,6 +126,19 @@ export default function DiagnosticoPage() {
 
     return () => { supabase.removeChannel(ch) }
   }, [])
+
+  const checkResend = async () => {
+    setResendLoading(true)
+    setResendInfo(null)
+    try {
+      const res = await fetchWithAuth('/api/admin/diagnostico/resend')
+      setResendInfo(await res.json())
+    } catch (err) {
+      setResendInfo({ hasKey: false, error: err instanceof Error ? err.message : String(err) })
+    } finally {
+      setResendLoading(false)
+    }
+  }
 
   const handleReconcile = async () => {
     if (!confirm('Executar reconciliação completa? Vai comparar a base de dados com o Google Calendar e resolver discrepâncias.')) return
@@ -186,6 +211,56 @@ export default function DiagnosticoPage() {
             ))}
           </div>
         )}
+
+        {/* Email / Resend */}
+        <Section title="Email (Resend)">
+          <p className="text-white/40 text-xs mb-2">
+            Verifica que domínios existem na conta Resend da chave que está na Vercel, e se
+            o <span className="text-white/70">franciellycosta.pt</span> já está verificado.
+          </p>
+          <button onClick={checkResend} disabled={resendLoading}
+            className="w-full flex items-center justify-center gap-2 bg-rose-gold/10 hover:bg-rose-gold/20 border border-rose-gold/30 text-rose-gold py-2.5 rounded-xl text-xs font-medium disabled:opacity-50">
+            {resendLoading && <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />}
+            {resendLoading ? 'A verificar...' : 'Verificar domínio de email'}
+          </button>
+          {resendInfo && (
+            <div className="mt-3 space-y-1.5 text-xs">
+              {!resendInfo.hasKey ? (
+                <p className="text-red-400/90">✗ {resendInfo.error || 'RESEND_API_KEY em falta na Vercel'}</p>
+              ) : resendInfo.ok === false ? (
+                <p className="text-red-400/90 break-words">✗ Erro do Resend: {resendInfo.error}</p>
+              ) : (
+                <>
+                  <Row label="Chave em uso" value={resendInfo.keyHint || '—'} />
+                  <Row label="Domínios na conta" value={String(resendInfo.total ?? 0)} />
+                  {resendInfo.franciellyPt?.encontrado ? (
+                    <Row
+                      label="franciellycosta.pt"
+                      value={resendInfo.franciellyPt.verificado
+                        ? '🟢 verificado'
+                        : `🟠 ${resendInfo.franciellyPt.status} (ainda não verificado)`}
+                    />
+                  ) : (
+                    <div className="text-amber-400/90 text-[11px] mt-1 break-words">
+                      ⚠ O franciellycosta.pt NÃO existe nesta conta. A chave da Vercel é de uma conta
+                      Resend diferente daquela onde o domínio foi adicionado.
+                    </div>
+                  )}
+                  {resendInfo.domains && resendInfo.domains.length > 0 && (
+                    <div className="mt-1 pt-1 border-t border-white/5">
+                      {resendInfo.domains.map((d) => (
+                        <div key={d.name} className="flex items-center justify-between text-[11px]">
+                          <span className="text-white/60">{d.name}</span>
+                          <span className={d.status === 'verified' ? 'text-emerald-400' : 'text-amber-400'}>{d.status}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+        </Section>
 
         {/* Estado da Sincronização */}
         <Section title="Estado da Sincronização">
