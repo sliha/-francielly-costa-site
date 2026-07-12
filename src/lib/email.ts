@@ -43,12 +43,11 @@ async function enviarEmail(payload: {
   }
 }
 
-// Envio DE um domínio verificado no Resend (franciellycosta.com é o que está
-// verificado nesta conta) com REPLY-TO para a caixa real da Francielly, para que
-// as respostas da cliente caiam lá. Ambos configuráveis por env: se um dia
-// franciellycosta.pt for verificado no Resend, basta pôr CONFIRM_FROM_EMAIL a
-// apontar para geral@franciellycosta.pt, sem alterar código.
-const FRANCIELLY_FROM = process.env.CONFIRM_FROM_EMAIL || 'Francielly Costa <geral@franciellycosta.com>'
+// Remetente e reply-to no domínio real da Francielly (franciellycosta.pt).
+// IMPORTANTE: só funciona depois de franciellycosta.pt estar verificado no Resend
+// (Domains → Add Domain → registos DNS). Enquanto não estiver, o Resend devolve 403
+// "domain is not verified". Configurável por env caso seja preciso alternar.
+const FRANCIELLY_FROM = process.env.CONFIRM_FROM_EMAIL || 'Francielly Costa <geral@franciellycosta.pt>'
 const FRANCIELLY_REPLY_TO = process.env.CONFIRM_REPLY_TO || 'geral@franciellycosta.pt'
 
 /**
