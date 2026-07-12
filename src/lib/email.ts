@@ -43,11 +43,12 @@ async function enviarEmail(payload: {
   }
 }
 
-// Endereço "real" da Francielly, usado quando queremos que a cliente responda
-// diretamente para a caixa de entrada dela (ex.: pedido de confirmação de marcação).
-// Configurável por env para poder alternar sem alterar código — importante porque
-// enviar DE @franciellycosta.pt exige que esse domínio esteja verificado no Resend.
-const FRANCIELLY_FROM = process.env.CONFIRM_FROM_EMAIL || 'Francielly Costa <geral@franciellycosta.pt>'
+// Envio DE um domínio verificado no Resend (franciellycosta.com é o que está
+// verificado nesta conta) com REPLY-TO para a caixa real da Francielly, para que
+// as respostas da cliente caiam lá. Ambos configuráveis por env: se um dia
+// franciellycosta.pt for verificado no Resend, basta pôr CONFIRM_FROM_EMAIL a
+// apontar para geral@franciellycosta.pt, sem alterar código.
+const FRANCIELLY_FROM = process.env.CONFIRM_FROM_EMAIL || 'Francielly Costa <geral@franciellycosta.com>'
 const FRANCIELLY_REPLY_TO = process.env.CONFIRM_REPLY_TO || 'geral@franciellycosta.pt'
 
 /**
