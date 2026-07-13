@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { verifyAdminRequest } from '@/lib/auth'
 import { getAgendamentoPorId, atualizarEstadoAgendamento, type MetodoPagamento } from '@/lib/booking'
-import { upsertCalendarEventWithMetadata } from '@/lib/googleCalendar'
+import { upsertCalendarEventVerbose } from '@/lib/googleCalendar'
 
 export const runtime = 'nodejs'
 
@@ -48,7 +48,7 @@ export async function POST(req: Request) {
   let warning: string | undefined
   let googleEventId = agendamento.googleEventId
   try {
-    const newId = await upsertCalendarEventWithMetadata({
+    const sync = await upsertCalendarEventVerbose({
       clienteNome: agendamento.clienteNome,
       clienteEmail: agendamento.clienteEmail,
       clienteTelefone: agendamento.clienteTelefone,
@@ -60,23 +60,23 @@ export async function POST(req: Request) {
       estado: 'confirmado',
       googleEventId: agendamento.googleEventId,
     })
-    if (newId && newId !== agendamento.googleEventId) {
-      googleEventId = newId
+    if (sync.ok && sync.eventId !== agendamento.googleEventId) {
+      googleEventId = sync.eventId
       await atualizarEstadoAgendamento(body.agendamentoId, 'confirmado', {
-        googleEventId: newId,
+        googleEventId: sync.eventId,
         lastGoogleSyncAt: new Date().toISOString(),
       })
-    } else if (newId) {
+    } else if (sync.ok) {
       // atualização (não criação): só marcar lastGoogleSyncAt
       await atualizarEstadoAgendamento(body.agendamentoId, 'confirmado', {
         lastGoogleSyncAt: new Date().toISOString(),
       })
     } else {
-      warning = 'Falha ao sincronizar com Google Calendar'
+      warning = `Marcação confirmada, mas falhou o Google Calendar: ${sync.error}`
     }
   } catch (err) {
-    console.error('upsertCalendarEventWithMetadata falhou:', err)
-    warning = 'Erro ao sincronizar com Google Calendar'
+    console.error('upsertCalendarEventVerbose falhou:', err)
+    warning = `Marcação confirmada, mas erro ao sincronizar Google: ${err instanceof Error ? err.message : String(err)}`
   }
 
   return NextResponse.json({ success: true, googleEventId, warning })

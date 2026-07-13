@@ -6,7 +6,7 @@ import {
   type Agendamento,
 } from '@/lib/booking'
 import {
-  upsertCalendarEventWithMetadata,
+  upsertCalendarEventVerbose,
   deleteCalendarEvent,
 } from '@/lib/googleCalendar'
 
@@ -69,7 +69,7 @@ export async function POST(req: Request) {
         if (!ok) warning = 'Estado atualizado mas falhou apagar evento Google'
       }
     } else {
-      const newId = await upsertCalendarEventWithMetadata({
+      const sync = await upsertCalendarEventVerbose({
         clienteNome: agendamento.clienteNome,
         clienteEmail: agendamento.clienteEmail,
         clienteTelefone: agendamento.clienteTelefone,
@@ -81,23 +81,23 @@ export async function POST(req: Request) {
         estado: body.novoEstado,
         googleEventId: agendamento.googleEventId,
       })
-      if (newId && newId !== agendamento.googleEventId) {
-        googleEventId = newId
+      if (sync.ok && sync.eventId !== agendamento.googleEventId) {
+        googleEventId = sync.eventId
         await atualizarEstadoAgendamento(body.agendamentoId, body.novoEstado, {
-          googleEventId: newId,
+          googleEventId: sync.eventId,
           lastGoogleSyncAt: new Date().toISOString(),
         })
-      } else if (newId) {
+      } else if (sync.ok) {
         await atualizarEstadoAgendamento(body.agendamentoId, body.novoEstado, {
           lastGoogleSyncAt: new Date().toISOString(),
         })
       } else {
-        warning = 'Estado atualizado mas falhou sincronização Google'
+        warning = `Estado atualizado, mas falhou o Google Calendar: ${sync.error}`
       }
     }
   } catch (err) {
     console.error('Erro ao sincronizar Google na mudança de estado:', err)
-    warning = 'Estado atualizado mas erro ao sincronizar Google'
+    warning = `Estado atualizado, mas erro ao sincronizar Google: ${err instanceof Error ? err.message : String(err)}`
   }
 
   return NextResponse.json({ success: true, googleEventId, warning })
