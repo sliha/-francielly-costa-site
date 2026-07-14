@@ -110,7 +110,7 @@ export async function POST(req: NextRequest) {
     }
 
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://franciellycosta.pt'
-    const link = `${baseUrl}/consentimento/${token}`
+    const link = `${baseUrl}/anamnese/${token}`
 
     try {
       await enviarEmailConsentimento({

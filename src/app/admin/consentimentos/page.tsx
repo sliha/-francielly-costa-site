@@ -7,6 +7,7 @@ import { supabase, getAccessToken } from '@/lib/supabase/client'
 import { rowToAgendamento } from '@/lib/mappers'
 import type { Consentimento } from '@/lib/consentimentos'
 import type { Agendamento } from '@/lib/booking'
+import { PASSOS } from '@/data/anamneseFiber'
 
 function rowToConsentimento(r: Record<string, any>): Consentimento {
   return {
@@ -61,7 +62,7 @@ export default function ConsentimentosAdminPage() {
   )
 
   const submetidos = consentimentos.filter((c) => c.estado === 'submetido')
-  const pendentes = consentimentos.filter((c) => c.estado === 'pendente')
+  const pendentes = consentimentos.filter((c) => c.estado !== 'submetido')
   const comAlertas = consentimentos.filter((c) => (c.alertas?.length ?? 0) > 0)
 
   const enviarLink = async (c: Consentimento, agendamento?: Agendamento) => {
@@ -203,11 +204,11 @@ export default function ConsentimentosAdminPage() {
                   <div className="p-4">
                     <div className="flex items-start gap-3">
                       <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                        c.estado === 'submetido' ? 'bg-emerald-400/10' : 'bg-amber-400/10'
+                        c.estado === 'submetido' ? 'bg-emerald-400/10' : c.estado === 'rascunho' ? 'bg-sky-400/10' : 'bg-amber-400/10'
                       }`}>
                         {c.estado === 'submetido'
                           ? <CheckCircle2 size={20} className="text-emerald-400" />
-                          : <Clock size={20} className="text-amber-400" />}
+                          : <Clock size={20} className={c.estado === 'rascunho' ? 'text-sky-400' : 'text-amber-400'} />}
                       </div>
 
                       <div className="flex-1 min-w-0">
@@ -225,9 +226,11 @@ export default function ConsentimentosAdminPage() {
                       </div>
 
                       <span className={`text-xs px-2.5 py-1 rounded-full flex-shrink-0 ${
-                        c.estado === 'submetido' ? 'bg-emerald-400/10 text-emerald-400' : 'bg-amber-400/10 text-amber-400'
+                        c.estado === 'submetido' ? 'bg-emerald-400/10 text-emerald-400'
+                          : c.estado === 'rascunho' ? 'bg-sky-400/10 text-sky-400'
+                          : 'bg-amber-400/10 text-amber-400'
                       }`}>
-                        {c.estado === 'submetido' ? 'Submetido' : 'Pendente'}
+                        {c.estado === 'submetido' ? 'Submetido' : c.estado === 'rascunho' ? 'Em curso' : 'Pendente'}
                       </span>
                     </div>
 
@@ -236,6 +239,11 @@ export default function ConsentimentosAdminPage() {
                         <button onClick={() => setVerConsentimento(c)}
                           className="flex-1 flex items-center justify-center gap-1.5 text-xs bg-white/5 text-white/70 hover:bg-white/10 rounded-lg py-1.5 transition-colors">
                           <Eye size={12} />Ver Formulário
+                        </button>
+                      ) : c.estado === 'rascunho' ? (
+                        <button onClick={() => setVerConsentimento(c)}
+                          className="flex-1 flex items-center justify-center gap-1.5 text-xs bg-sky-400/10 text-sky-400 hover:bg-sky-400/20 rounded-lg py-1.5 transition-colors">
+                          <Eye size={12} />Ver progresso
                         </button>
                       ) : (
                         <button onClick={() => enviarLink(c)} disabled={enviandoId === c.id}
@@ -327,7 +335,96 @@ export default function ConsentimentosAdminPage() {
   )
 }
 
+const AUT_IMAGEM: Record<string, string> = {
+  local: 'Apenas o local do procedimento',
+  rosto: 'Rosto inteiro',
+  nao: 'Não autorizado',
+}
+
+function formatarResposta(valor: unknown, opcoes?: { valor: string; label: string }[]): string {
+  if (valor == null || valor === '') return '—'
+  if (Array.isArray(valor)) {
+    if (valor.length === 0) return '—'
+    return valor
+      .map((v) => opcoes?.find((o) => o.valor === v)?.label || String(v))
+      .join(', ')
+  }
+  if (opcoes) return opcoes.find((o) => o.valor === valor)?.label || String(valor)
+  return String(valor)
+}
+
+function FormDetailsFiber({ c }: { c: Consentimento }) {
+  const r = (c.respostas || {}) as Record<string, unknown>
+  const idsIdentificacao = new Set(['nome', 'email', 'telefone', 'cc', 'nif'])
+  const passosResp = PASSOS.filter(
+    (p) => !idsIdentificacao.has(p.id) && ['texto', 'textarea', 'single', 'multi'].includes(p.tipo),
+  )
+
+  return (
+    <div className="space-y-3 text-sm">
+      <div className="bg-white/5 rounded-xl p-3">
+        <p className="text-white/40 text-xs mb-1">Cliente</p>
+        <p className="text-white">{(r.nome as string) || c.clienteNome}</p>
+        <p className="text-white/60 text-xs">{(r.email as string) || c.clienteEmail}</p>
+        <p className="text-white/60 text-xs">{(r.telefone as string) || c.clienteTelefone || ''}</p>
+        <div className="flex gap-4 mt-1">
+          {r.cc ? <p className="text-white/50 text-xs">CC/BI: {r.cc as string}</p> : null}
+          {r.nif ? <p className="text-white/50 text-xs">NIF: {r.nif as string}</p> : null}
+        </div>
+      </div>
+
+      {(c.alertas?.length ?? 0) > 0 && (
+        <div className="bg-amber-400/10 border border-amber-400/20 rounded-xl p-3">
+          <p className="text-amber-400 text-xs uppercase tracking-wider mb-2">Alertas clínicos</p>
+          {c.alertas!.map((a, i) => (
+            <p key={i} className="text-amber-300 text-xs flex items-start gap-1.5 py-0.5">
+              <AlertTriangle size={11} className="flex-shrink-0 mt-0.5" />{a}
+            </p>
+          ))}
+        </div>
+      )}
+
+      <div className="bg-white/5 rounded-xl p-3 space-y-2.5">
+        <p className="text-white/40 text-xs uppercase tracking-wider mb-1">Anamnese</p>
+        {passosResp.map((p) => (
+          <Item key={p.id} label={p.pergunta} value={formatarResposta(r[p.id], p.opcoes)} />
+        ))}
+      </div>
+
+      <div className="bg-white/5 rounded-xl p-3">
+        <p className="text-white/40 text-xs mb-1">Autorização de imagem</p>
+        <p className="text-white">{AUT_IMAGEM[c.autorizacaoImagem || ''] || '—'}</p>
+      </div>
+
+      <div className="bg-white/5 rounded-xl p-3">
+        <p className="text-white/40 text-xs mb-2">Assinatura</p>
+        {c.assinaturaImagem ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={c.assinaturaImagem} alt="Assinatura" className="bg-white rounded-lg w-full max-w-[260px] border border-white/10" />
+        ) : (
+          <p className="text-white/40 text-xs">Sem traço registado.</p>
+        )}
+        <p className="text-white italic mt-2">{c.assinaturaNome || '—'}</p>
+        {c.estado === 'submetido' && (
+          <p className="text-emerald-400 text-xs mt-1">✓ Consentimento e RGPD aceites</p>
+        )}
+      </div>
+
+      {c.estado === 'submetido' && (
+        <div className="bg-white/5 rounded-xl p-3 space-y-1">
+          <p className="text-white/40 text-xs uppercase tracking-wider mb-1">Prova / integridade</p>
+          <Item label="Documento" value={c.documentoVersao || '—'} />
+          <Item label="Submetido em" value={c.dataSubmissao ? new Date(c.dataSubmissao).toLocaleString('pt-PT') : '—'} />
+          {c.documentoHash && <Item label="Hash SHA-256" value={c.documentoHash} />}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function FormDetails({ c }: { c: Consentimento }) {
+  if (c.tipoFormulario === 'fiber') return <FormDetailsFiber c={c} />
+
   const r = c.respostas || {}
   return (
     <div className="space-y-3 text-sm">

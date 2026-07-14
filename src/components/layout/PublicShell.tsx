@@ -13,14 +13,18 @@ const ChatWidget = dynamic(() => import('@/components/chat/ChatWidget'), { ssr: 
 export default function PublicShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const isAdmin = pathname?.startsWith('/admin')
+  // A anamnese/consentimento é um fluxo focado (como o admin): sem navbar, rodapé,
+  // chat nem banner de cookies, para reduzir distrações e desistências.
+  const isFocado = pathname?.startsWith('/anamnese') || pathname?.startsWith('/consentimento')
+  const semChrome = isAdmin || isFocado
 
   return (
     <>
-      {!isAdmin && <Navbar />}
+      {!semChrome && <Navbar />}
       <main>{children}</main>
-      {!isAdmin && <Footer />}
-      {!isAdmin && <ChatWidget />}
-      {!isAdmin && <CookieBanner />}
+      {!semChrome && <Footer />}
+      {!semChrome && <ChatWidget />}
+      {!semChrome && <CookieBanner />}
     </>
   )
 }
