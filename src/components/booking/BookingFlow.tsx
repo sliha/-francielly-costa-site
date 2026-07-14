@@ -4,8 +4,9 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronLeft, ChevronRight, CreditCard, Check } from 'lucide-react'
 import { SERVICES } from '@/data/services'
 import { CAUCAO_ATIVA } from '@/lib/caucao'
+import { servicoAbreNoDia, descricaoHorario } from '@/lib/horariosServico'
 import { trackSchedule, trackContactWhatsapp } from '@/lib/analytics'
-import { format, addDays, isWeekend, startOfToday } from 'date-fns'
+import { format, addDays, startOfToday } from 'date-fns'
 import { pt } from 'date-fns/locale'
 
 type Step = 'servico' | 'data' | 'hora' | 'dados' | 'pagamento'
@@ -68,7 +69,7 @@ export default function BookingFlow({ servicoPreSelecionado, onClose }: Props) {
     setSlotsMotivo('')
     try {
       const duracao = servico?.duracaoMinutos || 60
-      const res = await fetch(`/api/slots?data=${dateStr}&duracao=${duracao}`)
+      const res = await fetch(`/api/slots?data=${dateStr}&duracao=${duracao}&servicoId=${encodeURIComponent(servicoId)}`)
       const json = await res.json()
       setSlots(json.slots || [])
       if (json.motivo) setSlotsMotivo(json.motivo)
@@ -154,13 +155,17 @@ export default function BookingFlow({ servicoPreSelecionado, onClose }: Props) {
     }
   }
 
-  // Generate next 30 available weekday dates
+  // Gera os próximos 30 dias em que ESTE serviço aceita marcações.
+  // A maioria dos serviços abre de segunda a sexta; alguns (ex.: FiberBROWS)
+  // têm dias próprios definidos em horariosServico.ts.
   const getAvailableDates = () => {
     const dates: Date[] = []
     let d = addDays(startOfToday(), 1)
-    while (dates.length < 30) {
-      if (!isWeekend(d)) dates.push(new Date(d))
+    let guarda = 0
+    while (dates.length < 30 && guarda < 120) {
+      if (servicoAbreNoDia(servicoId, d.getDay())) dates.push(new Date(d))
       d = addDays(d, 1)
+      guarda++
     }
     return dates
   }
@@ -260,7 +265,7 @@ export default function BookingFlow({ servicoPreSelecionado, onClose }: Props) {
             <h2 className="font-playfair text-2xl font-semibold text-gray-800 mb-1">
               Escolha a data
             </h2>
-            <p className="text-gray-500 text-sm mb-6">Segunda a Sexta, 10h às 18h</p>
+            <p className="text-gray-500 text-sm mb-6">{descricaoHorario(servicoId)}</p>
             {servico && (
               <div className="mb-4 px-3 py-2 bg-rose-50 rounded-xl text-sm text-rose-gold font-medium">
                 {servico.name} &middot; {servico.duration}

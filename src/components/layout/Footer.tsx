@@ -150,10 +150,10 @@ export default function Footer() {
                   <Mail className="w-3.5 h-3.5 text-rose-gold" />
                 </div>
                 <a
-                  href="mailto:geral@franciellycosta.com"
+                  href="mailto:geral@franciellycosta.pt"
                   className="text-white/60 hover:text-white text-sm font-inter transition-colors duration-200"
                 >
-                  geral@franciellycosta.com
+                  geral@franciellycosta.pt
                 </a>
               </li>
               <li className="flex items-start gap-3">

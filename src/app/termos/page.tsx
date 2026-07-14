@@ -183,8 +183,8 @@ export default function Termos() {
           <H2>12. Contacto</H2>
           <p>
             Para questões sobre estes termos:{' '}
-            <a href="mailto:geral@franciellycosta.com" className="text-rose-gold hover:underline">
-              geral@franciellycosta.com
+            <a href="mailto:geral@franciellycosta.pt" className="text-rose-gold hover:underline">
+              geral@franciellycosta.pt
             </a>{' '}
             · +351 913 112 232
           </p>

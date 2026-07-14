@@ -3,6 +3,7 @@ import { criarAgendamento, upsertCliente, getSlotsDisponiveis } from '@/lib/book
 import { sendBookingConfirmation } from '@/lib/email'
 import { registrarReferencia, getOuCriarCodigoCliente } from '@/lib/referencias'
 import { getServiceById } from '@/data/services'
+import { servicoAbreNoDia, horaDentroDaJanela, temHorarioRestrito } from '@/lib/horariosServico'
 import { CAUCAO_ATIVA } from '@/lib/caucao'
 import { rateLimit, getClientIp, tooManyRequests } from '@/lib/rateLimit'
 
@@ -68,16 +69,28 @@ export async function POST(req: NextRequest) {
       )
     }
     const diaSemana = requestedDate.getDay()
-    if (diaSemana === 0 || diaSemana === 6) {
+    if (!servicoAbreNoDia(servico.id, diaSemana)) {
       return NextResponse.json(
-        { error: 'Os agendamentos online são de segunda a sexta-feira' },
+        {
+          error: temHorarioRestrito(servico.id)
+            ? 'Este serviço não tem marcações neste dia da semana. Por favor, escolha outro dia.'
+            : 'Os agendamentos online são de segunda a sexta-feira',
+        },
+        { status: 400 }
+      )
+    }
+
+    // Serviços com horário restrito: a hora tem de cair dentro da janela do dia.
+    if (!horaDentroDaJanela(servico.id, diaSemana, horaInicio, servico.duracaoMinutos)) {
+      return NextResponse.json(
+        { error: 'Esse horário não está disponível para este serviço. Por favor, escolha outro.' },
         { status: 400 }
       )
     }
 
     // Revalidar disponibilidade no servidor — evita double-booking por race
     // condition e impede POSTs diretos com horas fora da agenda.
-    const slots = await getSlotsDisponiveis(data, servico.duracaoMinutos)
+    const slots = await getSlotsDisponiveis(data, servico.duracaoMinutos, servico.id)
     const slot = slots.find((s) => s.hora === horaInicio)
     if (!slot || !slot.disponivel) {
       return NextResponse.json(

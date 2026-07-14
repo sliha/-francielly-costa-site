@@ -92,7 +92,7 @@ export async function notificarAdminsPorEmail(params: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'FC Alerts <noreply@franciellycosta.com>',
+        from: 'FC Alerts <noreply@franciellycosta.pt>',
         to: adminEmails,
         subject: params.subject,
         html: params.htmlBody,

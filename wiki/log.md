@@ -14,6 +14,38 @@ Dica: `grep "^## \[" log.md | tail -5` mostra as 5 últimas entradas.
 
 ---
 
+## [2026-07-14] decisão | Horário restrito do FiberBROWS + correção do domínio .pt em todo o site
+Duas tarefas numa sessão.
+
+**1. Horário de marcação específico do FiberBROWS (só este serviço).**
+- Novo módulo isomórfico `src/lib/horariosServico.ts` com as janelas por dia da semana:
+  Seg–Qua e Sex–Sáb `10:00–12:30`, Qui `14:00–17:30`, Dom encerrado. Sábado passa a
+  estar aberto (só para o FiberBROWS; os outros serviços continuam Seg–Sex 10h–18h).
+- Regra de encaixe: a marcação tem de caber inteira na janela (`início + duração <= fim`).
+  Como o FiberBROWS dura 90 min, dá 3 horas de manhã (10:00/10:30/11:00) e 5 à quinta
+  (14:00–16:00).
+- Ligado em 3 pontos: `getSlotsDisponiveis(data, duração, servicoId?)` em [[api-rotas|booking.ts]]
+  (gera slots só dentro das janelas), `GET /api/slots` (aceita `servicoId`, usa
+  `servicoAbreNoDia`) e `POST /api/agendar` (valida dia + `horaDentroDaJanela`, defesa em
+  profundidade). No cliente, `BookingFlow` usa `servicoAbreNoDia` no calendário (mostra
+  sábados para o FiberBROWS) e `descricaoHorario` no subtítulo.
+- As rotas admin (`criar-manual`, `reagendar`) ficam sem restrição de propósito: a Francielly
+  marca a qualquer hora manualmente.
+- Verificado com o dev server: `/api/slots` devolve exatamente as janelas esperadas por dia;
+  `POST /api/agendar` a 400 para hora fora da janela e para domingo. Build de produção OK.
+
+**2. Email de contacto: `.com` → `.pt` em todo o site.**
+- O rodapé (e várias páginas) mostrava `geral@franciellycosta.com`, que está errado: o
+  domínio real e verificado é `.pt`. Corrigido em todo o `src/`: Footer, Termos, Privacidade,
+  Cookies, Contacto, LocationSection (`info@…com` → `geral@…pt`), JsonLd (SEO), Sofia
+  (`/api/chat`), login e definições admin (email + `website`).
+- **Bug latente encontrado:** três fluxos enviavam email DE `noreply@franciellycosta.com`
+  (`lib/alertas.ts`, `consulta-virtual/agendar`, `consentimentos/enviar-link`). Como o `.com`
+  não está verificado no Resend, esses emails falhavam em silêncio. Passaram para
+  `@franciellycosta.pt`. Ver [[integracoes]].
+- `next.config.mjs`: removidos os hosts de imagem `.com`. `.env.example` atualizado.
+- Verificado: `grep franciellycosta.com src/` = 0; HTML da homepage mostra só `.pt`.
+
 ## [2026-07-12] decisão | Email a funcionar: domínio .pt verificado + diagnóstico + logo
 Fecho da configuração de email (continuação da entrada anterior).
 - **Domínio `franciellycosta.pt` verificado no Resend** e o 1º email real enviado com sucesso

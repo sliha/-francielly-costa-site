@@ -20,7 +20,7 @@ export default async function ConsentimentoFormPage({
           <AlertTriangle size={36} className="text-amber-500 mx-auto mb-3" />
           <h1 className="text-xl font-playfair font-semibold text-gray-800 mb-2">Link inválido</h1>
           <p className="text-gray-600 text-sm">
-            Este link de consentimento não é válido ou expirou. Contacte-nos em geral@franciellycosta.com.
+            Este link de consentimento não é válido ou expirou. Contacte-nos em geral@franciellycosta.pt.
           </p>
         </div>
       </div>

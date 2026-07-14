@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSlotsDisponiveis } from '@/lib/booking'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { servicoAbreNoDia, temHorarioRestrito } from '@/lib/horariosServico'
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const data = searchParams.get('data')
   const duracao = parseInt(searchParams.get('duracao') || '60', 10)
+  const servicoId = (searchParams.get('servicoId') || '').trim()
 
   if (!data) {
     return NextResponse.json({ error: 'Parâmetro "data" é obrigatório' }, { status: 400 })
@@ -26,11 +28,11 @@ export async function GET(req: NextRequest) {
   }
 
   const day = requestedDate.getDay()
-  if (day === 0 || day === 6) {
-    return NextResponse.json(
-      { slots: [], motivo: 'Não abrimos ao fim de semana' },
-      { status: 200 }
-    )
+  if (!servicoAbreNoDia(servicoId, day)) {
+    const motivo = temHorarioRestrito(servicoId)
+      ? 'Este serviço não tem marcações neste dia. Por favor, escolha outro dia.'
+      : 'Não abrimos ao fim de semana'
+    return NextResponse.json({ slots: [], motivo }, { status: 200 })
   }
 
   // Check if day is fully blocked (devolve motivo personalizado).
@@ -51,6 +53,6 @@ export async function GET(req: NextRequest) {
     // If the block check fails, continue normally
   }
 
-  const slots = await getSlotsDisponiveis(data, duracao)
+  const slots = await getSlotsDisponiveis(data, duracao, servicoId || undefined)
   return NextResponse.json({ slots })
 }

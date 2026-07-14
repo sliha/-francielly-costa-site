@@ -15,7 +15,7 @@ atualizado: 2026-06-12
 
 ## Resend — emails transacionais
 - `src/lib/email.ts`: confirmação de marcação (cliente + admin) e lembrete.
-- Remetente `noreply@franciellycosta.com`; admin em `ADMIN_EMAIL`.
+- Remetente no domínio verificado `@franciellycosta.pt` (ex.: `geral@`, `noreply@`); admin em `ADMIN_EMAIL`. O `.com` NÃO está verificado no Resend, por isso nunca usar como remetente.
 - Todo o input do cliente passa por `escapeHtml()` (anti-injeção).
 
 ## Google Calendar — sync bidirecional

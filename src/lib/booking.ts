@@ -1,6 +1,7 @@
 import 'server-only'
 import { supabaseAdmin } from './supabase/admin'
 import { rowToAgendamento } from './mappers'
+import { janelasDoDia } from './horariosServico'
 
 export type MetodoPagamento = 'stripe' | 'whatsapp' | 'transferencia' | 'dinheiro' | 'mbway' | 'outro'
 
@@ -51,10 +52,13 @@ function hhmmParaMinutos(hhmm: string): number {
   return h * 60 + m
 }
 
-// Slots disponíveis para uma data e duração de serviço
+// Slots disponíveis para uma data e duração de serviço.
+// Se `servicoId` for de um serviço com horário restrito (ver horariosServico.ts),
+// só são gerados slots dentro das janelas desse serviço nesse dia da semana.
 export async function getSlotsDisponiveis(
   data: string,
-  duracaoMinutos: number
+  duracaoMinutos: number,
+  servicoId?: string
 ): Promise<SlotDisponivel[]> {
   const agendamentos = await getAgendamentosPorData(data)
 
@@ -84,14 +88,21 @@ export async function getSlotsDisponiveis(
     intervalosOcupados.push({ inicio, fim: inicio + 30 })
   }
 
-  // Slots 10:00 - 18:00, intervalos de 30 min
+  // Janelas de horário a percorrer: gerais (10:00–18:00) ou específicas do serviço.
+  const diaSemana = new Date(data + 'T00:00:00').getDay()
+  const janelasServico = servicoId ? janelasDoDia(servicoId, diaSemana) : null
+  const janelas: Array<{ inicio: number; fim: number }> =
+    janelasServico === null
+      ? [{ inicio: 10 * 60, fim: 18 * 60 }]
+      : janelasServico.map((j) => ({ inicio: hhmmParaMinutos(j.inicio), fim: hhmmParaMinutos(j.fim) }))
+
+  // Slots em intervalos de 30 min, dentro das janelas. A marcação tem de caber
+  // inteira na janela (startMin + duração <= fim da janela).
   const slots: SlotDisponivel[] = []
-  for (let h = 10; h < 18; h++) {
-    for (let m = 0; m < 60; m += 30) {
-      const startMin = h * 60 + m
+  for (const janela of janelas) {
+    for (let startMin = janela.inicio; startMin + duracaoMinutos <= janela.fim; startMin += 30) {
       const endMin = startMin + duracaoMinutos
-      if (endMin > 18 * 60) continue
-      const hora = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`
+      const hora = `${Math.floor(startMin / 60).toString().padStart(2, '0')}:${(startMin % 60).toString().padStart(2, '0')}`
       let disponivel = true
       for (const ocup of intervalosOcupados) {
         if (ocup.inicio < endMin && startMin < ocup.fim) {

@@ -306,8 +306,8 @@ export default function ContactoPage() {
                 {
                   icon: Mail,
                   title: 'Email',
-                  content: 'geral@franciellycosta.com',
-                  href: 'mailto:geral@franciellycosta.com',
+                  content: 'geral@franciellycosta.pt',
+                  href: 'mailto:geral@franciellycosta.pt',
                   color: 'rose-gold',
                 },
                 {
