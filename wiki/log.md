@@ -14,6 +14,46 @@ Dica: `grep "^## \[" log.md | tail -5` mostra as 5 últimas entradas.
 
 ---
 
+## [2026-07-14] feature | Anamnese FiberBROWS interativa + consentimento (TCLE) em PT + assinatura simples
+Anamnese online nova, pensada para não cansar (as 27 perguntas do forms.app oficial).
+
+**Fluxo (cliente):** `/anamnese` (início público) e `/anamnese/[token]` (retomar).
+Uma pergunta por ecrã, cores por secção, barra de progresso, microinterações
+(framer-motion). Ecrã focado sem navbar/rodapé/chat (via [[integracoes|PublicShell]],
+mesma lógica do /admin). "Guardar e continuar mais tarde" cria rascunho e envia link
+por email para retomar onde ficou. Persistência também em localStorage.
+
+**Consentimento (TCLE):** adaptado do POP FiberBROWS (doc do utilizador) para PT:
+NIF em vez de CPF, RGPD (art. 9.º), sem referências à Anvisa/RDC brasileiras; inclui
+procedimento, riscos, contraindicações, cuidados pós e declarações. Texto e versão
+em `src/data/anamneseFiber.ts` (`CONSENTIMENTO`, `CONSENTIMENTO_VERSAO`).
+
+**Assinatura simples (eIDAS art. 25):** canvas (`AssinaturaCanvas.tsx`) + carimbo de
+data/hora, IP, user-agent, versão do documento e hash SHA-256 de integridade. Cópia
+enviada por email à cliente. Autorização de imagem (local/rosto/não).
+
+**Backend:** tabela `consentimentos` estendida (migração `anamnese_fiber_interativa`):
+estado `rascunho`, `tipo_formulario`, `origem`, `progresso_step`, `assinatura_imagem`,
+`assinatura_ip`, `documento_versao`, `documento_hash`, `autorizacao_imagem`. Funções em
+`src/lib/consentimentos.ts`: `upsertRascunhoFiber`, `submeterAnamneseFiber`,
+`computarAlertasFiber` (alertas clínicos: gravidez, diabetes, oncológicos, isotretinoína,
+alergias...). Rotas públicas `POST /api/anamnese/guardar` e `/submeter` (rate-limited).
+Emails em `src/lib/emailAnamnese.ts`. `/consentimento/[token]` agora redireciona para
+`/anamnese/[token]`; o link do admin (`enviar-link`) aponta para o novo fluxo.
+
+**Admin:** `/admin/consentimentos` mostra estado "Em curso" (rascunho) e o detalhe
+completo das 27 respostas + assinatura desenhada + autorização + versão/hash.
+
+**Verificação:** rotas guardar/submeter testadas ponta a ponta (registo com alertas,
+hash, assinatura e IP na BD), type-check e build de produção OK, SSR de `/anamnese` sem
+chrome (200) e link inválido a funcionar em produção. O percorrer animado passo-a-passo
+não foi validado no ambiente de automação (separador oculto, sem requestAnimationFrame),
+fica para validar no telemóvel. Commit `a1247ec`.
+
+**Documento à parte:** POP interno completo adaptado a PT gerado em Word,
+`Desktop\POP FiberBROWS - PT.docx` (Anvisa/RDC removidas, CPF→NIF, CNPJ do equipamento
+só como origem, resíduos e enquadramento legal marcados para confirmação por jurista).
+
 ## [2026-07-14] decisão | Horário restrito do FiberBROWS + correção do domínio .pt em todo o site
 Duas tarefas numa sessão.
 
