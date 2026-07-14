@@ -1,13 +1,13 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
-import { Shield, CheckCircle2, Clock, Search, Eye, Send, Plus, X, AlertTriangle } from 'lucide-react'
+import { Shield, CheckCircle2, Clock, Search, Eye, Send, Plus, X, AlertTriangle, Download } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { supabase, getAccessToken } from '@/lib/supabase/client'
 import { rowToAgendamento } from '@/lib/mappers'
 import type { Consentimento } from '@/lib/consentimentos'
 import type { Agendamento } from '@/lib/booking'
-import { PASSOS } from '@/data/anamneseFiber'
+import { PASSOS, CONSENTIMENTO, CONSENTIMENTO_VERSAO } from '@/data/anamneseFiber'
 
 function rowToConsentimento(r: Record<string, any>): Consentimento {
   return {
@@ -28,7 +28,79 @@ function rowToConsentimento(r: Record<string, any>): Consentimento {
     rgpdAceite: r.rgpd_aceite ?? undefined,
     alertas: r.alertas ?? undefined,
     criadoEm: r.criado_em ?? undefined,
+    tipoFormulario: r.tipo_formulario ?? undefined,
+    origem: r.origem ?? undefined,
+    progressoStep: r.progresso_step ?? undefined,
+    autorizacaoImagem: r.autorizacao_imagem ?? undefined,
+    assinaturaImagem: r.assinatura_imagem ?? undefined,
+    documentoVersao: r.documento_versao ?? undefined,
+    documentoHash: r.documento_hash ?? undefined,
+    atualizadoEm: r.atualizado_em ?? undefined,
   }
+}
+
+function escapeHtmlAdmin(s: unknown): string {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+}
+
+// Gera um documento imprimível (guardável como PDF) da anamnese de uma cliente.
+function gerarHtmlAnamnese(c: Consentimento): string {
+  const r = (c.respostas || {}) as Record<string, unknown>
+  const idsId = new Set(['nome', 'email', 'telefone', 'cc', 'nif'])
+  const linhas = PASSOS
+    .filter((p) => !idsId.has(p.id) && ['texto', 'textarea', 'single', 'multi'].includes(p.tipo))
+    .map((p) => `<tr><td class="lbl">${escapeHtmlAdmin(p.pergunta)}</td><td>${escapeHtmlAdmin(formatarResposta(r[p.id], p.opcoes))}</td></tr>`)
+    .join('')
+  const li = (arr: string[]) => arr.map((i) => `<li>${escapeHtmlAdmin(i)}</li>`).join('')
+  const dataSub = c.dataSubmissao ? new Date(c.dataSubmissao).toLocaleString('pt-PT') : '—'
+  const alertas = (c.alertas?.length ?? 0) > 0
+    ? `<div class="alert"><strong>Alertas clínicos</strong><ul>${li(c.alertas!)}</ul></div>` : ''
+  const assinatura = c.assinaturaImagem
+    ? `<img src="${c.assinaturaImagem}" alt="assinatura" style="max-width:280px;border:1px solid #ddd;border-radius:6px" />`
+    : '<em>Sem traço registado</em>'
+  return `<!doctype html><html lang="pt"><head><meta charset="utf-8"><title>Anamnese ${escapeHtmlAdmin(r.nome || c.clienteNome)}</title>
+<style>
+*{box-sizing:border-box}body{font-family:Georgia,'Times New Roman',serif;color:#333;max-width:760px;margin:24px auto;padding:0 24px;line-height:1.5}
+h1{color:#B76E79;margin:0 0 2px;font-size:24px}h2{color:#B76E79;font-size:16px;border-bottom:1px solid #eee;padding-bottom:4px;margin-top:26px}
+.sub{color:#C9A96E;margin:0 0 16px}.meta{color:#888;font-size:12px}
+table{width:100%;border-collapse:collapse;font-size:13px}td{padding:6px 8px;border-bottom:1px solid #f0f0f0;vertical-align:top}td.lbl{color:#666;width:55%}
+ul{margin:6px 0;padding-left:20px}.alert{background:#fff8e1;border:1px solid #ffe08a;border-radius:8px;padding:10px 14px;margin:14px 0;font-size:13px}
+.card{background:#faf7f5;border-radius:8px;padding:10px 14px;margin:10px 0;font-size:13px}
+@media print{.noprint{display:none}body{margin:0}}
+.noprint{text-align:center;margin:22px 0}button{background:#B76E79;color:#fff;border:0;padding:10px 22px;border-radius:8px;font-size:14px;cursor:pointer}
+</style></head><body>
+<h1>Francielly Costa</h1><p class="sub">Ficha de Anamnese e Consentimento Informado, FiberBROWS</p>
+<div class="card"><strong>${escapeHtmlAdmin(r.nome || c.clienteNome)}</strong><br>
+${escapeHtmlAdmin(r.email || c.clienteEmail || '')} · ${escapeHtmlAdmin(r.telefone || c.clienteTelefone || '')}<br>
+${r.cc ? 'CC/BI: ' + escapeHtmlAdmin(r.cc) : ''}${r.nif ? ' · NIF: ' + escapeHtmlAdmin(r.nif) : ''}</div>
+${alertas}
+<h2>Anamnese</h2><table>${linhas}</table>
+<h2>Consentimento</h2>
+<p>${escapeHtmlAdmin(CONSENTIMENTO.procedimento)}</p>
+<p><strong>Riscos:</strong></p><ul>${li(CONSENTIMENTO.riscos)}</ul>
+<p><strong>Contraindicações:</strong></p><ul>${li(CONSENTIMENTO.contraindicacoes)}</ul>
+<p><strong>Cuidados pós-procedimento:</strong></p><ul>${li(CONSENTIMENTO.cuidados)}</ul>
+<p><strong>Declarações:</strong></p><ul>${li(CONSENTIMENTO.declaracoes)}</ul>
+<p class="meta">${escapeHtmlAdmin(CONSENTIMENTO.rgpd)}</p>
+<h2>Autorização de imagem</h2><p>${escapeHtmlAdmin(AUT_IMAGEM[c.autorizacaoImagem || ''] || '—')}</p>
+<h2>Assinatura</h2><p>${assinatura}</p><p><strong>${escapeHtmlAdmin(c.assinaturaNome || '')}</strong></p>
+<p class="meta">Documento: ${escapeHtmlAdmin(c.documentoVersao || CONSENTIMENTO_VERSAO)} · Submetido: ${escapeHtmlAdmin(dataSub)}${c.documentoHash ? ' · Hash: ' + escapeHtmlAdmin(c.documentoHash) : ''}</p>
+<div class="noprint"><button onclick="window.print()">Imprimir / Guardar como PDF</button></div>
+<script>window.addEventListener('load',function(){setTimeout(function(){window.print()},400)})</script>
+</body></html>`
+}
+
+function descarregarAnamnese(c: Consentimento) {
+  const html = gerarHtmlAnamnese(c)
+  const w = window.open('', '_blank')
+  if (!w) {
+    alert('Permita as janelas pop-up neste site para descarregar a ficha.')
+    return
+  }
+  w.document.open()
+  w.document.write(html)
+  w.document.close()
 }
 
 export default function ConsentimentosAdminPage() {
@@ -268,12 +340,20 @@ export default function ConsentimentosAdminPage() {
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-white font-semibold flex items-center gap-2">
                 <Shield size={16} className="text-rose-gold" />
-                Formulário Submetido
+                {verConsentimento.estado === 'submetido' ? 'Formulário Submetido' : 'Ficha em curso'}
               </h3>
-              <button onClick={() => setVerConsentimento(null)}
-                className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center hover:bg-white/10">
-                <X size={14} className="text-white/60" />
-              </button>
+              <div className="flex items-center gap-2">
+                {verConsentimento.estado === 'submetido' && (
+                  <button onClick={() => descarregarAnamnese(verConsentimento)}
+                    className="flex items-center gap-1.5 text-xs bg-rose-gold/15 text-rose-gold hover:bg-rose-gold/25 rounded-lg px-3 py-1.5 font-medium">
+                    <Download size={13} /> Descarregar
+                  </button>
+                )}
+                <button onClick={() => setVerConsentimento(null)}
+                  className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center hover:bg-white/10">
+                  <X size={14} className="text-white/60" />
+                </button>
+              </div>
             </div>
             <FormDetails c={verConsentimento} />
           </div>
