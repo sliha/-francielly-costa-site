@@ -19,7 +19,7 @@ const SEO_TITLES: Record<string, { title: string; description: string }> = {
   fiberbrows: {
     title: 'FiberBROWS em Braga — Sobrancelhas Naturais 6 Meses | Agende Online',
     description:
-      'FiberBROWS em Braga com a Francielly Costa, primeira profissional certificada em Portugal. Técnica estética não cirúrgica com fios biocompatíveis, profundidade máxima 2mm, resultado natural de 6 meses. Marcações abertas — agende online.',
+      'FiberBROWS em Braga com a Francielly Costa, primeira profissional certificada em Portugal. Técnica estética não cirúrgica com fios biocompatíveis, profundidade máxima 3mm, resultado natural de 6 meses. Marcações abertas — agende online.',
   },
   tricopigmentacao: {
     title: 'Tricopigmentação em Braga — Micropigmentação Capilar',

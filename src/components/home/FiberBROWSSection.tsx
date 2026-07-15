@@ -9,7 +9,7 @@ const diferenciais = [
   {
     icon: Shield,
     title: 'Embelezamento Estético',
-    desc: 'Sem fins terapêuticos. Técnica de embelezamento facial com profundidade máxima de 2mm, sem agressão profunda à pele.',
+    desc: 'Sem fins terapêuticos. Técnica de embelezamento facial com profundidade máxima de 3mm, sem agressão profunda à pele.',
   },
   {
     icon: Zap,

@@ -29,9 +29,9 @@ export const SERVICES: Service[] = [
     name: 'FiberBROWS',
     shortDescription: 'Técnica não cirúrgica com fios estéticos biocompatíveis. Sobrancelhas naturais, resultado 6 meses.',
     description:
-      'Técnica estética não cirúrgica de aplicação superficial de fios estéticos biocompatíveis nas sobrancelhas. Profundidade máxima de 2mm, dor inferior à micropigmentação, resultado duradouro de 6 meses.',
+      'Técnica estética não cirúrgica de aplicação superficial de fios estéticos biocompatíveis nas sobrancelhas. Profundidade máxima de 3mm, dor inferior à micropigmentação, resultado duradouro de 6 meses.',
     fullDescription:
-      'A FiberBROWS é uma técnica inovadora que aplica fios estéticos biocompatíveis na pele com profundidade máxima de 2mm — mais superficial que a tatuagem, mais leve que a micropigmentação, menos invasiva que o piercing. Não é cirúrgica, não envolve extração de folículos e preserva 100% a integridade dos pelos naturais.',
+      'A FiberBROWS é uma técnica inovadora que aplica fios estéticos biocompatíveis na pele com profundidade máxima de 3mm, mais superficial que a tatuagem, mais leve que a micropigmentação, menos invasiva que o piercing. Não é cirúrgica, não envolve extração de folículos e preserva 100% a integridade dos pelos naturais.',
     icon: '◈',
     duration: '1h – 1h30',
     duracaoMinutos: 90,
@@ -64,7 +64,7 @@ export const SERVICES: Service[] = [
       'Teste de tolerância ao fio estético',
       'Mapeamento e design',
       'Aplicação com protocolo técnico rigoroso',
-      'Controlo de profundidade (máx. 2mm)',
+      'Controlo de profundidade (máx. 3mm)',
       'Instruções pós-procedimento',
     ],
     color: '#C9A96E',

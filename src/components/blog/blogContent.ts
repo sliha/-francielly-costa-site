@@ -26,7 +26,7 @@ O resultado é imediato, natural e com uma durabilidade de aproximadamente 6 mes
 
 ## Como Funciona?
 
-O procedimento é realizado em consultório, com aplicação de anestésico tópico para máximo conforto. A especialista aplica as microfibras biocompatíveis de uso estético na camada superficial da pele, a uma profundidade máxima de 2mm, seguindo o traçado natural da sobrancelha.
+O procedimento é realizado em consultório, com aplicação de anestésico tópico para máximo conforto. A especialista aplica as microfibras biocompatíveis de uso estético na camada superficial da pele, a uma profundidade máxima de 3mm, seguindo o traçado natural da sobrancelha.
 
 **O processo passo a passo:**
 

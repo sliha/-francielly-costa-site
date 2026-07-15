@@ -46,7 +46,7 @@ export const fiberbrowsFaq: FiberBrowsFaqItem[] = [
   },
   {
     q: 'Qual a diferença para o transplante capilar?',
-    a: 'A FiberBROWS não tem fins cirúrgicos, não envolve extração de folículos, não requer anestesia geral, tem profundidade máxima de 2mm (sem agressão profunda à pele) e custa uma fração do preço dos transplantes, que variam entre €7.000 e €30.000. Não é transplante — é uma técnica estética sem finalidade terapêutica, ideal para quem quer resultado temporário.',
+    a: 'A FiberBROWS não tem fins cirúrgicos, não envolve extração de folículos, não requer anestesia geral, tem profundidade máxima de 3mm (sem agressão profunda à pele) e custa uma fração do preço dos transplantes, que variam entre €7.000 e €30.000. Não é transplante — é uma técnica estética sem finalidade terapêutica, ideal para quem quer resultado temporário.',
   },
   {
     q: 'Precisa ser médico para aplicar?',

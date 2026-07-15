@@ -133,7 +133,7 @@ export default function FiberBROWSDetailPage() {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}
             className="flex flex-wrap justify-center gap-8 mt-14">
             {[
-              { label: 'Profundidade', value: 'Máx. 2mm' },
+              { label: 'Profundidade', value: 'Máx. 3mm' },
               { label: 'Resultado', value: '6 Meses' },
               { label: 'Ação na pele', value: 'Superficial' },
               { label: 'Dor', value: 'Muito ligeira' },
@@ -171,7 +171,7 @@ export default function FiberBROWSDetailPage() {
               <div className="space-y-4">
                 {[
                   'Técnica de embelezamento facial, sem fins terapêuticos ou médicos — focada na valorização das sobrancelhas.',
-                  'Aplicação de um adorno estético temporário na pele (profundidade máxima 2mm).',
+                  'Aplicação de um adorno estético temporário na pele (profundidade máxima 3mm).',
                   'Conceito estético próximo de piercing, micropigmentação e extensão de cílios, mas numa categoria estética à parte.',
                   'Utiliza microfibras biocompatíveis de uso estético: não absorvíveis, atóxicas, estéreis e de uso individual.',
                   'Aplicação com nanoagulha de calibre extremamente fino (tipo insulina) — não é agulha médica.',
@@ -296,7 +296,7 @@ export default function FiberBROWSDetailPage() {
                 { icon: Shield, label: 'Tipo', value: 'Estético' },
                 { icon: Zap, label: 'Dor', value: 'Muito ligeira' },
                 { icon: Star, label: 'Manutenção', value: 'Simples' },
-                { icon: TrendingDown, label: 'Profundidade', value: 'Máx. 2mm' },
+                { icon: TrendingDown, label: 'Profundidade', value: 'Máx. 3mm' },
               ].map((item, i) => (
                 <div key={i} className="text-center rounded-2xl border border-golden/15 p-5"
                   style={{ background: 'rgba(201,169,110,0.04)' }}>
@@ -396,7 +396,7 @@ export default function FiberBROWSDetailPage() {
                 <tbody>
                   {[
                     ['Cirúrgico', 'Não ✓', 'Sim ✗', 'Não ✓'],
-                    ['Invasividade', 'Mínima (2mm) ✓', 'Alta ✗', 'Moderada ~'],
+                    ['Invasividade', 'Mínima (3mm) ✓', 'Alta ✗', 'Moderada ~'],
                     ['Dor', 'Muito ligeira ✓', 'Elevada ✗', 'Moderada ~'],
                     ['Duração resultado', '6 meses', 'Permanente', '1-3 anos'],
                     ['Preço', 'A partir de €1.000 ✓', '€7.000–€30.000 ✗', '€200–€500'],
