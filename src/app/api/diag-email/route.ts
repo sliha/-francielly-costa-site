@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { escapeHtml } from '@/lib/sanitize'
+import { sendBookingConfirmation } from '@/lib/email'
 import {
   emailShell,
   EMAIL_FROM,
@@ -71,6 +72,24 @@ export async function GET(req: NextRequest) {
       out.sendBody = await s.text()
     } catch (e) {
       out.sendError = String(e)
+    }
+  }
+
+  // Testar o CAMINHO REAL: chama a mesma função das marcações e devolve o id do
+  // email do cliente, para depois se poder consultar a entrega desse id.
+  if (p.get('real') === '1' && to) {
+    try {
+      out.realClientId = await sendBookingConfirmation({
+        id: 'diag-real',
+        clienteNome: 'Sergio',
+        clienteEmail: to,
+        servicoNome: 'FiberBROWS',
+        servicoId: 'fiberbrows',
+        data: '2026-07-22',
+        horaInicio: '10:00',
+      })
+    } catch (e) {
+      out.realError = String(e)
     }
   }
 

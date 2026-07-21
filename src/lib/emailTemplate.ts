@@ -95,6 +95,7 @@ export function paragrafo(html: string): string {
 /**
  * Envia um email já embrulhado no layout de marca, via Resend.
  * Propaga o erro se o envio falhar (quem chama decide se ignora ou reporta).
+ * Devolve o id da mensagem no Resend (útil para rastrear a entrega).
  */
 export async function sendEmail(opts: {
   to: string
@@ -103,7 +104,7 @@ export async function sendEmail(opts: {
   preheader?: string
   from?: string
   replyTo?: string
-}): Promise<void> {
+}): Promise<string | null> {
   const resendKey = process.env.RESEND_API_KEY
   if (!resendKey) throw new Error('RESEND_API_KEY não configurada no servidor')
 
@@ -126,4 +127,7 @@ export async function sendEmail(opts: {
     const err = await res.text()
     throw new Error(`Resend API error: ${res.status} — ${err}`)
   }
+
+  const data = (await res.json().catch(() => null)) as { id?: string } | null
+  return data?.id ?? null
 }

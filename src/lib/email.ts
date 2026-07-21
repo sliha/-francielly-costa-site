@@ -31,8 +31,8 @@ const SITE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://franciellycosta.pt
  * Confirmação de marcação: email à cliente + notificação à Francielly.
  * Cada envio é isolado (um falha, o outro segue).
  */
-export async function sendBookingConfirmation(booking: BookingData): Promise<void> {
-  if (!process.env.RESEND_API_KEY) return
+export async function sendBookingConfirmation(booking: BookingData): Promise<string | null> {
+  if (!process.env.RESEND_API_KEY) return null
 
   const nome = escapeHtml(booking.clienteNome)
   const servico = escapeHtml(booking.servicoNome)
@@ -54,7 +54,7 @@ export async function sendBookingConfirmation(booking: BookingData): Promise<voi
     : ''
 
   // ── Email à cliente ──
-  await sendEmail({
+  const clienteEmailId = await sendEmail({
     to: booking.clienteEmail,
     subject: `A sua marcação de ${booking.servicoNome} foi recebida`,
     preheader: 'Recebemos a sua marcação. Entraremos em contacto para confirmar.',
@@ -66,7 +66,10 @@ export async function sendBookingConfirmation(booking: BookingData): Promise<voi
       ${blocoAnamnese}
       ${paragrafo('Se precisar de alterar ou cancelar, responda a este email ou contacte-nos pelo WhatsApp.')}
     `,
-  }).catch((err) => console.error('Erro email confirmação (cliente):', err))
+  }).catch((err) => {
+    console.error('Erro email confirmação (cliente):', err)
+    return null
+  })
 
   // ── Notificação à Francielly ──
   await sendEmail({
@@ -84,6 +87,8 @@ export async function sendBookingConfirmation(booking: BookingData): Promise<voi
       ${botao('Ver na Agenda', `${SITE_URL}/admin/agenda`)}
     `,
   }).catch((err) => console.error('Erro email confirmação (admin):', err))
+
+  return clienteEmailId
 }
 
 /**
