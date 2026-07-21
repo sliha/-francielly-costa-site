@@ -14,6 +14,25 @@ Dica: `grep "^## \[" log.md | tail -5` mostra as 5 últimas entradas.
 
 ---
 
+## [2026-07-21] feature | Ligar a anamnese ao fluxo de marcação (só FiberBROWS)
+A anamnese deixou de estar solta: passa a ser oferecida ao cliente assim que marca
+FiberBROWS. Duas frentes (Opção A + B), condicionadas por `isFiberBrows(servicoId)`
+(novo helper isomórfico em `src/lib/horariosServico.ts`, ao lado de `FIBERBROWS_ID`).
+
+**A) Email de confirmação** (`src/lib/email.ts`): `BookingData` ganha `servicoId`
+(passado por `src/app/api/agendar/route.ts`). Só no FiberBROWS acrescenta um bloco
+com botão "Preencher a minha ficha de anamnese" a apontar para `/anamnese`. Outros
+serviços continuam com o email igual.
+
+**B) Ecrã final da marcação** (`src/components/booking/BookingFlow.tsx`): ao concluir
+uma marcação de FiberBROWS (sem caução), mostra CTA imediato para `/anamnese` e faz
+redirect automático com contagem de 6s (botão para ir já + opção "cancelar", que
+revela o WhatsApp). Só dispara quando `step === 'pagamento' && !CAUCAO_ATIVA &&
+isFiberBrows`.
+
+Continua a valer o ecrã sem caução; a anamnese em si é sempre a genérica de FiberBROWS.
+Verificado por type-check limpo + `npm run build` OK. Ver [[servicos]] e [[integracoes]].
+
 ## [2026-07-14] feature | Anamnese FiberBROWS interativa + consentimento (TCLE) em PT + assinatura simples
 Anamnese online nova, pensada para não cansar (as 27 perguntas do forms.app oficial).
 

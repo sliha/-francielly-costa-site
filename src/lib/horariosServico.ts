@@ -38,6 +38,14 @@ const JANELAS_POR_SERVICO: Record<string, Record<number, Janela[]>> = {
   fiberbrows: FIBERBROWS_JANELAS,
 }
 
+/** Id do serviço FiberBROWS, o único com ficha de anamnese própria. */
+export const FIBERBROWS_ID = 'fiberbrows'
+
+/** É o serviço FiberBROWS? (tem anamnese obrigatória, horário e consentimento próprios) */
+export function isFiberBrows(servicoId: string): boolean {
+  return servicoId === FIBERBROWS_ID
+}
+
 function hhmmParaMinutos(hhmm: string): number {
   const [h, m] = hhmm.split(':').map(Number)
   return h * 60 + m

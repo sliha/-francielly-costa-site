@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronLeft, ChevronRight, CreditCard, Check } from 'lucide-react'
 import { SERVICES } from '@/data/services'
 import { CAUCAO_ATIVA } from '@/lib/caucao'
-import { servicoAbreNoDia, descricaoHorario } from '@/lib/horariosServico'
+import { servicoAbreNoDia, descricaoHorario, isFiberBrows } from '@/lib/horariosServico'
 import { trackSchedule, trackContactWhatsapp } from '@/lib/analytics'
 import { format, addDays, startOfToday } from 'date-fns'
 import { pt } from 'date-fns/locale'
@@ -60,8 +60,26 @@ export default function BookingFlow({ servicoPreSelecionado, onClose }: Props) {
   }, [])
   const [agendamentoId, setAgendamentoId] = useState('')
   const [erro, setErro] = useState('')
+  // Redirect automático para a anamnese ao concluir uma marcação de FiberBROWS
+  // (só sem caução, quando a marcação termina aqui). Conta para trás e abre a
+  // ficha sozinho, dando ao cliente a hipótese de ir já ou de cancelar.
+  const [redirSegundos, setRedirSegundos] = useState(6)
+  const [redirCancelado, setRedirCancelado] = useState(false)
 
   const servico = SERVICES.find((s) => s.id === servicoId)
+
+  // Temporizador do redirect automático para a anamnese (FiberBROWS, sem caução).
+  useEffect(() => {
+    const ativo =
+      step === 'pagamento' && !CAUCAO_ATIVA && isFiberBrows(servicoId) && !redirCancelado
+    if (!ativo) return
+    if (redirSegundos <= 0) {
+      window.location.href = '/anamnese'
+      return
+    }
+    const t = setTimeout(() => setRedirSegundos((s) => s - 1), 1000)
+    return () => clearTimeout(t)
+  }, [step, servicoId, redirSegundos, redirCancelado])
 
   const fetchSlots = async (dateStr: string) => {
     setLoadingSlots(true)
@@ -476,6 +494,12 @@ export default function BookingFlow({ servicoPreSelecionado, onClose }: Props) {
                 Para confirmar a sua reserva, pedimos uma caução de{' '}
                 <strong className="text-rose-gold">€30</strong> (descontada no procedimento).
               </p>
+            ) : isFiberBrows(servicoId) ? (
+              <p className="text-gray-500 text-sm mb-6">
+                Obrigada! A sua marcação ficou registada. Falta só um passo:{' '}
+                <strong className="text-rose-gold">preencher a sua ficha de anamnese</strong>{' '}
+                antes da sessão. É rápido e pode guardar a meio para continuar mais tarde.
+              </p>
             ) : (
               <p className="text-gray-500 text-sm mb-6">
                 Obrigada! A sua marcação ficou registada. Vamos entrar em contacto para confirmar
@@ -529,6 +553,36 @@ export default function BookingFlow({ servicoPreSelecionado, onClose }: Props) {
                 >
                   Prefere pagar via WhatsApp?
                 </a>
+              </>
+            ) : isFiberBrows(servicoId) ? (
+              <>
+                <a
+                  href="/anamnese"
+                  className="inline-flex items-center justify-center gap-2 w-full bg-gradient-to-r from-rose-gold to-golden text-white font-semibold py-4 rounded-xl hover:opacity-90 transition-opacity mb-3"
+                >
+                  Preencher a minha ficha de anamnese →
+                </a>
+                {redirCancelado ? (
+                  <a
+                    href="https://wa.me/351917132116"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => trackContactWhatsapp({ source: 'booking_flow' })}
+                    className="text-sm text-gray-400 hover:text-rose-gold transition-colors underline"
+                  >
+                    Prefere falar pelo WhatsApp primeiro?
+                  </a>
+                ) : (
+                  <p className="text-xs text-gray-400">
+                    A abrir a sua ficha automaticamente em {redirSegundos}s ·{' '}
+                    <button
+                      onClick={() => setRedirCancelado(true)}
+                      className="underline hover:text-rose-gold transition-colors"
+                    >
+                      cancelar
+                    </button>
+                  </p>
+                )}
               </>
             ) : (
               <a

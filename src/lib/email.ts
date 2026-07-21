@@ -1,6 +1,7 @@
 import { escapeHtml } from './sanitize'
 import { sendEmail, saudacao, cartaoDetalhes, botao, paragrafo } from './emailTemplate'
 import { CAUCAO_ATIVA } from './caucao'
+import { isFiberBrows } from './horariosServico'
 
 export interface BookingData {
   id: string
@@ -9,6 +10,9 @@ export interface BookingData {
   servicoNome: string
   data: string
   horaInicio: string
+  // Id do serviço (não o nome). Usado para decidir extras específicos, como o
+  // convite à ficha de anamnese no FiberBROWS.
+  servicoId?: string
 }
 
 function formatarData(dataStr: string): string {
@@ -40,6 +44,15 @@ export async function sendBookingConfirmation(booking: BookingData): Promise<voi
     { label: 'Hora', valor: escapeHtml(booking.horaInicio) },
   ])
 
+  // Só o FiberBROWS tem ficha de anamnese. Convida a preencher antes da sessão,
+  // com link direto para a ficha interativa (o cliente identifica-se lá).
+  const blocoAnamnese = isFiberBrows(booking.servicoId ?? '')
+    ? `
+      ${paragrafo('<strong>Antes da sua sessão de FiberBROWS</strong>, precisamos que preencha a sua ficha de anamnese e consentimento. É rápido, faz-se pelo telemóvel e ajuda-nos a preparar tudo com segurança para si. Pode guardar a meio e continuar mais tarde.')}
+      ${botao('Preencher a minha ficha de anamnese', `${SITE_URL}/anamnese`)}
+    `
+    : ''
+
   // ── Email à cliente ──
   await sendEmail({
     to: booking.clienteEmail,
@@ -50,6 +63,7 @@ export async function sendBookingConfirmation(booking: BookingData): Promise<voi
       ${paragrafo('A sua marcação foi recebida com sucesso. Vamos entrar em contacto para confirmar o dia e a hora consigo.')}
       ${detalhes}
       ${CAUCAO_ATIVA ? paragrafo('A caução é descontada no valor final do procedimento.') : ''}
+      ${blocoAnamnese}
       ${paragrafo('Se precisar de alterar ou cancelar, responda a este email ou contacte-nos pelo WhatsApp.')}
     `,
   }).catch((err) => console.error('Erro email confirmação (cliente):', err))

@@ -134,6 +134,7 @@ export async function POST(req: NextRequest) {
       clienteNome,
       clienteEmail,
       servicoNome: servico.name,
+      servicoId: servico.id,
       data,
       horaInicio,
     }).catch((err) => console.error('Erro ao enviar email de confirmação:', err))
