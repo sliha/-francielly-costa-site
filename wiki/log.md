@@ -32,6 +32,15 @@ Conclusão: a [[servicos|Opção A]] (email de confirmação com botão da anamn
 ponta a ponta; só a ENTREGA precisa do DMARC para não cair no spam. Marcação e cliente
 de teste limpos da BD.
 
+**Follow-up (mesmo dia):** o email de marca chegou como diagnóstico (texto simples) mas
+não o de marcação. A lista do Resend (`/emails?limit=`) mostrou-se POUCO FIÁVEL (não
+devolve envios recentes, mesmo já entregues), por isso não serve para concluir nada. Fiz
+prova por id: instrumentei o caminho real (`sendBookingConfirmation` passou a devolver o
+id do email do cliente; `sendEmail` passou a devolver o id da mensagem, melhoria mantida)
+e chamei a função real via endpoint temporário. Resultado: id devolvido e `last_event:
+delivered`. Logo o caminho real ENVIA e ENTREGA. Os emails de marca aterram no Lixo da
+iCloud (falta DMARC), não falham. Endpoint de diagnóstico removido no fim.
+
 ## [2026-07-21] feature | Ligar a anamnese ao fluxo de marcação (só FiberBROWS)
 A anamnese deixou de estar solta: passa a ser oferecida ao cliente assim que marca
 FiberBROWS. Duas frentes (Opção A + B), condicionadas por `isFiberBrows(servicoId)`
