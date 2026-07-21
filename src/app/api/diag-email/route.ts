@@ -38,6 +38,20 @@ export async function GET(req: NextRequest) {
       out.domainsError = String(e)
     }
 
+    // Consultar o estado de entrega de um email já enviado (last_event do Resend).
+    const statusId = req.nextUrl.searchParams.get('status')
+    if (statusId) {
+      try {
+        const st = await fetch(`https://api.resend.com/emails/${statusId}`, {
+          headers: { Authorization: `Bearer ${key}` },
+        })
+        out.emailStatus = st.status
+        out.emailInfo = await st.json().catch(() => null)
+      } catch (e) {
+        out.statusError = String(e)
+      }
+    }
+
     const to = req.nextUrl.searchParams.get('to')
     if (to) {
       try {
