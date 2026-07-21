@@ -14,6 +14,24 @@ Dica: `grep "^## \[" log.md | tail -5` mostra as 5 últimas entradas.
 
 ---
 
+## [2026-07-21] diagnóstico | Emails de produção caem no spam da iCloud (não falham) + ADMIN_EMAIL errado
+Marcação de teste de FiberBROWS (email real do utilizador) não chegou. Investiguei com
+um endpoint temporário (`/api/diag-email`, já removido) que corre com as env vars reais
+da Vercel:
+- Chave Resend de produção OK e `franciellycosta.pt:verified` (a chave do `.env.local`
+  é do outro projeto, FitPro, só serve local). Um envio de teste devolveu `200` e o
+  Resend marcou `last_event: delivered`. Logo os emails SÃO entregues; o problema é
+  colocação: aterram no Lixo/Spam da iCloud (domínio de envio novo, sem reputação).
+- Falta **DMARC**: `_dmarc.franciellycosta.pt` não existe. SPF e DKIM do Resend estão OK.
+  Fix no DNS: TXT `_dmarc` = `v=DMARC1; p=none; rua=mailto:geral@franciellycosta.pt`.
+- Bug de config: env `ADMIN_EMAIL = geral@franciellycosta.com` (.com, domínio que não é
+  da Francielly) → as notificações de nova marcação vão para o sítio errado. Corrigir
+  para `.pt` na Vercel + redeploy (não acessível a partir daqui).
+
+Conclusão: a [[servicos|Opção A]] (email de confirmação com botão da anamnese) funciona
+ponta a ponta; só a ENTREGA precisa do DMARC para não cair no spam. Marcação e cliente
+de teste limpos da BD.
+
 ## [2026-07-21] feature | Ligar a anamnese ao fluxo de marcação (só FiberBROWS)
 A anamnese deixou de estar solta: passa a ser oferecida ao cliente assim que marca
 FiberBROWS. Duas frentes (Opção A + B), condicionadas por `isFiberBrows(servicoId)`
