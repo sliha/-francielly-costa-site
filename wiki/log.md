@@ -14,6 +14,30 @@ Dica: `grep "^## \[" log.md | tail -5` mostra as 5 últimas entradas.
 
 ---
 
+## [2026-08-07] decisão | Consulta Virtual Gratuita deixa de ser página órfã (ligada na navegação)
+Auditoria a pedido do utilizador: a página `/consulta-virtual` (avaliação grátis 15 min por
+Google Meet) existia e estava bem feita, com metadata SEO própria e entrada no `sitemap.ts`,
+**mas não tinha um único link interno de navegação pública**. Os únicos `href` para a rota em
+todo o código eram o painel admin (`admin/consultas-virtuais`) e o sitemap. Nem Navbar, nem
+Footer, nem homepage/serviços/agendar lá chegavam. Pior: o CTA de Serviços que dizia "Agende
+uma consulta gratuita" apontava para `/agendar` (marcação presencial), não para a consulta
+virtual. Só chegava lá quem escrevesse o URL ou viesse de uma pesquisa Google. Causa: página
+órfã (esquecimento de ligação).
+Correção (pontos de entrada escolhidos pelo utilizador — Navbar + CTA no /agendar e Serviços):
+- `Navbar.tsx`: botão secundário outline "Consulta Virtual" ao lado do "Agendar" (desktop) +
+  botão `btn-outline` "Consulta Virtual Gratuita" no menu mobile.
+- `ServicosPage.tsx`: nota contextual "Fora de Braga? Faça uma consulta virtual gratuita por
+  videochamada" por baixo dos botões do CTA final (com `trackSchedule`).
+- `app/agendar/page.tsx`: nota "Fora de Braga ou prefere avaliar primeiro? Faça uma consulta
+  virtual gratuita" abaixo do subtítulo (importa `next/link`).
+- `Footer.tsx`: acrescentado "Consulta Virtual" à coluna Navegação (entre Blog e Contacto).
+Verificação: `tsc --noEmit` 0 erros; 0 erros de consola; DOM confirma os links nas 4 páginas
+(desktop) e o botão outline visível no menu mobile; screenshots desktop OK. Nota: o browser
+de preview MCP reteve um chunk JS antigo do Footer (cache de dev); confirmado via `curl` ao
+HTML servido e via Chrome limpo (playwright) que o servidor emite o link certo.
+Observação secundária (pré-existente, não corrigida): no mobile, a banner de cookies (fixed
+bottom) tapa os CTAs no fundo do menu lateral (afeta também o "Agendar Consulta").
+
 ## [2026-07-21] diagnóstico | Emails de produção caem no spam da iCloud (não falham) + ADMIN_EMAIL errado
 Marcação de teste de FiberBROWS (email real do utilizador) não chegou. Investiguei com
 um endpoint temporário (`/api/diag-email`, já removido) que corre com as env vars reais

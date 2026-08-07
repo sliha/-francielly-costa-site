@@ -22,7 +22,10 @@ Mapa real das `page.tsx` fora de `/admin` (App Router, `src/app/`).
 ## Funil de marcação
 - `/agendar` — escolher serviço, data/slot e dados; cria marcação
 - `/agendamento/confirmado` e `/agendamento/cancelado` — estados pós-checkout (ver [[integracoes]])
-- `/consulta-virtual` — pedir consulta virtual
+- `/consulta-virtual` — pedir consulta virtual gratuita (avaliação 15 min por Google Meet).
+  Ligada na navegação desde 2026-08-07: botão no Navbar (desktop + mobile), link no Footer
+  (coluna Navegação) e CTA secundário no `/agendar` e na página de Serviços. Antes era página
+  órfã (sem links). Ver [[log]].
 
 ## Áreas com token/código (privadas, noindex)
 - `/acompanhamento/[id]` — cliente vê o seu acompanhamento (fotos/mensagens) por código
