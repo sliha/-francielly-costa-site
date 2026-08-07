@@ -16,7 +16,11 @@ const navLinks = [
   { href: '/contacto', label: 'Contacto' },
 ]
 
-export default function Navbar() {
+export default function Navbar({
+  onMobileOpenChange,
+}: {
+  onMobileOpenChange?: (open: boolean) => void
+} = {}) {
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileOpen, setIsMobileOpen] = useState(false)
 
@@ -27,6 +31,12 @@ export default function Navbar() {
     window.addEventListener('scroll', handleScroll, { passive: true })
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
+
+  // Avisa o shell quando o menu mobile abre/fecha, para esconder a banner de
+  // cookies (também fixed-bottom) que de outra forma tapava os CTAs do fundo.
+  useEffect(() => {
+    onMobileOpenChange?.(isMobileOpen)
+  }, [isMobileOpen, onMobileOpenChange])
 
   useEffect(() => {
     if (isMobileOpen) {

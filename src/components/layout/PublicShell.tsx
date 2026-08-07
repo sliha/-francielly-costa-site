@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { usePathname } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import Navbar from './Navbar'
@@ -18,13 +19,18 @@ export default function PublicShell({ children }: { children: React.ReactNode })
   const isFocado = pathname?.startsWith('/anamnese') || pathname?.startsWith('/consentimento')
   const semChrome = isAdmin || isFocado
 
+  // A banner de cookies e o botão do chat são fixed e partilham a camada do menu
+  // mobile; enquanto o menu está aberto escondemo-los para não taparem os CTAs
+  // (banner) nem se sobreporem ao painel (chat).
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
   return (
     <>
-      {!semChrome && <Navbar />}
+      {!semChrome && <Navbar onMobileOpenChange={setMobileMenuOpen} />}
       <main>{children}</main>
       {!semChrome && <Footer />}
-      {!semChrome && <ChatWidget />}
-      {!semChrome && <CookieBanner />}
+      {!semChrome && <ChatWidget hidden={mobileMenuOpen} />}
+      {!semChrome && <CookieBanner hidden={mobileMenuOpen} />}
     </>
   )
 }

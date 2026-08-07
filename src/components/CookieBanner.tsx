@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import { readConsent, saveConsent, type CookieConsent } from '@/lib/consent'
 
-export default function CookieBanner() {
+export default function CookieBanner({ hidden = false }: { hidden?: boolean } = {}) {
   const [visible, setVisible] = useState(false)
   const [personalizar, setPersonalizar] = useState(false)
   const [analytics, setAnalytics] = useState(true)
@@ -25,7 +25,7 @@ export default function CookieBanner() {
 
   return (
     <AnimatePresence>
-      {visible && (
+      {visible && !hidden && (
         <motion.div
           initial={{ y: 100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}

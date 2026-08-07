@@ -14,6 +14,39 @@ Dica: `grep "^## \[" log.md | tail -5` mostra as 5 últimas entradas.
 
 ---
 
+## [2026-08-07] correção | Menu mobile: banner de cookies e botão de chat tapavam os CTAs / o painel
+No mobile (~390px), abrir o menu hambúrguer sobrepunha o rodapé do painel com dois
+elementos `fixed`: (1) a banner de consentimento (`fixed bottom-0 z-[60]`) tapava os CTAs
+do fundo; (2) o botão flutuante do chat (`fixed bottom-6 right-4 z-50`) sobrepunha-se ao
+painel do menu. O chat fica por cima do painel porque, com o mesmo `z-50`, o `ChatWidget`
+vem depois no DOM (`PublicShell`: Navbar → main → Footer → ChatWidget → CookieBanner).
+Padding fixo seria frágil porque a altura da banner varia (texto quebra em mobile, ~155px,
+e o modo "Personalizar" expande-a).
+
+Solução: esconder ambos enquanto o menu mobile está aberto, coordenado por lift-state-up
+no `PublicShell` (o pai já orquestra os irmãos). `Navbar` ganhou a callback
+`onMobileOpenChange(open)` (disparada por `useEffect` sobre `isMobileOpen`); o estado
+`mobileMenuOpen` do shell passa `hidden` a `CookieBanner` e a `ChatWidget`.
+- `CookieBanner`: `hidden` anula o render (`visible && !hidden`), deixando o `AnimatePresence`
+  animar a saída/entrada.
+- `ChatWidget`: o painel condiciona-se a `isOpen && !hidden`; o botão flutuante fica dentro
+  de um `<div>` wrapper cuja `opacity`/`pointer-events` reagem a `hidden`. Usa-se wrapper (e
+  não classes no próprio `motion.button`) porque o framer-motion controla `opacity`/`scale`
+  via style inline, que venceria classes Tailwind; e não se desmonta o botão para não voltar
+  a apanhar o `delay: 1s` do seu "pop" de entrada.
+
+Verificação: `tsc --noEmit` + `next build` (85 páginas) OK; E2E com Playwright a 390px nos
+três estados — banner+chat visíveis → menu aberto (banner e chat afastados, CTA acessível)
+→ menu fechado (ambos voltam). Medição determinística do wrapper do chat: fechado
+`opacity 1 / pointer-events auto`, aberto `0 / none`, fechado de novo `1 / auto`.
+Nota de método: o Browser pane interno não compõe frames (rAF congelado), o que congela o
+framer-motion e invalida testes de DOM ali; o Playwright (Chromium real) deu a prova fiável.
+
+Ficheiros: `src/components/layout/Navbar.tsx`, `src/components/CookieBanner.tsx`,
+`src/components/chat/ChatWidget.tsx`, `src/components/layout/PublicShell.tsx`.
+
+---
+
 ## [2026-07-21] diagnóstico | Emails de produção caem no spam da iCloud (não falham) + ADMIN_EMAIL errado
 Marcação de teste de FiberBROWS (email real do utilizador) não chegou. Investiguei com
 um endpoint temporário (`/api/diag-email`, já removido) que corre com as env vars reais

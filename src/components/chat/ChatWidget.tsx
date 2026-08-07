@@ -22,7 +22,7 @@ const welcomeMessage: Message = {
   isGreeting: true,
 }
 
-export default function ChatWidget() {
+export default function ChatWidget({ hidden = false }: { hidden?: boolean } = {}) {
   const [isOpen, setIsOpen] = useState(false)
   const [messages, setMessages] = useState<Message[]>([welcomeMessage])
   const [input, setInput] = useState('')
@@ -141,7 +141,7 @@ export default function ChatWidget() {
     <>
       {/* Chat Panel */}
       <AnimatePresence>
-        {isOpen && (
+        {isOpen && !hidden && (
           <motion.div
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -260,7 +260,14 @@ export default function ChatWidget() {
         )}
       </AnimatePresence>
 
-      {/* Floating Button */}
+      {/* Floating Button — afastado (fade + sem cliques) enquanto o menu mobile
+          está aberto, senão sobrepunha-se ao painel (ambos fixed, mesmo z-index) */}
+      <div
+        className={`transition-opacity duration-300 ${
+          hidden ? 'opacity-0 pointer-events-none' : 'opacity-100'
+        }`}
+        aria-hidden={hidden}
+      >
       <motion.button
         initial={{ scale: 0, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
@@ -305,6 +312,7 @@ export default function ChatWidget() {
           )}
         </AnimatePresence>
       </motion.button>
+      </div>
     </>
   )
 }
