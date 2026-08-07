@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import BookingFlow from '@/components/booking/BookingFlow'
 
 export const metadata: Metadata = {
@@ -40,6 +41,15 @@ export default async function AgendarPage({ searchParams }: Props) {
               Escolha o serviço, a data e a hora que prefere. Confirmamos a sua marcação de seguida.
             </p>
           )}
+          <p className="mt-4 text-sm text-text-muted font-inter">
+            Fora de Braga ou prefere avaliar primeiro?{' '}
+            <Link
+              href="/consulta-virtual"
+              className="text-rose-gold font-semibold underline underline-offset-4 hover:text-rose-gold-dark"
+            >
+              Faça uma consulta virtual gratuita
+            </Link>
+          </p>
         </div>
         <BookingFlow servicoPreSelecionado={servicoPreSelecionado} />
       </div>

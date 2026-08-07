@@ -243,6 +243,16 @@ export default function ServicosPage() {
               WhatsApp
             </a>
           </div>
+          <p className="mt-6 text-white/90 font-inter text-sm">
+            Fora de Braga?{' '}
+            <Link
+              href="/consulta-virtual"
+              onClick={() => trackSchedule({ service: 'servicos_consulta_virtual' })}
+              className="font-semibold underline underline-offset-4 hover:text-white"
+            >
+              Faça uma consulta virtual gratuita por videochamada
+            </Link>
+          </p>
         </div>
       </section>
     </div>

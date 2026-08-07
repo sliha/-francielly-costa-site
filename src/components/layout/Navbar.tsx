@@ -83,8 +83,18 @@ export default function Navbar() {
               ))}
             </ul>
 
-            {/* CTA Button */}
-            <div className="hidden lg:flex items-center">
+            {/* CTA Buttons */}
+            <div className="hidden lg:flex items-center gap-2">
+              <Link
+                href="/consulta-virtual"
+                className={`text-sm font-medium font-inter px-5 py-2.5 rounded-full border transition-colors duration-300 ${
+                  isScrolled
+                    ? 'text-text-primary border-rose-gold/40 hover:border-rose-gold hover:text-rose-gold'
+                    : 'text-white border-white/50 hover:border-white hover:bg-white/10'
+                }`}
+              >
+                Consulta Virtual
+              </Link>
               <Link
                 href="/agendar"
                 onClick={() => trackSchedule({ service: 'navbar' })}
@@ -171,7 +181,7 @@ export default function Navbar() {
               </nav>
 
               {/* Mobile CTA */}
-              <div className="p-6 border-t border-cream-dark">
+              <div className="p-6 border-t border-cream-dark space-y-3">
                 <Link
                   href="/agendar"
                   onClick={() => {
@@ -182,7 +192,14 @@ export default function Navbar() {
                 >
                   Agendar Consulta
                 </Link>
-                <p className="text-center text-sm text-text-muted mt-3 font-inter">
+                <Link
+                  href="/consulta-virtual"
+                  onClick={() => setIsMobileOpen(false)}
+                  className="btn-outline w-full text-center text-sm !py-2.5"
+                >
+                  Consulta Virtual Gratuita
+                </Link>
+                <p className="text-center text-sm text-text-muted font-inter">
                   Braga, Portugal
                 </p>
               </div>
