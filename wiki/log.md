@@ -14,6 +14,13 @@ Dica: `grep "^## \[" log.md | tail -5` mostra as 5 últimas entradas.
 
 ---
 
+## [2026-08-08] decisão | Auditoria BD Supabase: RLS initplan, arquivo de tabelas FitPro, is_admin
+
+- Fix performance: política `profiles_self_read` passou a `(id = (select auth.uid()))` para não reavaliar auth por linha. Migration MCP: `fix_profiles_self_read_initplan`. Confirmado: advisor auth_rls_initplan deixou de aparecer.
+- Higiene/segurança: as tabelas `creators`, `leads`, `pages` (leftover do projeto FitPro — landing "isco"/Treino 7 dias, 0 uso no código, sem FKs) foram movidas de `public` para o schema `archive`. Migration MCP: `archive_fitpro_leftover_tables`. Reversível (ALTER TABLE archive.<t> SET SCHEMA public). Dados preservados; saíram da API pública. DROP definitivo em aberto.
+- Decisão is_admin(): mantido SECURITY DEFINER (search_path fixo em public, só revela o estado do próprio caller). É o portão do RLS admin_all em 20 tabelas; revogar EXECUTE ou pôr SECURITY INVOKER partia/recursava o RLS. Advisor assumido como aceite.
+- TODO manual (Sérgio): ativar "Leaked password protection" no Auth (Dashboard → Authentication → Policies).
+
 ## [2026-08-07] decisão | Consulta Virtual Gratuita deixa de ser página órfã (ligada na navegação)
 Auditoria a pedido do utilizador: a página `/consulta-virtual` (avaliação grátis 15 min por
 Google Meet) existia e estava bem feita, com metadata SEO própria e entrada no `sitemap.ts`,
