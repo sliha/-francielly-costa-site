@@ -4,7 +4,7 @@ tags:
   - arquitetura
   - supabase
   - dados
-atualizado: 2026-06-12
+atualizado: 2026-08-08
 ---
 
 # Arquitetura de dados (Supabase)
@@ -29,13 +29,17 @@ Projeto Supabase `vptyaaxzjrhsjmyrbbxm` — Postgres 17 com **RLS ativa em todas
 | `galeria` | media de antes/depois (ver [[galeria]]) | **sim** (`ativa = true`) |
 | `certificacoes` | certificados | **sim** |
 | `blog_posts` | artigos do blog | **sim** (`published = true`) |
-| `pages` | conteúdo de páginas (slug/html) | **sim** |
-| `profiles` | perfis admin (`is_active`) — base do `is_admin()` | self-read |
+| `profiles` | perfis admin (`is_active`) — base do `is_admin()` | self-read (otimizado, ver [[seguranca]]) |
 | `processed_events`, `sync_log` | idempotência e log de sync | não |
 
-> [!warning] Tabelas de OUTRA app no mesmo projeto
-> `leads`, `creators`, `creator_stats` e o bucket `fitpro-assets` pertencem a outra app (**fitpro**)
-> que partilha este projeto Supabase. **Não mexer.** Idealmente separar em projetos distintos.
+> [!warning] Leftover de OUTRA app (FitPro) no mesmo projeto
+> `creators`, `leads` e `pages` eram leftover do projeto **FitPro** (landing "isco"/Treino 7 dias):
+> 0 uso no código deste site, sem FKs. Em **2026-08-08** foram movidas de `public` para o schema
+> **`archive`** (migração MCP `archive_fitpro_leftover_tables`). Saíram da API pública, dados
+> preservados. Reversível: `ALTER TABLE archive.<t> SET SCHEMA public`. DROP definitivo em aberto.
+> A view `creator_stats` também foi para `archive` no mesmo dia (migração MCP
+> `archive_fitpro_creator_stats_view`). Já só o bucket `fitpro-assets` continua a pertencer à
+> outra app. **Não mexer.**
 
 ## RLS — padrão
 - Tabelas privadas: política `admin_all` `FOR ALL TO authenticated USING (is_admin())`.
@@ -56,3 +60,6 @@ Projeto Supabase `vptyaaxzjrhsjmyrbbxm` — Postgres 17 com **RLS ativa em todas
 ## Migrações
 Aplicadas via MCP (não versionadas em `supabase/migrations`). As 5 de 2026-06-12 estão
 listadas em [[fonte-seguranca-estado-2026-06]] e resumidas em [[seguranca]].
+2026-08-08 (auditoria BD): `fix_profiles_self_read_initplan` (RLS initplan em `profiles`),
+`archive_fitpro_leftover_tables` e `archive_fitpro_creator_stats_view` (leftover FitPro movido
+para o schema `archive`). Ver [[seguranca]] e [[log]].
