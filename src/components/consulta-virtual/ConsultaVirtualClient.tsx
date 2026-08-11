@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import {
   Video,
@@ -15,6 +15,7 @@ import {
   ArrowLeft,
 } from 'lucide-react'
 import { services } from '@/data/services'
+import { trackLead } from '@/lib/analytics'
 
 const horasDisponiveis = ['09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '14:00', '14:30', '15:00', '15:30']
 
@@ -34,6 +35,14 @@ export default function ConsultaVirtualClient() {
   const [meetLink, setMeetLink] = useState('')
   const [enviando, setEnviando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
+  const leadTracked = useRef(false)
+
+  useEffect(() => {
+    if (etapa === 'confirmado' && !leadTracked.current) {
+      leadTracked.current = true
+      trackLead({ source: 'consulta_virtual' })
+    }
+  }, [etapa])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))

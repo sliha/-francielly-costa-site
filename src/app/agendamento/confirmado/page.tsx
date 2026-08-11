@@ -7,7 +7,12 @@ import { trackPurchase, trackContactWhatsapp } from '@/lib/analytics'
 export default function AgendamentoConfirmado() {
   useEffect(() => {
     window.scrollTo(0, 0)
-    trackPurchase({ value: 30, currency: 'EUR' })
+    const sessionId = new URLSearchParams(window.location.search).get('session_id')
+    if (!sessionId) return
+    const dedupeKey = `purchase:${sessionId}`
+    if (localStorage.getItem(dedupeKey)) return
+    localStorage.setItem(dedupeKey, '1')
+    trackPurchase({ value: 30, currency: 'EUR', transactionId: sessionId, eventId: sessionId })
   }, [])
 
   return (

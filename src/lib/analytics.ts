@@ -15,9 +15,13 @@ function gtag(name: string, params?: Params) {
   window.gtag('event', name, params ?? {})
 }
 
-function fbq(name: string, params?: Params) {
+function fbq(name: string, params?: Params, options?: { eventID?: string }) {
   if (typeof window === 'undefined' || typeof window.fbq !== 'function') return
-  window.fbq('track', name, params ?? {})
+  if (options) {
+    window.fbq('track', name, params ?? {}, options)
+  } else {
+    window.fbq('track', name, params ?? {})
+  }
 }
 
 export function trackSchedule(params?: { service?: string }) {
@@ -25,10 +29,10 @@ export function trackSchedule(params?: { service?: string }) {
   gtag('begin_checkout', { currency: 'EUR', service: params?.service })
 }
 
-export function trackPurchase(params: { value: number; currency?: string; transactionId?: string }) {
+export function trackPurchase(params: { value: number; currency?: string; transactionId?: string; eventId?: string }) {
   const value = params.value
   const currency = params.currency ?? 'EUR'
-  fbq('Purchase', { value, currency })
+  fbq('Purchase', { value, currency }, params.eventId ? { eventID: params.eventId } : undefined)
   gtag('purchase', { value, currency, transaction_id: params.transactionId })
 }
 
