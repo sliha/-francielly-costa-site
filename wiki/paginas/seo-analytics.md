@@ -4,7 +4,7 @@ tags:
   - seo
   - analytics
   - ads
-atualizado: 2026-06-12
+atualizado: 2026-08-11
 ---
 
 # SEO e analytics
@@ -25,6 +25,21 @@ atualizado: 2026-06-12
 - **Meta Pixel** + **Google Analytics / Google Ads** (componente `Analytics`, lib `analytics.ts`).
 - Eventos de conversão: clique no WhatsApp e botões de marcação.
 - **Google Consent Mode v2** ligado ao consentimento granular de cookies (ver [[rgpd-legal]]).
+
+### Endurecimento do Meta Pixel (2026-08-11, commit `3ae77d3`)
+- **`Purchase` com dedup**: só dispara em `/agendamento/confirmado` quando há `session_id` do Stripe
+  (sem `session_id` não houve compra, não dispara). Uma vez por sessão, com guard
+  `localStorage['purchase:' + session_id]`. Envia `eventID = session_id` (o helper `fbq` passou a
+  aceitar um 4º arg de options), base para a **CAPI** server-side futura. Valor fixo `€30` = caução
+  real cobrada (valor dinâmico fica para depois).
+- **`Lead`** novo na conclusão da **consulta virtual** (`source: consulta_virtual`), disparado uma vez
+  quando o formulário confirma (`useEffect` na etapa + `useRef` anti-repetição).
+- **Google Ads intocado** nesta ronda. ==Item em aberto:== enviar também uma conversão de Ads no
+  `Purchase`/`Lead`; hoje só o clique no WhatsApp envia conversão de Ads (`AW-...` em `trackContactWhatsapp`).
+
+> [!todo] Pendências de tracking
+> - **Meta CAPI** (Conversions API) server-side, deduplicada pelo `eventID` já enviado no browser (task futura).
+> - **Validar em Test Events** (Meta Events Manager): `Purchase` 1x sem duplicar no refresh e `Lead` na consulta virtual.
 
 ## Performance (impacta SEO)
 - Removido `@import` de Google Fonts render-blocking; **hero LCP estático** (CSS).
