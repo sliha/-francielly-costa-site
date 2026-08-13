@@ -5,7 +5,10 @@ import Script from 'next/script'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { readConsent, CONSENT_EVENT, CONSENT_STORAGE_KEY, type CookieConsent } from '@/lib/consent'
 
-const GA_ID = process.env.NEXT_PUBLIC_GA_ID || 'G-GM7S2XXBZS'
+// GA4: measurement id fixo no codigo (fonte de verdade) para garantir o ID correto no
+// deploy, sem depender de uma env var antiga na Vercel (que teria precedencia sobre o
+// fallback). Google Ads, Meta Pixel e Metricool continuam configuraveis por env var.
+const GA_ID = 'G-500PEGQ6Y4'
 const META_PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID || '1370527093885024'
 const GOOGLE_ADS_ID = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID || 'AW-18049747314'
 const METRICOOL_HASH = process.env.NEXT_PUBLIC_METRICOOL_HASH || '103e1418e76e4353b021093bb6841c8'
