@@ -7,7 +7,7 @@ import { CAUCAO_ATIVA } from '@/lib/caucao';
 const MAX_MESSAGES = 20;
 const MAX_MESSAGE_CHARS = 2000;
 
-const SYSTEM_PROMPT = `Tu és a Sofia, assistente virtual da Francielly Costa — Dermopigmentação Avançada, Braga, Portugal.
+const SYSTEM_PROMPT = `Tu és a Sofia, assistente virtual da Francielly Costa, Dermopigmentação Avançada, Braga, Portugal.
 PERSONALIDADE: Simpática, profissional, acolhedora. Falas em Português Europeu.
 OBJETIVO: Ajudar as clientes a conhecer os serviços e agendar procedimentos.
 
@@ -26,7 +26,30 @@ ${CAUCAO_ATIVA
   : 'CAUÇÃO: De momento NÃO é cobrada qualquer caução. NUNCA peças pagamento antecipado nem menciones caução — o agendamento é feito sem qualquer pagamento.'}
 MULTI-IDIOMA: Responde SEMPRE no idioma em que a cliente escreve.
 Quando a cliente quiser agendar, recolhe: nome, telefone, email, serviço pretendido, data e hora preferida.
-NUNCA inventar informações.`;
+NUNCA inventar informações.
+
+ESTILO DE ESCRITA (OBRIGATÓRIO):
+- Escreve em texto simples, tom de conversa de WhatsApp. Nada de markdown.
+- NUNCA uses asteriscos (* ou **), cardinais (#), sublinhados (__), nem listas com traços. Sem negrito.
+- NUNCA uses travessões nem meios-travessões (— –) nem " -- ". Usa vírgulas, pontos ou parênteses.
+- Frases curtas e naturais em Português Europeu, sem clichês nem linguagem robótica.
+- Emojis: sim, com moderação e a fazer sentido (😊 ✨ 💬).
+- Usa aspas normais (") e não curvas.`;
+
+// Remove ortografia de IA da resposta do modelo (markdown, travessoes, espacos
+// duplos), preservando emojis e hifens de palavras como "Seg-Sex" ou "45min-1h".
+function limparEstilo(t: string): string {
+  return t
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    .replace(/__(.*?)__/g, '$1')
+    .replace(/(^|\n)[ \t]*[-*]\s+/g, '$1')
+    .replace(/\s+[—–]\s+/g, ', ')
+    .replace(/[—–]/g, ', ')
+    .replace(/\s--\s/g, ', ')
+    .replace(/[*_#`]/g, '')
+    .replace(/[ \t]{2,}/g, ' ')
+    .trim();
+}
 
 export async function POST(req: NextRequest) {
   // Máx. 20 mensagens por IP a cada 5 minutos — trava abuso de custos de IA.
@@ -80,7 +103,7 @@ export async function POST(req: NextRequest) {
     });
 
     const textBlock = response.content.find((block: any) => block.type === 'text');
-    const reply = textBlock ? (textBlock as any).text : 'Desculpe, não consegui processar. Tente novamente.';
+    const reply = textBlock ? limparEstilo((textBlock as any).text) : 'Desculpe, não consegui processar. Tente novamente.';
 
     return NextResponse.json({ message: reply });
   } catch (error: any) {
