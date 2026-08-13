@@ -14,6 +14,26 @@ Dica: `grep "^## \[" log.md | tail -5` mostra as 5 últimas entradas.
 
 ---
 
+## [2026-08-13] decisão | Consent Mode fica em BÁSICO (avançado experimentado e descartado)
+
+Depois de migrar o GA4 para `G-500PEGQ6Y4` (ver [2026-08-12]), o verificador do Google
+reportou "tag não detectada em www.franciellycosta.pt". Chegaram a fazer-se 2 commits locais
+com **Consent Mode avançado** (o `gtag.js` carregaria sempre, arrancando em `denied`, para o
+robô do Google ver a tag), mas a decisão foi **revertida**: `git reset --hard origin/main`
+voltou a `ca2752e`, descartando esses commits (nunca foram para `origin`). Produção continua
+em **básico**.
+
+- **Porquê reverter:** no básico o `gtag` só monta **depois** do opt-in de cookies, nada carrega
+  antes (privacy-first, alinhado com o banner granular e o RGPD). O avançado obrigaria a carregar
+  o gtag e a enviar pings sem cookies mesmo sem consentimento, um trade-off de privacidade que
+  não se quis assumir por um aviso cosmético.
+- **O aviso é benigno:** o robô verificador do Google não consente cookies, por isso no básico a
+  tag nunca carrega para ele e dá sempre "não detectada". Quem aceita cookies **é medido na
+  mesma** (confirmado em produção: com consentimento carrega `G-500PEGQ6Y4`, sem o antigo
+  `G-GM7S2XXBZS`, e o Google Ads `AW-18049747314` continua a carregar no mesmo gtag).
+- **Estado deployed:** `ca2752e`, GA4 novo em modo básico. Recuperar o avançado, se um dia se
+  quiser, é `git cherry-pick` dos 2 commits que ficaram no reflog.
+
 ## [2026-08-08] decisão | Auditoria BD Supabase: RLS initplan, arquivo de tabelas FitPro, is_admin
 
 - Fix performance: política `profiles_self_read` passou a `(id = (select auth.uid()))` para não reavaliar auth por linha. Migration MCP: `fix_profiles_self_read_initplan`. Confirmado: advisor auth_rls_initplan deixou de aparecer.

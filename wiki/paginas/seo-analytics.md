@@ -4,7 +4,7 @@ tags:
   - seo
   - analytics
   - ads
-atualizado: 2026-08-12
+atualizado: 2026-08-13
 ---
 
 # SEO e analytics
@@ -54,6 +54,23 @@ atualizado: 2026-08-12
 > [!note] Nota para quem lê o dev preview
 > O browser de preview (dev) pode continuar a mostrar o ID antigo por causa do cache de chunks de
 > dev (nomes estáveis). A verdade é o **build de produção**, confirmado por grep ao `.next`.
+
+### Consent Mode fica em BÁSICO (avançado descartado, 2026-08-13)
+- O Google reportou "tag não detectada em www.franciellycosta.pt". Experimentou-se o **Consent
+  Mode avançado** (2 commits locais: o `gtag.js` carregaria sempre, a arrancar em `denied`), mas
+  **reverteu-se** com `git reset --hard origin/main` para `ca2752e`. Produção mantém-se em **básico**.
+- **Porquê básico:** o `gtag` só monta **depois** do opt-in de cookies (nada carrega antes),
+  coerente com o banner granular e o RGPD (ver [[rgpd-legal]]). O avançado carregaria o gtag e
+  enviaria pings sem cookies mesmo sem consentimento, trade-off que não se quis assumir.
+- **O aviso é esperado:** o robô do Google não consente cookies, logo no básico a tag nunca carrega
+  para ele ("não detectada"). Quem aceita cookies **é medido na mesma**.
+- **Verificado em produção:** sem consentimento não carrega nada; com consentimento carrega
+  `G-500PEGQ6Y4` (sem o antigo `G-GM7S2XXBZS`), e o Google Ads `AW-18049747314` continua no
+  mesmo gtag. Sem marcadores do avançado (`wait_for_update`) no HTML.
+
+> [!note] Como recuperar o avançado
+> Os 2 commits do avançado ficaram no `git reflog`. Para os trazer de volta: `git cherry-pick`
+> desses commits (os hashes estavam em `ae05b8f` e `5f4a329` antes do reset).
 
 ## Performance (impacta SEO)
 - Removido `@import` de Google Fonts render-blocking; **hero LCP estático** (CSS).
