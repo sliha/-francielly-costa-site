@@ -2,7 +2,7 @@
 import { useEffect } from 'react'
 import Link from 'next/link'
 import { CheckCircle } from 'lucide-react'
-import { trackPurchase, trackContactWhatsapp } from '@/lib/analytics'
+import { trackPurchase, trackContactWhatsapp, trackMarcacaoAds } from '@/lib/analytics'
 
 export default function AgendamentoConfirmado() {
   useEffect(() => {
@@ -13,6 +13,7 @@ export default function AgendamentoConfirmado() {
     if (localStorage.getItem(dedupeKey)) return
     localStorage.setItem(dedupeKey, '1')
     trackPurchase({ value: 30, currency: 'EUR', transactionId: sessionId, eventId: sessionId })
+    trackMarcacaoAds()
   }, [])
 
   return (

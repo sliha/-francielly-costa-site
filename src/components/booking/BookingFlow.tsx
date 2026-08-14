@@ -5,7 +5,7 @@ import { ChevronLeft, ChevronRight, CreditCard, Check } from 'lucide-react'
 import { SERVICES } from '@/data/services'
 import { CAUCAO_ATIVA } from '@/lib/caucao'
 import { servicoAbreNoDia, descricaoHorario, isFiberBrows } from '@/lib/horariosServico'
-import { trackSchedule, trackContactWhatsapp } from '@/lib/analytics'
+import { trackSchedule, trackContactWhatsapp, trackMarcacaoAds } from '@/lib/analytics'
 import { format, addDays, startOfToday } from 'date-fns'
 import { pt } from 'date-fns/locale'
 
@@ -132,9 +132,13 @@ export default function BookingFlow({ servicoPreSelecionado, onClose }: Props) {
       }
       if (json.agendamentoId) {
         setAgendamentoId(json.agendamentoId)
-        // Sem caução, a marcação fica concluída aqui — registar a conversão agora
-        // (com caução, o trackSchedule dispara no passo de pagamento).
-        if (!CAUCAO_ATIVA) trackSchedule({ service: servico?.slug })
+        // Sem caução, a marcação fica concluída aqui, registar a conversão agora
+        // (com caução, o trackSchedule dispara no passo de pagamento e a conversão
+        // de Ads dispara no confirmado, após o Stripe).
+        if (!CAUCAO_ATIVA) {
+          trackSchedule({ service: servico?.slug })
+          trackMarcacaoAds()
+        }
         setStep('pagamento')
       } else {
         setErro(json.error || 'Erro ao criar marcação. Por favor, tente novamente.')

@@ -39,12 +39,14 @@ export function trackPurchase(params: { value: number; currency?: string; transa
 export function trackContactWhatsapp(params?: { source?: string }) {
   fbq('Contact', params)
   gtag('contact_whatsapp', { source: params?.source ?? 'unknown' })
+}
+
+// Conversao "Marcacao concluida" da conta Google Ads nova (AW-18387543172).
+// Evento a nivel de conta criado no Ads: conversion_event_book_appointment.
+// Disparado na marcacao sem caucao, no checkout Stripe e na consulta virtual.
+export function trackMarcacaoAds() {
   if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
-    window.gtag('event', 'conversion', {
-      send_to: 'AW-18049747314/n0zqCIe-iZIcEPKS5Z5D',
-      value: 50.0,
-      currency: 'EUR',
-    })
+    window.gtag('event', 'conversion_event_book_appointment')
   }
 }
 

@@ -15,7 +15,7 @@ import {
   ArrowLeft,
 } from 'lucide-react'
 import { services } from '@/data/services'
-import { trackLead } from '@/lib/analytics'
+import { trackLead, trackMarcacaoAds } from '@/lib/analytics'
 
 const horasDisponiveis = ['09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '14:00', '14:30', '15:00', '15:30']
 
@@ -41,6 +41,7 @@ export default function ConsultaVirtualClient() {
     if (etapa === 'confirmado' && !leadTracked.current) {
       leadTracked.current = true
       trackLead({ source: 'consulta_virtual' })
+      trackMarcacaoAds()
     }
   }, [etapa])
 
