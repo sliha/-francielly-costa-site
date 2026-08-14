@@ -4,7 +4,7 @@ tags:
   - seo
   - analytics
   - ads
-atualizado: 2026-08-13
+atualizado: 2026-08-14
 ---
 
 # SEO e analytics
@@ -22,9 +22,10 @@ atualizado: 2026-08-13
 > `{ width, height }` inline nas opções do `ImageResponse`.
 
 ## Tracking (campanhas Meta/Google Ads)
-- **Meta Pixel** + **Google Analytics 4** (`G-500PEGQ6Y4`) + **Google Ads** (`AW-18049747314`),
+- **Meta Pixel** + **Google Analytics 4** (`G-500PEGQ6Y4`) + **Google Ads** (`AW-18387543172`),
   no componente `Analytics`, lib `analytics.ts`. O GA4 e o Ads partilham um único `gtag.js`.
-- Eventos de conversão: clique no WhatsApp e botões de marcação.
+- Eventos de conversão: clique no WhatsApp e **conversão "Marcação"** (`conversion_event_book_appointment`)
+  na marcação, no checkout Stripe e na consulta virtual.
 - **Google Consent Mode v2** ligado ao consentimento granular de cookies (ver [[rgpd-legal]]).
 
 ### Endurecimento do Meta Pixel (2026-08-11, commit `3ae77d3`)
@@ -71,6 +72,25 @@ atualizado: 2026-08-13
 > [!note] Como recuperar o avançado
 > Os 2 commits do avançado ficaram no `git reflog`. Para os trazer de volta: `git cherry-pick`
 > desses commits (os hashes estavam em `ae05b8f` e `5f4a329` antes do reset).
+
+### Google Ads: conta nova e conversão "Marcação" (2026-08-14, commit `ac9af59`)
+- A conta Google Ads mudou. Nova etiqueta: **`AW-18387543172`** (a antiga `AW-18049747314` era de
+  outra conta e deixa de contar). Como no GA4, o id passou a estar **fixo no `Analytics.tsx`** (sem
+  `process.env`), porque a env var `NEXT_PUBLIC_GOOGLE_ADS_ID` tinha o valor antigo e, por
+  precedência sobre o fallback, mantinha a conta morta no build. A env var fica **órfã** na Vercel
+  (removível, não urgente).
+- **Novo evento de conta** criado no Ads: `conversion_event_book_appointment`. Disparado pela função
+  `trackMarcacaoAds()` (`gtag('event', 'conversion_event_book_appointment')`), **uma vez** em cada:
+  marcação sem caução (`BookingFlow`, ramo `!CAUCAO_ATIVA`), checkout Stripe (`/agendamento/confirmado`,
+  com o dedup por `session_id` do `Purchase`) e consulta virtual (etapa `confirmado`, `useRef`
+  anti-repetição). Só dispara com consentimento de marketing (o `config` do Ads é gated, coerente
+  com o Consent Mode básico).
+- **Removida a conversão de Ads morta** em `trackContactWhatsapp` (apontava para
+  `AW-18049747314/n0zqCIe-iZIcEPKS5Z5D`, conta antiga). Mantidos o `fbq('Contact')` e o
+  `gtag('contact_whatsapp')`. Isto fecha o ==item em aberto== da secção do Meta Pixel (enviar
+  conversão de Ads na marcação, não só no clique do WhatsApp).
+- Verificado em **build limpo** (output servido): antiga `AW-18049747314` **0x**, nova
+  `AW-18387543172` **2x**, evento **10x**, `send_to` morto **0x**. `tsc`/`build` verdes.
 
 ## Performance (impacta SEO)
 - Removido `@import` de Google Fonts render-blocking; **hero LCP estático** (CSS).
