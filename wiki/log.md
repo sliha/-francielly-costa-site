@@ -14,6 +14,21 @@ Dica: `grep "^## \[" log.md | tail -5` mostra as 5 últimas entradas.
 
 ---
 
+## [2026-08-13] decisão | Sofia (chat) deixa de usar ortografia de IA (mantém emojis)
+
+O chat "Sofia" (`src/app/api/chat/route.ts`) escrevia com marcas típicas de IA (negrito `**`,
+listas, travessões `—`), que destoam do tom de conversa. Corrigido em duas camadas:
+- **Prompt:** o `SYSTEM_PROMPT` perdeu o travessão da 1ª linha e ganhou um bloco "ESTILO DE
+  ESCRITA" que proíbe markdown/travessões e pede texto simples, Português Europeu, aspas retas,
+  emojis com moderação.
+- **Rede de segurança:** nova função `limparEstilo()` sanitiza a resposta do modelo antes de a
+  devolver (remove `**`/`__`/listas/`#`/`` ` ``, converte `—`/`–`/`" -- "` em vírgula, colapsa
+  espaços), **preservando emojis e hífens de palavras** (`Seg-Sex`, `45min-1h`). Aplicada ao `reply`.
+
+Commit `bb7f6f6`. Verificado: teste unitário 9/9, `tsc`/`build` verdes e **teste ponta a ponta
+em produção** (POST a pedir de propósito markdown/travessões → resposta 0 marcas de IA, 9 emojis
+presentes). Ver [[api-rotas]].
+
 ## [2026-08-13] decisão | Consent Mode fica em BÁSICO (avançado experimentado e descartado)
 
 Depois de migrar o GA4 para `G-500PEGQ6Y4` (ver [2026-08-12]), o verificador do Google

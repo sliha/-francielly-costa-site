@@ -4,7 +4,7 @@ tags:
   - rotas
   - backend
   - api
-atualizado: 2026-06-12
+atualizado: 2026-08-13
 ---
 
 # API routes (backend serverless)
@@ -32,7 +32,10 @@ Mapa real das `route.ts` em `src/app/api/`. Rotas públicas têm **rate limiting
 - `/api/consulta-virtual/agendar`, `/cancelar` (remove evento Google)
 
 ## IA e contacto
-- `/api/chat` — chat "Sofia" (Anthropic)
+- `/api/chat` — chat "Sofia" (Anthropic). **Sem ortografia de IA**: o `SYSTEM_PROMPT` proíbe
+  markdown e travessões (tom de WhatsApp, Português Europeu) e a função `limparEstilo()` sanitiza
+  a resposta do modelo antes de a devolver (remove `**`/`__`/listas/`#`/`` ` ``, converte `—`/`–`/`" -- "`
+  em vírgula), preservando **emojis** e hífens de palavras (`Seg-Sex`, `45min-1h`).
 - `/api/simulador` — simulador IA
 - `/api/contacto`, `/api/fiberbrows-waitlist`
 
