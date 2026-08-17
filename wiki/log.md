@@ -14,6 +14,21 @@ Dica: `grep "^## \[" log.md | tail -5` mostra as 5 últimas entradas.
 
 ---
 
+## [2026-08-17] query | Verificação da conversão "Marcação" no Google Ads + GA4 (ainda a 0, config OK)
+
+Verificação a pedido, via Chrome do utilizador (só leitura). A conta Ads nova é **"Francielly costa"**
+(customer ID **825-516-9554**, login `geral@falcaowebsmart.pt`, etiqueta `AW-18387543172`); a antiga
+`AW-18049747314` é a **970-074-1913** (`biogenaturais34@gmail.com`).
+
+- **Descoberta chave:** a conversão "Marcação" no Ads (`BOOK_APPOINTMENT`, ação principal) é **importada
+  do GA4**, não é nativa do Ads. Fonte: GA4 propriedade "Falcao" (`G-500PEGQ6Y4`), evento
+  `conversion_event_book_appointment`. Cadeia site → gtag → GA4 → import Ads.
+- **Estado:** ainda **0 conversões**. No GA4 Falcao (últimos 28 dias) o evento não aparece de todo, tal
+  como `purchase` e `generate_lead`. Mas o pipeline está vivo (`page_view`, `session_start`,
+  `begin_checkout` 5x, `chat_started` 3x) e o Realtime tinha tráfego ao vivo. Config correta, falta uma
+  marcação/checkout/consulta virtual **concluída** por quem aceite cookies. Detalhes em [[seo-analytics]].
+- **Nota:** a conta antiga tinha avisos de faturação e ad blocker; nada disso afeta a conta nova.
+
 ## [2026-08-17] limpeza | Removidas da Vercel as env vars órfãs do tracking (GA e Ads)
 
 Depois de o GA4 e o Google Ads passarem a ter os ids **fixos no `Analytics.tsx`**, as env vars

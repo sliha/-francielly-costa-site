@@ -83,8 +83,9 @@ atualizado: 2026-08-17
   `trackMarcacaoAds()` (`gtag('event', 'conversion_event_book_appointment')`), **uma vez** em cada:
   marcação sem caução (`BookingFlow`, ramo `!CAUCAO_ATIVA`), checkout Stripe (`/agendamento/confirmado`,
   com o dedup por `session_id` do `Purchase`) e consulta virtual (etapa `confirmado`, `useRef`
-  anti-repetição). Só dispara com consentimento de marketing (o `config` do Ads é gated, coerente
-  com o Consent Mode básico).
+  anti-repetição). A conversão é **importada do GA4** (ver subsecção de 2026-08-17), por isso o que
+  conta é o consentimento de **analytics** (carrega o GA4); nada dispara antes do opt-in, coerente
+  com o Consent Mode básico.
 - **Removida a conversão de Ads morta** em `trackContactWhatsapp` (apontava para
   `AW-18049747314/n0zqCIe-iZIcEPKS5Z5D`, conta antiga). Mantidos o `fbq('Contact')` e o
   `gtag('contact_whatsapp')`. Isto fecha o ==item em aberto== da secção do Meta Pixel (enviar
@@ -95,6 +96,25 @@ atualizado: 2026-08-17
   presente no chunk do `layout`, antiga `AW-18049747314` **0x**, `send_to` morto **0x**. O evento
   `conversion_event_book_appointment` aparece nos chunks próprios das **3 páginas de disparo**:
   homepage (`BookingFlow`), `/agendamento/confirmado` e `/consulta-virtual`.
+
+### Contas Ads, arquitetura da conversão e verificação no GA4 (2026-08-17)
+- **Conta nova:** `AW-18387543172` = Google Ads **"Francielly costa"**, customer ID **825-516-9554**,
+  sob o login **`geral@falcaowebsmart.pt`**. A antiga `AW-18049747314` é a conta **970-074-1913**
+  (login `biogenaturais34@gmail.com`), onde ficaram as conversões antigas "Clique whatsApp" e
+  "Lead form" (a "Clique whatsApp" vai ficar a 0 daqui para a frente, já não é disparada pelo site).
+- **A conversão "Marcação" é importada do GA4, não é nativa do Ads.** No Ads é a ação
+  **`BOOK_APPOINTMENT`** (Ação principal do objetivo "Fazer marcações"), com **Fonte: Google Analytics
+  (GA4)**, propriedade **"Falcao"** (`G-500PEGQ6Y4`), gatilho = evento GA4
+  `conversion_event_book_appointment`. Cadeia: site → `gtag('event', 'conversion_event_book_appointment')`
+  → GA4 Falcao → importado para o Ads. Implica **latência de importação GA4→Ads** (horas a 24-48h) além
+  do tempo até haver uma marcação real.
+- **Verificação (GA4 Falcao, últimos 28 dias):** o evento `conversion_event_book_appointment` = **0**
+  (ainda não disparou), tal como `purchase` e `generate_lead`. O pipeline está **vivo**: `page_view`,
+  `session_start`, **`begin_checkout` 5x** (2 utilizadores), `chat_started` 3x. Leitura: config correta,
+  mas ainda sem uma marcação/checkout/consulta virtual **concluída** por um cliente que aceite cookies.
+  Realtime confirmou tráfego ao vivo na propriedade.
+- ==A vigiar:== se houver uma marcação/pagamento **concluído** (admin/Stripe) que não apareça como
+  `conversion_event_book_appointment` no GA4, há um fio solto para investigar. Caso contrário, é só acumular.
 
 ## Performance (impacta SEO)
 - Removido `@import` de Google Fonts render-blocking; **hero LCP estático** (CSS).
