@@ -14,6 +14,18 @@ Dica: `grep "^## \[" log.md | tail -5` mostra as 5 últimas entradas.
 
 ---
 
+## [2026-08-17] limpeza | Removidas da Vercel as env vars órfãs do tracking (GA e Ads)
+
+Depois de o GA4 e o Google Ads passarem a ter os ids **fixos no `Analytics.tsx`**, as env vars
+`NEXT_PUBLIC_GA_ID` e `NEXT_PUBLIC_GOOGLE_ADS_ID` deixaram de ser lidas e ainda tinham valores
+antigos. Removidas via `vercel env rm` das 3 environments (Production, Preview, Development).
+Confirmado com `vercel env ls`: 0 ocorrências de ambas.
+
+- **Sem efeito runtime nem redeploy necessário:** o código fixa os ids e produção já servia os
+  valores corretos (`G-500PEGQ6Y4`, `AW-18387543172`). Reversível com `vercel env add`.
+- As restantes env vars (segredos Stripe/Resend/Supabase/Google/Anthropic, etc.) ficam intactas.
+  Ver [[seo-analytics]].
+
 ## [2026-08-14] decisão | Google Ads: conta nova AW-18387543172 e conversão "Marcação" (verificada em produção)
 
 A conta Google Ads mudou (a antiga `AW-18049747314` era de outra conta e deixa de contar). Nova

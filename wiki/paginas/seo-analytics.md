@@ -4,7 +4,7 @@ tags:
   - seo
   - analytics
   - ads
-atualizado: 2026-08-14
+atualizado: 2026-08-17
 ---
 
 # SEO e analytics
@@ -47,7 +47,7 @@ atualizado: 2026-08-14
 - Novo measurement id do GA4: **`G-500PEGQ6Y4`** (substitui o antigo `G-GM7S2XXBZS`).
 - Passou a estar **fixo no `Analytics.tsx`** (deixou de ler `NEXT_PUBLIC_GA_ID`), para o ID correto
   entrar no deploy sem depender de uma env var na Vercel, que teria precedência sobre o fallback.
-  A env var `NEXT_PUBLIC_GA_ID` na Vercel ficou **órfã** (já não é lida; pode ser removida).
+  A env var `NEXT_PUBLIC_GA_ID` na Vercel ficou **órfã** (já não é lida) e foi **removida** em 2026-08-17.
 - **Nada mais mexido:** Google Ads (`AW-18049747314`), Meta Pixel, Metricool e o Consent Mode v2
   continuam iguais. GA4 e Ads partilham o mesmo `gtag.js`.
 - Verificado em **build limpo**: `G-500PEGQ6Y4` presente, `G-GM7S2XXBZS` com **0** ocorrências, Ads presente.
@@ -77,8 +77,8 @@ atualizado: 2026-08-14
 - A conta Google Ads mudou. Nova etiqueta: **`AW-18387543172`** (a antiga `AW-18049747314` era de
   outra conta e deixa de contar). Como no GA4, o id passou a estar **fixo no `Analytics.tsx`** (sem
   `process.env`), porque a env var `NEXT_PUBLIC_GOOGLE_ADS_ID` tinha o valor antigo e, por
-  precedência sobre o fallback, mantinha a conta morta no build. A env var fica **órfã** na Vercel
-  (removível, não urgente).
+  precedência sobre o fallback, mantinha a conta morta no build. A env var ficou **órfã** e foi
+  **removida** da Vercel em 2026-08-17.
 - **Novo evento de conta** criado no Ads: `conversion_event_book_appointment`. Disparado pela função
   `trackMarcacaoAds()` (`gtag('event', 'conversion_event_book_appointment')`), **uma vez** em cada:
   marcação sem caução (`BookingFlow`, ramo `!CAUCAO_ATIVA`), checkout Stripe (`/agendamento/confirmado`,
