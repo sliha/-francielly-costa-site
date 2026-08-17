@@ -14,6 +14,20 @@ Dica: `grep "^## \[" log.md | tail -5` mostra as 5 últimas entradas.
 
 ---
 
+## [2026-08-14] decisão | Google Ads: conta nova AW-18387543172 e conversão "Marcação" (verificada em produção)
+
+A conta Google Ads mudou (a antiga `AW-18049747314` era de outra conta e deixa de contar). Nova
+etiqueta `AW-18387543172`, evento de conta `conversion_event_book_appointment`. Mudanças (commit
+`ac9af59`): `GOOGLE_ADS_ID` **fixo no `Analytics.tsx`** (como o GA4, a env var
+`NEXT_PUBLIC_GOOGLE_ADS_ID` tinha o valor antigo e ganhava ao fallback, fica órfã na Vercel); nova
+`trackMarcacaoAds()` disparada uma vez na marcação sem caução, no checkout Stripe e na consulta
+virtual; removida a conversão de Ads morta do `trackContactWhatsapp`.
+
+- **Verificado em produção** (deploy `f87b7b7`, grep ao bundle servido): nova `AW-18387543172`
+  presente, antiga `AW-18049747314` **0x**, `send_to` morto **0x**, e o evento nos chunks das 3
+  páginas de disparo. Antes, build limpo com os mesmos números. Ver [[seo-analytics]].
+- Higiene em aberto (não urgente): remover a env var órfã `NEXT_PUBLIC_GOOGLE_ADS_ID` na Vercel.
+
 ## [2026-08-13] decisão | Sofia (chat) deixa de usar ortografia de IA (mantém emojis)
 
 O chat "Sofia" (`src/app/api/chat/route.ts`) escrevia com marcas típicas de IA (negrito `**`,

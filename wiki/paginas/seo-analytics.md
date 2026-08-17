@@ -91,6 +91,10 @@ atualizado: 2026-08-14
   conversão de Ads na marcação, não só no clique do WhatsApp).
 - Verificado em **build limpo** (output servido): antiga `AW-18049747314` **0x**, nova
   `AW-18387543172` **2x**, evento **10x**, `send_to` morto **0x**. `tsc`/`build` verdes.
+- **Verificado em produção** (deploy `f87b7b7`, grep ao bundle servido): nova `AW-18387543172`
+  presente no chunk do `layout`, antiga `AW-18049747314` **0x**, `send_to` morto **0x**. O evento
+  `conversion_event_book_appointment` aparece nos chunks próprios das **3 páginas de disparo**:
+  homepage (`BookingFlow`), `/agendamento/confirmado` e `/consulta-virtual`.
 
 ## Performance (impacta SEO)
 - Removido `@import` de Google Fonts render-blocking; **hero LCP estático** (CSS).
