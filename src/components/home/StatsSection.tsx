@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useInView } from 'react-intersection-observer'
 import { Users, Clock, Layers, Trophy } from 'lucide-react'
@@ -8,7 +8,7 @@ import { Users, Clock, Layers, Trophy } from 'lucide-react'
 const stats = [
   {
     icon: Users,
-    value: 200,
+    value: 2300,
     prefix: '+',
     suffix: '',
     label: 'Clientes Satisfeitas',
@@ -26,7 +26,7 @@ const stats = [
   },
   {
     icon: Layers,
-    value: 4,
+    value: 5,
     prefix: '',
     suffix: '',
     label: 'Serviços Especializados',
@@ -44,31 +44,65 @@ const stats = [
   },
 ]
 
+// O valor em repouso (SSR, sem-JS, antes de entrar no ecrã) é SEMPRE o número real:
+// inicializamos o estado com `end`. A contagem 0->end é só enriquecimento progressivo,
+// disparada quando o elemento entra no viewport. Se já estiver visível no primeiro paint
+// (ecrãs altos) mostramos o número estático, para não haver flash end->0->up. Respeita
+// prefers-reduced-motion (sem animação, número final).
 function CountUp({ end, duration = 2000 }: { end: number; duration?: number }) {
-  const [count, setCount] = useState(0)
-  const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.5 })
+  const nodeRef = useRef<HTMLSpanElement | null>(null)
+  const { ref: inViewRef, inView } = useInView({ triggerOnce: true, threshold: 0 })
+  const [count, setCount] = useState(end)
   const startedRef = useRef(false)
 
+  // Combinar o ref do observer com um ref ao nó do DOM (para medir a visibilidade no mount).
+  const setRefs = useCallback(
+    (node: HTMLSpanElement | null) => {
+      nodeRef.current = node
+      inViewRef(node)
+    },
+    [inViewRef]
+  )
+
+  // Se já está visível no primeiro paint, trava a contagem e mantém o número estático.
+  // Corre antes de o IntersectionObserver disparar (o callback dele é sempre assíncrono).
   useEffect(() => {
-    if (inView && !startedRef.current) {
-      startedRef.current = true
-      const startTime = performance.now()
-      const step = (currentTime: number) => {
-        const elapsed = currentTime - startTime
-        const progress = Math.min(elapsed / duration, 1)
-        const eased = 1 - Math.pow(1 - progress, 3) // ease-out cubic
-        setCount(Math.floor(eased * end))
-        if (progress < 1) {
-          requestAnimationFrame(step)
-        } else {
-          setCount(end)
-        }
-      }
-      requestAnimationFrame(step)
+    const node = nodeRef.current
+    if (!node) return
+    const rect = node.getBoundingClientRect()
+    const visivelNoMount = rect.top < window.innerHeight && rect.bottom > 0
+    if (visivelNoMount) startedRef.current = true
+  }, [])
+
+  useEffect(() => {
+    if (!inView || startedRef.current) return
+    startedRef.current = true
+
+    const prefersReduced =
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (prefersReduced) {
+      setCount(end)
+      return
     }
+
+    setCount(0)
+    const startTime = performance.now()
+    const step = (currentTime: number) => {
+      const elapsed = currentTime - startTime
+      const progress = Math.min(elapsed / duration, 1)
+      const eased = 1 - Math.pow(1 - progress, 3) // ease-out cubic
+      setCount(Math.floor(eased * end))
+      if (progress < 1) {
+        requestAnimationFrame(step)
+      } else {
+        setCount(end)
+      }
+    }
+    requestAnimationFrame(step)
   }, [inView, end, duration])
 
-  return <span ref={ref}>{count}</span>
+  return <span ref={setRefs}>{count}</span>
 }
 
 export default function StatsSection() {
