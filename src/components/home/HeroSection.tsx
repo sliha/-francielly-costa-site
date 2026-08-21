@@ -3,7 +3,10 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { ArrowRight, ChevronDown, Star, Award, Sparkles } from 'lucide-react'
+import { ArrowRight, ChevronDown, Star, Award } from 'lucide-react'
+
+// Perfil Google da Francielly para as avaliacoes (preencher depois).
+const GOOGLE_REVIEWS_URL = '#'
 
 const floatingElements = [
   { top: '15%', left: '8%', delay: 0 },
@@ -14,10 +17,6 @@ const floatingElements = [
 
 function scrollToFiberBROWS() {
   document.getElementById('fiberbrows-highlight')?.scrollIntoView({ behavior: 'smooth' })
-}
-
-function openChat() {
-  window.dispatchEvent(new Event('openChat'))
 }
 
 export default function HeroSection() {
@@ -64,27 +63,6 @@ export default function HeroSection() {
       {/* Content */}
       <div className="relative z-10 max-w-7xl mx-auto px-5 sm:px-6 lg:px-8 text-center pt-20">
 
-        {/* FiberBROWS animated banner */}
-        <motion.button
-          onClick={scrollToFiberBROWS}
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-5 sm:py-2 rounded-full border border-golden/50 bg-golden/15 mb-4 cursor-pointer hover:border-golden hover:bg-golden/25 transition-all duration-300 group"
-        >
-          <motion.span
-            className="text-sm"
-            animate={{ rotate: [0, 15, -15, 0] }}
-            transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
-          >
-            ✨
-          </motion.span>
-          <span className="text-golden text-[10px] sm:text-xs font-bold tracking-[0.12em] sm:tracking-[0.18em] uppercase font-inter">
-            Novo em Portugal — FiberBROWS
-          </span>
-          <ArrowRight className="w-3 h-3 text-golden group-hover:translate-x-0.5 transition-transform" />
-        </motion.button>
-
         {/* Badge */}
         <Link href="/certificacoes">
           <motion.div
@@ -105,8 +83,9 @@ export default function HeroSection() {
         <h1
           className="animate-hero font-playfair font-bold text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl text-white leading-tight mb-4"
         >
-          Dermopigmentação{' '}
+          Sobrancelhas perfeitas,{' '}
           <span className="block mt-1">
+            resultado{' '}
             <span
               className="bg-clip-text text-transparent"
               style={{
@@ -114,23 +93,17 @@ export default function HeroSection() {
                 backgroundSize: '200%',
               }}
             >
-              Avançada
+              natural
             </span>
           </span>
         </h1>
 
         {/* Subtitle */}
         <p
-          className="animate-hero text-white/70 text-base sm:text-lg md:text-xl max-w-2xl mx-auto mb-2 font-inter leading-relaxed"
+          className="animate-hero text-white/70 text-base sm:text-lg md:text-xl max-w-2xl mx-auto mb-8 sm:mb-10 font-inter leading-relaxed"
           style={{ animationDelay: '0.12s' }}
         >
-          Arte e precisão ao serviço da sua beleza natural.
-        </p>
-        <p
-          className="animate-hero text-golden/80 text-sm sm:text-base md:text-lg max-w-xl mx-auto mb-8 sm:mb-10 font-inter font-medium"
-          style={{ animationDelay: '0.2s' }}
-        >
-          Primeira profissional certificada em FiberBROWS em Portugal
+          Microblading, micropigmentação e sobrancelhas em Braga · +2300 clientes · 5.0★ Google
         </p>
 
         {/* CTA Buttons */}
@@ -138,20 +111,19 @@ export default function HeroSection() {
           className="animate-hero flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mb-12 sm:mb-16"
           style={{ animationDelay: '0.3s' }}
         >
-          <button
-            onClick={scrollToFiberBROWS}
+          <Link
+            href="/agendar"
             className="group inline-flex items-center gap-2 px-6 py-3 sm:px-8 sm:py-4 bg-gradient-rose text-white font-semibold rounded-full shadow-rose-lg hover:shadow-rose hover:-translate-y-1 transition-all duration-300 font-inter text-sm sm:text-base w-full sm:w-auto justify-center"
           >
-            Descubra a FiberBROWS
-            <Sparkles className="w-4 h-4 group-hover:scale-110 transition-transform duration-200" />
-          </button>
-          <button
-            onClick={openChat}
+            Marcar avaliação gratuita
+            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-200" />
+          </Link>
+          <Link
+            href="/servicos"
             className="group inline-flex items-center gap-2 px-6 py-3 sm:px-8 sm:py-4 border-2 border-white/30 text-white font-semibold rounded-full hover:border-golden hover:text-golden transition-all duration-300 font-inter text-sm sm:text-base backdrop-blur-sm w-full sm:w-auto justify-center"
           >
-            Agendar com a Sofia
-            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-200" />
-          </button>
+            Ver serviços e preços
+          </Link>
         </div>
 
         {/* Stats Row */}
@@ -159,7 +131,7 @@ export default function HeroSection() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.85 }}
-          className="flex flex-wrap items-center justify-center gap-8 md:gap-16 mb-16"
+          className="flex flex-wrap items-center justify-center gap-8 md:gap-16 mb-8"
         >
           {[
             { value: '+2300', label: 'Clientes Satisfeitas' },
@@ -177,22 +149,52 @@ export default function HeroSection() {
           ))}
         </motion.div>
 
-        {/* Review Stars */}
+        {/* Selo 5.0 Google — clicável para o perfil Google da Francielly */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.8, delay: 1.05 }}
-          className="flex items-center justify-center gap-2 mb-16"
+          className="flex justify-center mb-16"
         >
-          <div className="flex items-center gap-1">
-            {[...Array(5)].map((_, i) => (
-              <Star key={i} className="w-4 h-4 text-golden fill-golden" />
-            ))}
-          </div>
-          <span className="text-white/60 text-sm font-inter">
-            5.0 — Avaliações verificadas do Google
-          </span>
+          <a
+            href={GOOGLE_REVIEWS_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Ver as avaliações 5.0 estrelas no Google"
+            className="group inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/15 bg-white/5 hover:border-golden/60 hover:bg-white/10 transition-all duration-300"
+          >
+            <span className="flex items-center gap-0.5">
+              {[...Array(5)].map((_, i) => (
+                <Star key={i} className="w-4 h-4 text-golden fill-golden" />
+              ))}
+            </span>
+            <span className="text-white/80 text-sm font-inter font-semibold group-hover:text-golden transition-colors">
+              5.0★ Google
+            </span>
+          </a>
         </motion.div>
+
+        {/* Destaque FiberBROWS — demovido para o fim do herói (deixa de competir com
+            o CTA principal). Continua a levar à secção FiberBROWS mais abaixo.
+            HTML simples + CSS animate-hero (hydration-safe, sem framer-motion). */}
+        <div
+          className="animate-hero flex flex-col items-center gap-2 mb-16"
+          style={{ animationDelay: '0.4s' }}
+        >
+          <button
+            onClick={scrollToFiberBROWS}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-5 sm:py-2 rounded-full border border-golden/50 bg-golden/15 cursor-pointer hover:border-golden hover:bg-golden/25 transition-all duration-300 group"
+          >
+            <span className="text-sm">✨</span>
+            <span className="text-golden text-[10px] sm:text-xs font-bold tracking-[0.12em] sm:tracking-[0.18em] uppercase font-inter">
+              Novo em Portugal · FiberBROWS
+            </span>
+            <ArrowRight className="w-3 h-3 text-golden group-hover:translate-x-0.5 transition-transform" />
+          </button>
+          <span className="text-golden/70 text-xs sm:text-sm font-inter font-medium">
+            Primeira profissional certificada em FiberBROWS em Portugal
+          </span>
+        </div>
       </div>
 
       {/* Scroll indicator */}
