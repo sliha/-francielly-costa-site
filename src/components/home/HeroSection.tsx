@@ -5,8 +5,8 @@ import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { ArrowRight, ChevronDown, Star, Award } from 'lucide-react'
 
-// Perfil Google da Francielly para as avaliacoes (preencher depois).
-const GOOGLE_REVIEWS_URL = '#'
+// Perfil Google da Francielly para as avaliacoes (Google Maps).
+const GOOGLE_REVIEWS_URL = 'https://www.google.com/maps/search/?api=1&query=Francielly%20Costa%20-%20Dermopigmenta%C3%A7%C3%A3o%20Avan%C3%A7ada%2C%20Braga'
 
 const floatingElements = [
   { top: '15%', left: '8%', delay: 0 },
