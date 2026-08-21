@@ -96,6 +96,137 @@ function renderContent(content: string) {
   return elements
 }
 
+// ---- Fase 2: blocos ricos (creme + rose-gold), 100% opcionais e retrocompatíveis ----
+
+// Título de secção opcional dentro de um bloco rico (mesmo estilo do "## " do texto).
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return (
+    <h2 className="font-playfair font-bold text-2xl text-text-primary mt-10 mb-4">{children}</h2>
+  )
+}
+
+// Linha do tempo: horizontal no desktop (nós numerados sobre uma linha rose->golden),
+// empilhada na vertical no mobile. 'note' opcional em texto pequeno por baixo.
+function Timeline({ phases, note }: { phases: { label: string; text: string }[]; note?: string }) {
+  return (
+    <div className="my-8">
+      {/* Desktop: horizontal */}
+      <div className="hidden md:block relative">
+        <div className="absolute top-5 left-0 right-0 h-0.5 bg-gradient-to-r from-rose-gold to-golden" />
+        <div className="relative flex justify-between gap-4">
+          {phases.map((p, i) => (
+            <div key={i} className="flex-1 flex flex-col items-center text-center">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-rose-gold to-golden text-white font-bold flex items-center justify-center shadow-card z-10">
+                {i + 1}
+              </div>
+              <p className="mt-3 font-semibold text-text-primary text-sm font-inter">{p.label}</p>
+              <p className="mt-1 text-text-secondary text-sm font-inter leading-relaxed">{p.text}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+      {/* Mobile: vertical */}
+      <div className="md:hidden relative">
+        <div className="absolute top-5 bottom-5 left-5 -translate-x-1/2 w-0.5 bg-gradient-to-b from-rose-gold to-golden" />
+        <ol className="space-y-6 relative">
+          {phases.map((p, i) => (
+            <li key={i} className="flex gap-4">
+              <div className="w-10 h-10 flex-shrink-0 rounded-full bg-gradient-to-br from-rose-gold to-golden text-white font-bold flex items-center justify-center shadow-card z-10">
+                {i + 1}
+              </div>
+              <div className="pt-1">
+                <p className="font-semibold text-text-primary text-sm font-inter">{p.label}</p>
+                <p className="mt-0.5 text-text-secondary text-sm font-inter leading-relaxed">{p.text}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </div>
+      {note && <p className="mt-6 text-text-muted text-sm font-inter italic">{note}</p>}
+    </div>
+  )
+}
+
+// Nº de colunas no desktop conforme a contagem de cartões (classes estáticas, purge-safe).
+function techGridCols(n: number): string {
+  if (n <= 1) return ''
+  if (n === 2) return 'sm:grid-cols-2'
+  if (n === 3) return 'sm:grid-cols-2 lg:grid-cols-3'
+  return 'sm:grid-cols-2 lg:grid-cols-4'
+}
+
+// Grelha de cartões: título rose com traço rose->golden por cima + texto.
+function TechniqueCards({ cards }: { cards: { title: string; text: string }[] }) {
+  return (
+    <div className={`my-8 grid grid-cols-1 gap-4 ${techGridCols(cards.length)}`}>
+      {cards.map((c, i) => (
+        <div
+          key={i}
+          className="rounded-2xl bg-white border border-cream-dark shadow-card p-6 overflow-hidden"
+        >
+          <div className="h-1 w-12 rounded-full bg-gradient-to-r from-rose-gold to-golden mb-4" />
+          <h3 className="font-playfair font-bold text-lg text-rose-gold mb-2">{c.title}</h3>
+          <p className="text-text-secondary text-sm font-inter leading-relaxed">{c.text}</p>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// Checklist de cuidados: "Deve fazer" (✓ verde) e "Deve evitar" (✕ rose), lado a lado.
+function CareChecklist({ doItems, dontItems }: { doItems?: string[]; dontItems?: string[] }) {
+  return (
+    <div className="my-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+      {doItems && doItems.length > 0 && (
+        <div className="rounded-2xl bg-white border border-cream-dark shadow-card p-6">
+          <h3 className="font-playfair font-bold text-lg text-text-primary mb-4 flex items-center gap-2">
+            <span className="text-green-600">✓</span> Deve fazer
+          </h3>
+          <ul className="space-y-2">
+            {doItems.map((it, i) => (
+              <li key={i} className="flex items-start gap-2 text-text-secondary text-sm font-inter leading-relaxed">
+                <span className="text-green-600 mt-0.5 flex-shrink-0">✓</span>
+                <span>{it}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {dontItems && dontItems.length > 0 && (
+        <div className="rounded-2xl bg-white border border-cream-dark shadow-card p-6">
+          <h3 className="font-playfair font-bold text-lg text-text-primary mb-4 flex items-center gap-2">
+            <span className="text-rose-gold">✕</span> Deve evitar
+          </h3>
+          <ul className="space-y-2">
+            {dontItems.map((it, i) => (
+              <li key={i} className="flex items-start gap-2 text-text-secondary text-sm font-inter leading-relaxed">
+                <span className="text-rose-gold mt-0.5 flex-shrink-0">✕</span>
+                <span>{it}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Linha de "pills" rose-gold suave.
+function Chips({ items }: { items: string[] }) {
+  return (
+    <div className="my-6 flex flex-wrap gap-2">
+      {items.map((it, i) => (
+        <span
+          key={i}
+          className="inline-flex items-center px-3 py-1.5 rounded-full bg-rose-gold/10 text-rose-gold-dark text-sm font-inter font-medium border border-rose-gold/20"
+        >
+          {it}
+        </span>
+      ))}
+    </div>
+  )
+}
+
 export default function BlogPostPage({ article }: Props) {
   const formatDate = (dateStr: string) =>
     dateStr ? new Date(dateStr).toLocaleDateString('pt-PT', { day: 'numeric', month: 'long', year: 'numeric' }) : ''
@@ -159,6 +290,38 @@ export default function BlogPostPage({ article }: Props) {
               }
               if (block.type === 'text' && block.text) {
                 return <div key={idx}>{renderContent(block.text)}</div>
+              }
+              if (block.type === 'timeline' && block.phases) {
+                return (
+                  <div key={idx}>
+                    {block.title && <SectionTitle>{block.title}</SectionTitle>}
+                    <Timeline phases={block.phases} note={block.note} />
+                  </div>
+                )
+              }
+              if (block.type === 'techniqueCards' && block.cards) {
+                return (
+                  <div key={idx}>
+                    {block.title && <SectionTitle>{block.title}</SectionTitle>}
+                    <TechniqueCards cards={block.cards} />
+                  </div>
+                )
+              }
+              if (block.type === 'careChecklist' && (block.doItems || block.dontItems)) {
+                return (
+                  <div key={idx}>
+                    {block.title && <SectionTitle>{block.title}</SectionTitle>}
+                    <CareChecklist doItems={block.doItems} dontItems={block.dontItems} />
+                  </div>
+                )
+              }
+              if (block.type === 'chips' && block.items) {
+                return (
+                  <div key={idx}>
+                    {block.title && <SectionTitle>{block.title}</SectionTitle>}
+                    <Chips items={block.items} />
+                  </div>
+                )
               }
               return null
             })}
