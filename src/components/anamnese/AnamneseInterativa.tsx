@@ -659,7 +659,7 @@ function PassoRender({
           <p>{CONSENTIMENTO.procedimento}</p>
           <BlocoLista titulo="Riscos possíveis" itens={CONSENTIMENTO.riscos} cor={cor} />
           <BlocoLista titulo="Contraindicações" itens={CONSENTIMENTO.contraindicacoes} cor={cor} />
-          <BlocoLista titulo="Cuidados pós-procedimento" itens={CONSENTIMENTO.cuidados} cor={cor} />
+          <BlocoLista titulo="Cuidados pós-procedimento" itens={CONSENTIMENTO.cuidados} cor={cor} destaque />
           <BlocoLista titulo="Declaro que" itens={CONSENTIMENTO.declaracoes} cor={cor} />
           <p className="text-xs text-gray-400">{CONSENTIMENTO.rgpd}</p>
         </div>
@@ -704,13 +704,13 @@ function PassoRender({
   return null
 }
 
-function BlocoLista({ titulo, itens, cor }: { titulo: string; itens: string[]; cor: string }) {
+function BlocoLista({ titulo, itens, cor, destaque }: { titulo: string; itens: string[]; cor: string; destaque?: boolean }) {
   return (
-    <div>
+    <div className={destaque ? 'rounded-xl border border-rose-gold/40 bg-rose-gold/5 p-3' : undefined}>
       <p className="font-semibold mb-1" style={{ color: cor }}>{titulo}</p>
       <ul className="list-disc pl-5 space-y-0.5">
         {itens.map((i, idx) => (
-          <li key={idx}>{i}</li>
+          <li key={idx} className={destaque ? 'font-semibold text-gray-800' : ''}>{i}</li>
         ))}
       </ul>
     </div>
