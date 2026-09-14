@@ -6,6 +6,10 @@ import FiberBROWSDetailPage from '@/components/servicos/FiberBROWSDetailPage'
 import TricoPigmentacaoDetailPage from '@/components/servicos/TricoPigmentacaoDetailPage'
 import JsonLd, { breadcrumbSchema, serviceSchema, faqSchema, SITE_URL } from '@/components/JsonLd'
 import { fiberbrowsFaq } from '@/data/fiberbrowsFaq'
+import ServicoArtigosRelacionados from '@/components/servicos/ServicoArtigosRelacionados'
+
+// A lista de artigos vem da BD (getPublishedPosts): revalidar de hora a hora.
+export const revalidate = 3600
 
 interface Props {
   params: { slug: string }
@@ -139,6 +143,7 @@ export default function ServicePage({ params }: Props) {
       ) : (
         <ServiceDetailPage service={service!} />
       )}
+      <ServicoArtigosRelacionados slug={params.slug} />
     </>
   )
 }
