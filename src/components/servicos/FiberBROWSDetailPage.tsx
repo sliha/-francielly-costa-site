@@ -477,6 +477,35 @@ export default function FiberBROWSDetailPage() {
         </div>
       </section>
 
+      {/* ── FORMAÇÃO PARA PROFISSIONAIS (ligação de saída: fiberbrow.eu) ─── */}
+      <section className="py-20" style={{ background: '#0d0a00' }}>
+        <div className="max-w-3xl mx-auto px-4 text-center">
+          <Section>
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-golden/30 bg-golden/8 mb-6">
+              <Trophy className="w-3.5 h-3.5 text-golden" />
+              <span className="text-golden text-xs font-bold tracking-widest uppercase font-inter">
+                Para Profissionais
+              </span>
+            </div>
+            <h2 className="font-playfair font-bold text-3xl text-white mb-4">
+              É profissional de estética e quer aprender esta técnica?
+            </h2>
+            <p className="text-white/50 font-inter mb-8 max-w-xl mx-auto">
+              A formação e a certificação FiberBrow na Europa estão em fiberbrow.eu.
+            </p>
+            <a
+              href="https://fiberbrow.eu/pt/formacao"
+              target="_blank"
+              rel="noopener"
+              className="group inline-flex items-center gap-2 px-8 py-4 rounded-full border border-golden/30 text-golden hover:border-golden hover:bg-golden/10 font-semibold font-inter transition-all"
+            >
+              Formação e certificação FiberBrow
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </a>
+          </Section>
+        </div>
+      </section>
+
       {/* ── CTA FINAL — MARCAÇÃO ─────────────────────────────────────────── */}
       <section id="agendar" className="py-24"
         style={{ background: 'linear-gradient(135deg, #1a1205 0%, #0d0a00 100%)' }}>
