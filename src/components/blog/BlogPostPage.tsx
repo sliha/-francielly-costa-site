@@ -21,8 +21,19 @@ const categoryColors: Record<string, string> = {
   Desmistificando: 'bg-golden/10 text-golden-dark',
 }
 
-function parseBold(text: string): string {
-  return text.replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold text-text-primary">$1</strong>')
+// Markdown inline -> HTML. Vai por dangerouslySetInnerHTML, por isso o href das
+// ligações é restringido a http(s): o regex exige https?:// no início, logo um
+// [x](javascript:...) (ou qualquer outro esquema) NÃO casa e fica texto literal,
+// nunca entrando como href. O " também é excluído do href para não poder escapar
+// do atributo. As ligações são seguíveis de propósito (sem nofollow): passam
+// autoridade de SEO. Corre antes do negrito para o texto da âncora poder levar **.
+function parseInline(text: string): string {
+  return text
+    .replace(
+      /\[([^\]]+)\]\((https?:\/\/[^\s)"]+)\)/g,
+      '<a href="$2" target="_blank" rel="noopener" class="text-rose-gold font-medium underline underline-offset-2 hover:text-rose-gold-dark transition-colors">$1</a>',
+    )
+    .replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold text-text-primary">$1</strong>')
 }
 
 function renderContent(content: string) {
@@ -71,7 +82,7 @@ function renderContent(content: string) {
       elements.push(<ul key={key++} className="list-none space-y-2 my-4 pl-2">{items.map((item, idx) => (
         <li key={idx} className="flex items-start gap-2 text-text-secondary font-inter text-base leading-relaxed">
           <span className="text-rose-gold mt-1 flex-shrink-0">◆</span>
-          <span dangerouslySetInnerHTML={{ __html: parseBold(item) }} />
+          <span dangerouslySetInnerHTML={{ __html: parseInline(item) }} />
         </li>
       ))}</ul>)
     } else if (line.match(/^\d+\.\s/)) {
@@ -81,7 +92,7 @@ function renderContent(content: string) {
       elements.push(<ol key={key++} className="list-none space-y-3 my-4 pl-2">{items.map((item, idx) => (
         <li key={idx} className="flex items-start gap-3 text-text-secondary font-inter text-base leading-relaxed">
           <span className="flex-shrink-0 w-6 h-6 rounded-full bg-rose-gold text-white text-xs font-bold flex items-center justify-center mt-0.5">{idx + 1}</span>
-          <span dangerouslySetInnerHTML={{ __html: parseBold(item) }} />
+          <span dangerouslySetInnerHTML={{ __html: parseInline(item) }} />
         </li>
       ))}</ol>)
     } else if (line.startsWith('---')) {
@@ -89,7 +100,7 @@ function renderContent(content: string) {
     } else if (line.trim() === '') {
       elements.push(<div key={key++} className="h-2" />)
     } else {
-      elements.push(<p key={key++} className="text-text-secondary font-inter text-base leading-relaxed mb-3" dangerouslySetInnerHTML={{ __html: parseBold(line) }} />)
+      elements.push(<p key={key++} className="text-text-secondary font-inter text-base leading-relaxed mb-3" dangerouslySetInnerHTML={{ __html: parseInline(line) }} />)
     }
   }
   if (inTable) flushTable()
