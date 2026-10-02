@@ -197,7 +197,7 @@ export const CONSENTIMENTO = {
   titulo: 'Termo de Consentimento Informado',
   subtitulo: 'FiberBROWS',
   procedimento:
-    'O FiberBROWS consiste na inserção de fios sintéticos biocompatíveis (PBT, polibutileno tereftalato) na região das sobrancelhas, com profundidade máxima de 3 mm, sem finalidade terapêutica e com efeito temporário (duração média de 4 a 6 meses). É um produto de adorno corporal temporário e removível. Não é um ato médico nem cirúrgico. O fio é estéril, de uso único e descartável.',
+    'O FiberBROWS consiste na inserção de fios sintéticos biocompatíveis (PBT, polibutileno tereftalato) na região das sobrancelhas, com profundidade máxima de 0,3 mm, sem finalidade terapêutica e com efeito temporário (duração média de 4 a 6 meses). É um produto de adorno corporal temporário e removível. Não é um ato médico nem cirúrgico. O fio é estéril, de uso único e descartável.',
   riscos: [
     'Vermelhidão ligeira, comichão ou inchaço nas primeiras 48 horas',
     'Pequeno sangramento durante a aplicação',
