@@ -134,7 +134,7 @@ export default function FiberBROWSDetailPage() {
             className="flex flex-wrap justify-center gap-8 mt-14">
             {[
               { label: 'Profundidade', value: 'Máx. 0,3mm' },
-              { label: 'Resultado', value: '6 Meses' },
+              { label: 'Resultado', value: '2-3 Anos' },
               { label: 'Ação na pele', value: 'Superficial' },
               { label: 'Dor', value: 'Muito ligeira' },
             ].map((s, i) => (
@@ -292,7 +292,7 @@ export default function FiberBROWSDetailPage() {
             </h2>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-10">
               {[
-                { icon: Clock, label: 'Duração do resultado', value: 'Até 6 Meses' },
+                { icon: Clock, label: 'Duração do resultado', value: '2 a 3 anos' },
                 { icon: Shield, label: 'Tipo', value: 'Estético' },
                 { icon: Zap, label: 'Dor', value: 'Muito ligeira' },
                 { icon: Star, label: 'Manutenção', value: 'Simples' },
@@ -398,8 +398,8 @@ export default function FiberBROWSDetailPage() {
                     ['Cirúrgico', 'Não ✓', 'Sim ✗', 'Não ✓'],
                     ['Invasividade', 'Mínima (0,3mm) ✓', 'Alta ✗', 'Moderada ~'],
                     ['Dor', 'Muito ligeira ✓', 'Elevada ✗', 'Moderada ~'],
-                    ['Duração resultado', '6 meses', 'Permanente', '1-3 anos'],
-                    ['Preço', 'A partir de €1.000 ✓', '€7.000–€30.000 ✗', '€200–€500'],
+                    ['Duração resultado', '2-3 anos', 'Permanente', '1-3 anos'],
+                    ['Preço', 'A partir de €1.000', '€7.000–€30.000 ✗', '€200–€500'],
                     ['Recuperação', 'Mínima ✓', 'Semanas ✗', 'Dias ~'],
                   ].map(([label, fb, tc, mp], i) => (
                     <tr key={i} style={{ background: i % 2 === 0 ? 'rgba(255,255,255,0.01)' : 'transparent' }}>

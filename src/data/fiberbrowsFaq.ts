@@ -14,7 +14,7 @@ export const fiberbrowsFaq: FiberBrowsFaqItem[] = [
   },
   {
     q: 'A FiberBROWS é permanente?',
-    a: 'Não. O resultado é temporário, com duração de aproximadamente 6 meses. Pode ser renovada quando a cliente desejar, mantendo sempre um resultado natural e adaptado à evolução do rosto.',
+    a: 'Não. O resultado é temporário, com duração de 2 a 3 anos, e a primeira manutenção faz-se entre 3 a 6 meses após o procedimento. Pode ser renovada quando a cliente desejar, mantendo sempre um resultado natural e adaptado à evolução do rosto.',
   },
   {
     q: 'A FiberBROWS é um procedimento cirúrgico?',
@@ -26,7 +26,7 @@ export const fiberbrowsFaq: FiberBrowsFaqItem[] = [
   },
   {
     q: 'É possível reverter?',
-    a: 'Sim. É possível fazer a reversão ou retirada do material aplicado, tranquilamente. O resultado é temporário, com duração de até 6 meses.',
+    a: 'Sim. É possível fazer a reversão ou retirada do material aplicado, tranquilamente. O resultado é temporário, com duração de 2 a 3 anos.',
   },
   {
     q: 'Dói muito?',
@@ -66,6 +66,6 @@ export const fiberbrowsFaq: FiberBrowsFaqItem[] = [
   },
   {
     q: 'O que pode reduzir a duração do resultado?',
-    a: 'Pele inflamada, profundidade incorreta na aplicação e o estilo de vida da cliente podem influenciar a duração, que é de até 6 meses.',
+    a: 'Pele inflamada, profundidade incorreta na aplicação e o estilo de vida da cliente podem influenciar a duração, que é de 2 a 3 anos.',
   },
 ]

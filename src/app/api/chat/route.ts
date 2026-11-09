@@ -16,7 +16,7 @@ SERVIÇOS:
 - Microshading: Tebori, efeito sombreado pixel. 45min-1h. 2 sessões. Pode combinar com Microblading.
 - Micropigmentação Eyeliner: Dermógrafo, linha dos cílios. 45min-1h. 2 sessões. Dor moderado.
 - Micropigmentação Labial: Dermógrafo, pigmento nos lábios. 1h30-2h30. 2 sessões. Dor moderado.
-- FiberBROWS 360º: Técnica de embelezamento facial com fios estéticos biocompatíveis. Temporário (6 meses). NUNCA dizer implante, cirúrgico, invasivo, permanente, sintético.
+- FiberBROWS 360º: Técnica de embelezamento facial com fios estéticos biocompatíveis. Temporário, com duração de 2 a 3 anos (primeira manutenção entre 3 a 6 meses). NUNCA dizer implante, cirúrgico, invasivo, permanente, sintético.
 - Tricopigmentação: Micropigmentação capilar. 3-4 sessões. Duração 2-5 anos.
 
 LOCALIZAÇÃO: Av. Dr. António Palha 53, 4715-091 Braga. Seg-Sex 10h-18h.

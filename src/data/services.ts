@@ -27,9 +27,9 @@ export const SERVICES: Service[] = [
     id: 'fiberbrows',
     slug: 'fiberbrows',
     name: 'FiberBROWS',
-    shortDescription: 'Técnica não cirúrgica com fios estéticos biocompatíveis. Sobrancelhas naturais, resultado 6 meses.',
+    shortDescription: 'Técnica não cirúrgica com fios estéticos biocompatíveis. Sobrancelhas naturais, resultado 2 a 3 anos.',
     description:
-      'Técnica estética não cirúrgica de aplicação superficial de fios estéticos biocompatíveis nas sobrancelhas. Profundidade máxima de 0,3mm, dor inferior à micropigmentação, resultado duradouro de 6 meses.',
+      'Técnica estética não cirúrgica de aplicação superficial de fios estéticos biocompatíveis nas sobrancelhas. Profundidade máxima de 0,3mm, dor inferior à micropigmentação, resultado duradouro de 2 a 3 anos.',
     fullDescription:
       'A FiberBROWS é uma técnica inovadora que aplica fios estéticos biocompatíveis na pele com profundidade máxima de 0,3mm, mais superficial que a tatuagem, mais leve que a micropigmentação, menos invasiva que o piercing. Não é cirúrgica, não envolve extração de folículos e preserva 100% a integridade dos pelos naturais.',
     icon: '◈',
@@ -39,7 +39,7 @@ export const SERVICES: Service[] = [
     painLevel: 'Muito ligeiro',
     priceRange: 'A partir de €1.000',
     recovery: 'Mínimo',
-    duration_result: '6 meses',
+    duration_result: '2-3 anos',
     // Nota: 'sessions' e 'duration' abaixo alimentam o passo de marcação.
     purposes: [
       'Sobrancelhas naturais sem cirurgia',
@@ -50,7 +50,7 @@ export const SERVICES: Service[] = [
     benefits: [
       'Não cirúrgico nem médico',
       'Dor muito ligeira',
-      'Resultado 6 meses',
+      'Resultado 2-3 anos',
       'Alternativa a €7.000-€30.000',
     ],
     idealFor: [
