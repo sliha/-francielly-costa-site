@@ -18,8 +18,8 @@ const diferenciais = [
   },
   {
     icon: Clock,
-    title: 'Duração 6 Meses',
-    desc: 'Resultado duradouro com possibilidade de renovação. Flexibilidade para adaptar ao longo do tempo.',
+    title: 'Duração 2–3 Anos',
+    desc: 'Resultado duradouro de 2 a 3 anos. A primeira manutenção é feita entre 3 a 6 meses após o primeiro procedimento.',
   },
   {
     icon: TrendingDown,
